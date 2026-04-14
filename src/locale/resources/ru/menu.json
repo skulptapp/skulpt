@@ -1,0 +1,14 @@
+{
+    "home": {
+        "title": "Главная"
+    },
+    "results": {
+        "title": "Результаты"
+    },
+    "exercises": {
+        "title": "Упражнения"
+    },
+    "settings": {
+        "title": "Настройки"
+    }
+}

@@ -1,0 +1,14 @@
+{
+    "home": {
+        "title": "होम"
+    },
+    "results": {
+        "title": "परिणाम"
+    },
+    "exercises": {
+        "title": "एक्सरसाइज"
+    },
+    "settings": {
+        "title": "सेटिंग्स"
+    }
+}

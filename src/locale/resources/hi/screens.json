@@ -1,0 +1,411 @@
+{
+    "home": {
+        "title": "होम",
+        "planned": "नियोजित वर्कआउट",
+        "workoutsCount_one": "{{count}} वर्कआउट",
+        "workoutsCount_other": "{{count}} वर्कआउट्स",
+        "empty": {
+            "title": "यह है Skulpt",
+            "description": "आपकी वर्कआउट्स को आसानी से ट्रैक करने का ऐप।",
+            "button": {
+                "title": "प्लान करें",
+                "description": "अपना पहला वर्कआउट"
+            }
+        }
+    },
+    "results": {
+        "title": "परिणाम",
+        "stats": {
+            "title": "आंकड़े",
+            "trainingWeeks": {
+                "title": "ट्रेनिंग सप्ताह"
+            },
+            "trainingDays": {
+                "title": "ट्रेनिंग दिन"
+            },
+            "trainingHours": {
+                "title": "ट्रेनिंग घंटे"
+            },
+            "workoutsCount": {
+                "title": "वर्कआउट"
+            },
+            "volume": {
+                "title": "वॉल्यूम"
+            },
+            "exercisesCount": {
+                "title": "एक्सरसाइज"
+            },
+            "setsCount": {
+                "title": "सेट"
+            },
+            "repsCount": {
+                "title": "रेप्स"
+            }
+        },
+        "activitySummary": {
+            "title": "गतिविधि सारांश"
+        },
+        "scale": {
+            "title": "वज़न",
+            "metrics": {
+                "currentWeight": "वर्तमान वजन"
+            },
+            "chart": {
+                "empty": "अभी तक कोई वज़न लॉग नहीं है"
+            },
+            "modal": {
+                "date": "तारीख",
+                "weight": "वज़न"
+            },
+            "actions": {
+                "weighIn": "वज़न दर्ज करें",
+                "log": "सेव करें"
+            }
+        },
+        "daySummary": {
+            "title": "दिन का सारांश",
+            "stats": {
+                "workoutsCount": "वर्कआउट",
+                "totalWorkoutDuration": "वर्कआउट समय",
+                "totalActiveTime": "सक्रिय समय",
+                "totalRestTime": "आराम समय",
+                "volume": "वॉल्यूम",
+                "exercisesCount": "एक्सरसाइज",
+                "setsCount": "सेट",
+                "repsCount": "रेप्स"
+            }
+        },
+        "strength": {
+            "metrics": {
+                "totalVolume": "कुल वॉल्यूम",
+                "workoutFrequency": "प्रशिक्षण आवृत्ति",
+                "muscularLoad": "मांसपेशी लोड"
+            },
+            "sessions_one": "{{count}} सेशन",
+            "sessions_other": "{{count}} सेशन्स",
+            "kSuffix": "K"
+        }
+    },
+    "exercises": {
+        "title": "एक्सरसाइज",
+        "empty": {
+            "title": "कोई एक्सरसाइज़ नहीं",
+            "description": "\"+\" दबाएं और अपनी पहली एक्सरसाइज़ बनाएं।"
+        }
+    },
+    "filter": {
+        "title": "फ़िल्टर",
+        "ownership": {
+            "title": "एक्सरसाइज",
+            "all": "सभी एक्सरसाइज",
+            "mine": "मेरी एक्सरसाइज",
+            "system": "सिस्टम एक्सरसाइज"
+        },
+        "category": {
+            "title": "श्रेणी"
+        },
+        "tracking": {
+            "title": "ट्रैकिंग"
+        },
+        "primaryMuscle": {
+            "title": "मांसपेशी समूह"
+        }
+    },
+    "exercise": {
+        "deleteExerciseAlert": "क्या आप वाकई इस एक्सरसाइज को हटाना चाहते हैं?",
+        "tabs": {
+            "history": "इतिहास",
+            "guide": "गाइड",
+            "statistics": "आंकड़े"
+        },
+        "history": {
+            "empty": {
+                "title": "कोई इतिहास नहीं",
+                "description": "अपना इतिहास देखने के लिए इस एक्सरसाइज के साथ वर्कआउट शुरू करें।"
+            }
+        },
+        "guide": {
+            "instructions": "निर्देश",
+            "mistakes": "सामान्य गलतियाँ",
+            "empty": {
+                "title": "कोई गाइड नहीं",
+                "description": "इस व्यायाम के लिए अभी तक कोई गाइड उपलब्ध नहीं है।"
+            }
+        },
+        "stats": {
+            "empty": {
+                "title": "1RM डेटा नहीं है",
+                "description": "1RM निकालने के लिए वजन और रेप्स वाले सेट पूरे करें।"
+            },
+            "oneRm": {
+                "cardTitle": "वन-रेप मैक्स (1RM)",
+                "description": "एक रेप के लिए अधिकतम वजन का अनुमान",
+                "latest": "नवीनतम",
+                "workoutsCount": "वर्कआउट एक्सरसाइज़"
+            },
+            "volume": {
+                "cardTitle": "कुल वॉल्यूम",
+                "description": "हर वर्कआउट एक्सरसाइज़ के लिए कुल लोड",
+                "latest": "नवीनतम",
+                "progress": "प्रगति",
+                "empty": {
+                    "title": "वॉल्यूम डेटा नहीं है",
+                    "description": "कुल वॉल्यूम निकालने के लिए वजन और रेप्स वाले सेट पूरे करें।"
+                }
+            },
+            "averageWeight": {
+                "cardTitle": "अवधि का औसत वजन",
+                "description": "अवधि में प्रशिक्षण तीव्रता का संकेतक",
+                "latest": "नवीनतम",
+                "workoutsCount": "वर्कआउट एक्सरसाइज़",
+                "empty": {
+                    "title": "औसत वजन का डेटा नहीं है",
+                    "description": "औसत वजन निकालने के लिए वजन और रेप्स वाले सेट पूरे करें।"
+                }
+            },
+            "intensity": {
+                "cardTitle": "वर्कआउट इंटेंसिटी (% of 1RM)",
+                "description": "आप अधिकतम के मुकाबले कितनी कठिन ट्रेनिंग कर रहे हैं",
+                "latest": "नवीनतम",
+                "workoutsCount": "वर्कआउट एक्सरसाइज़",
+                "empty": {
+                    "title": "इंटेंसिटी डेटा नहीं है",
+                    "description": "इंटेंसिटी निकालने के लिए वजन और रेप्स वाले सेट पूरे करें।"
+                }
+            },
+            "relativeStrength": {
+                "cardTitle": "सापेक्ष शक्ति",
+                "description": "शरीर के वजन के सापेक्ष ताकत",
+                "latest": "नवीनतम",
+                "classificationLabel": "श्रेणी",
+                "classification": {
+                    "novice": "शुरुआती",
+                    "beginner": "प्रारंभिक",
+                    "intermediate": "मध्यम",
+                    "advanced": "उन्नत",
+                    "elite": "एलीट"
+                },
+                "empty": {
+                    "noTraining": {
+                        "title": "सापेक्ष शक्ति का डेटा नहीं है",
+                        "description": "1RM निकालने के लिए वजन और रेप्स वाले वर्किंग सेट पूरे करें।"
+                    },
+                    "noBodyWeight": {
+                        "title": "शरीर का वजन चाहिए",
+                        "description": "सापेक्ष शक्ति निकालने के लिए परिणाम स्क्रीन पर अपना वजन दर्ज करें।"
+                    }
+                }
+            }
+        }
+    },
+    "exercise-create": {
+        "name": "नाम",
+        "category": "कैटेगरी",
+        "tracking": "ट्रैकिंग",
+        "weight": "वजन",
+        "weightUnits": "यूनिट्स",
+        "weightAssisted": "असिस्टेड",
+        "weightDoubleInStats": "स्टैट्स में डबल",
+        "distance": "दूरी",
+        "distanceUnits": "यूनिट्स",
+        "distanceActivityType": "एक्टिविटी टाइप",
+        "distanceTrackAW": "Apple Watch के साथ ट्रैक करें",
+        "time": "समय",
+        "timeOptions": "समय के विकल्प",
+        "timeHalfwayAlert": "आधे रास्ते अलर्ट",
+        "muscleGroups": "मसल ग्रुप्स",
+        "primaryMuscleGroup": "प्राइमरी",
+        "secondaryMuscleGroup": "सेकेंडरी"
+    },
+    "workout-editor": {
+        "name": "नाम",
+        "namePlaceholder": "नया वर्कआउट",
+        "status": "स्टेटस",
+        "startDate": "शुरुआत की तारीख",
+        "setStartDate": "शुरुआत की तारीख सेट करें",
+        "start": "शुरुआत",
+        "end": "समाप्त",
+        "remind": "याद दिलाएं",
+        "duration": "अवधि"
+    },
+    "workout": {
+        "deleteWorkoutAlert": "क्या आप वाकई इस वर्कआउट को हटाना चाहते हैं?",
+        "repeat": {
+            "now": "अभी",
+            "plan": "योजना बनाएं",
+            "completed": "पूर्ण के रूप में जोड़ें"
+        },
+        "empty": {
+            "title": {
+                "planned": "वर्कआउट की योजना बनाएं",
+                "in_progress": "वर्कआउट शुरू हुआ",
+                "completed": "पूर्ण वर्कआउट",
+                "cancelled": "रद्द वर्कआउट"
+            },
+            "description": {
+                "planned": "एक्सरसाइज जोड़ने के लिए \"+\" दबाएं।",
+                "in_progress": "एक्सरसाइज जोड़ने के लिए \"+\" दबाएं।",
+                "completed": "एक्सरसाइज जोड़ने के लिए \"+\" दबाएं।",
+                "cancelled": "एक्सरसाइज जोड़ने के लिए \"+\" दबाएं।"
+            }
+        },
+        "supersets": {
+            "edit": "सुपरसेट संपादित करें",
+            "create": "सुपरसेट बनाएं",
+            "remove": "सुपरसेट हटाएं",
+            "removeFromGroup": "समूह से हटाएं"
+        },
+        "stats": {
+            "sections": {
+                "zone": "Heart Rate Zone",
+                "activity": "Activity",
+                "overview": "Overview",
+                "heartRate": "Heart Rate",
+                "recovery": "Heart Rate Recovery"
+            },
+            "activeCalories": "सक्रिय कैलोरी",
+            "totalCalories": "कुल कैलोरी",
+            "avgIntensity": "औसत तीव्रता",
+            "intensityRange": "Intensity Range",
+            "avgHeartRate": "औसत हृदय गति",
+            "heartRateRange": "Heart Rate Range",
+            "afterOneMinute": "After 1 min",
+            "afterTwoMinutes": "After 2 min",
+            "mhrUsed": "अधिकतम हृदय गति",
+            "activeScore": "एक्टिव स्कोर",
+            "avgMets": "औसत METs",
+            "distance": "दूरी",
+            "pace": "पेस",
+            "cadence": "कैडेंस"
+        }
+    },
+    "settings": {
+        "title": "सेटिंग्स",
+        "version": "संस्करण",
+        "items": {
+            "notifications": {
+                "title": "सूचनाएं"
+            },
+            "autolock": {
+                "title": "ऑटोलॉक"
+            },
+            "theme": {
+                "title": "थीम",
+                "auto": "सिस्टम",
+                "light": "लाइट",
+                "dark": "डार्क"
+            },
+            "sound": {
+                "title": "ध्वनि"
+            },
+            "dateTime": {
+                "title": "तारीख और समय"
+            },
+            "units": {
+                "title": "इकाइयां"
+            },
+            "language": {
+                "title": "भाषा"
+            },
+            "heartRate": {
+                "title": "हृदय गति"
+            },
+            "resetWatchSync": {
+                "title": "वॉच रीसेट करें",
+                "confirmTitle": "क्या वॉच सिंक रीसेट करें?",
+                "confirmDescription": "iPhone पर सिंक की कैश की गई स्थिति साफ़ कर दी जाएगी। वर्कआउट डेटा हटाया नहीं जाएगा।",
+                "successTitle": "वॉच सिंक रीसेट हो गया",
+                "successDescription": "सिंक स्थिति रीसेट हो गई है। अगर अपने आप दोबारा कनेक्ट न हो, तो वॉच ऐप फिर से खोलें।"
+            }
+        },
+        "watch": {
+            "title": "वॉच"
+        },
+        "help": {
+            "title": "सहायता",
+            "items": {
+                "reportProblem": {
+                    "title": "समस्या की रिपोर्ट करें"
+                },
+                "sendFeedback": {
+                    "title": "फ़ीडबैक भेजें"
+                }
+            }
+        },
+        "supportSkulpt": {
+            "title": "Skulpt को सपोर्ट करें",
+            "items": {
+                "tellFriend": {
+                    "title": "दोस्त को बताएं"
+                },
+                "reviewAppStore": {
+                    "title": "App Store पर रिव्यू दें",
+                    "message": "यह मेरा पसंदीदा वर्कआउट लॉगिंग ऐप है: {{url}}"
+                }
+            }
+        }
+    },
+    "notifications": {
+        "title": "सूचनाएं",
+        "description": "हम आपके वर्कआउट और एक्सरसाइज के लिए सूचनाएं भेजते हैं। जैसे सेट टाइम अलर्ट, आराम के समय की याद, एक्सरसाइज की सिफारिशें आदि।"
+    },
+    "autolock": {
+        "title": "ऑटोलॉक",
+        "description": "चालू: सक्रिय वर्कआउट के दौरान स्क्रीन मंद या लॉक नहीं होगी। बंद: स्क्रीन आपकी डिवाइस सेटिंग्स के अनुसार लॉक होगी।"
+    },
+    "units": {
+        "title": "इकाइयां",
+        "bodyWeightUnits": "शरीर का वजन",
+        "measurementUnits": "माप",
+        "weightUnits": "वजन",
+        "distanceUnits": "दूरी",
+        "description": "चुनी गई वजन और दूरी की इकाइयाँ आँकड़ों में उपयोग होंगी और नए व्यायामों के लिए डिफ़ॉल्ट होंगी।",
+        "exerciseUnits": "आप प्रत्येक व्यायाम के लिए इकाइयाँ \"Exercise → Edit\" में बदल सकते हैं।"
+    },
+    "datetime": {
+        "firstWeekday": "सप्ताह का पहला दिन",
+        "timeFormat": "समय प्रारूप"
+    },
+    "sound": {
+        "playSounds": "ध्वनि चलाएं",
+        "testSound": "टेस्ट करें"
+    },
+    "heartrate": {
+        "title": "हृदय गति",
+        "description": "अपनी अधिकतम हृदय गति (MHR) की गणना के लिए एक फॉर्मूला चुनें। हृदय गति ज़ोन का उपयोग वर्कआउट तीव्रता को ट्रैक करने के लिए किया जाता है।",
+        "biologicalSex": "जैविक लिंग",
+        "activityLevel": "गतिविधि स्तर",
+        "unset": "सेट नहीं",
+        "formula": "MHR फॉर्मूला",
+        "formulas": {
+            "nes": "211 - (0.64 x age)",
+            "fox": "220 - age",
+            "tanaka": "208 - (0.7 x age)",
+            "inbar": "205.8 - (0.685 x age)",
+            "gulati": "206 - (0.88 x age)",
+            "gellishLegacy": "207 - (0.7 x age) [legacy]",
+            "manual": "मैनुअल"
+        },
+        "biologicalSexOptions": {
+            "female": "महिला",
+            "male": "पुरुष",
+            "other": "अन्य"
+        },
+        "activityLevelOptions": {
+            "sedentary": "कम सक्रिय",
+            "active": "सक्रिय",
+            "trained": "प्रशिक्षित"
+        },
+        "manualMhr": "अधिकतम हृदय गति",
+        "birthday": "जन्मतिथि",
+        "bpm": "bpm",
+        "calculatedMhr": "अधिकतम हृदय गति",
+        "zones": {
+            "zone1": "ज़ोन 1 — वार्म अप",
+            "zone2": "ज़ोन 2 — फैट बर्न",
+            "zone3": "ज़ोन 3 — कार्डियो",
+            "zone4": "ज़ोन 4 — पीक",
+            "zone5": "ज़ोन 5 — मैक्स"
+        }
+    }
+}

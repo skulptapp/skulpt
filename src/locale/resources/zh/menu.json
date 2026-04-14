@@ -1,0 +1,14 @@
+{
+    "home": {
+        "title": "首页"
+    },
+    "results": {
+        "title": "成果"
+    },
+    "exercises": {
+        "title": "训练"
+    },
+    "settings": {
+        "title": "设置"
+    }
+}

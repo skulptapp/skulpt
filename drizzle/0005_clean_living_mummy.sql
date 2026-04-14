@@ -1,0 +1,1 @@
+ALTER TABLE `user` ADD `pushes` integer DEFAULT true;

@@ -1,0 +1,392 @@
+{
+    "number": "{{value, number}}",
+    "weight": {
+        "weight_kg": "$t(number, {\"value\": {{value}} }) 公斤",
+        "weight_lb": "$t(number, {\"value\": {{value}} }) 磅"
+    },
+    "save": "保存",
+    "showMoreN": "显示更多 {{number}}",
+    "hide": "隐藏",
+    "change": "更改",
+    "reset": "重置",
+    "done": "完成",
+    "begin": "开始",
+    "complete": "完成",
+    "completeWorkout": "完成训练？",
+    "repeat": "重复",
+    "add": "添加",
+    "cancel": "取消",
+    "now": "现在",
+    "rest": "休息",
+    "select": "选择",
+    "edit": "编辑",
+    "merge": "合并",
+    "delete": "删除",
+    "create": "创建",
+    "exercise": "练习",
+    "code": "代码",
+    "problem": "问题",
+    "feedback": "反馈",
+    "weightUnits": {
+        "kg": "千克",
+        "lb": "磅"
+    },
+    "distanceUnits": {
+        "km": "千米",
+        "mi": "英里"
+    },
+    "measurementUnits": {
+        "cm": "厘米",
+        "in": "英寸"
+    },
+    "timeFormat": {
+        "12h": "12小时制",
+        "24h": "24小时制"
+    },
+    "weekday": {
+        "monday": "星期一",
+        "sunday": "星期日"
+    },
+    "exerciseCategory": {
+        "strength": "力量训练",
+        "cardio": "有氧运动",
+        "flexibility": "柔韧性",
+        "yoga": "瑜伽",
+        "pilates": "普拉提",
+        "other": "其他"
+    },
+    "exerciseTracking": {
+        "weight": "重量",
+        "time": "时间",
+        "reps": "次数",
+        "distance": "距离"
+    },
+    "exerciseTrackingDescription": {
+        "weight+reps": [
+            "经典组数 — 固定重量训练特定次数",
+            "逆金字塔 — 递减重量，递增次数",
+            "正金字塔 — 递增重量，递减次数",
+            "集群组数 — 中间休息的分组训练",
+            "肌肉记忆组 — 主要次数 + 减重额外次数"
+        ],
+        "time": [
+            "固定时间 — 在特定时间内完成练习",
+            "间歇时间 — 交替活动和休息",
+            "递进时间 — 逐渐增加执行时间"
+        ],
+        "reps": [
+            "固定次数 — 严格规定的数量",
+            "次数金字塔 — 按计划改变数量",
+            "力竭训练 — 做到无法再做为止"
+        ],
+        "time+reps": [
+            "AMRAP (尽可能多次数) — 在时间内做最多次数",
+            "塔巴塔 — 20秒工作，10秒休息",
+            "间歇次数 — 在时间间歇内完成特定次数",
+            "节奏次数 — 控制每次动作的时间",
+            "阶梯训练 — 按时间改变次数"
+        ],
+        "distance+time": [
+            "节奏跑 — 在目标时间内完成特定距离",
+            "间歇跑 — 控制时间的距离段落",
+            "匀速跑 — 全程保持恒定速度",
+            "递进跑 — 在距离过程中逐渐加速",
+            "负分段 — 后半程加速"
+        ],
+        "weight": [
+            "固定重量 — 用一个重量练到力竭",
+            "递进重量 — 逐组增加重量",
+            "递减组 — 一组内降低重量"
+        ],
+        "distance": [
+            "固定距离 — 完成特定距离",
+            "递进距离 — 逐渐增加距离",
+            "间歇距离 — 交替长短距离段落",
+            "变速跑 — 根据感觉自由改变距离"
+        ],
+        "weight+time": [
+            "节奏组数 — 固定时间内使用特定重量",
+            "训练密度 — 在时间内完成最大重量量",
+            "负荷时间 — 控制重量节奏",
+            "EMOM重量训练 — 每分钟特定重量"
+        ],
+        "weight+distance": [
+            "农夫行走 — 负重行走一定距离",
+            "雪橇拖拽 — 拖拽重物一定距离",
+            "负重行军 — 背负重物行走/跑步",
+            "壶铃搬运 — 各种重量运输方式",
+            "负重爬坡 — 带额外负荷上坡"
+        ],
+        "distance+reps": [
+            "折返跑 — 在距离段内往返次数",
+            "间歇冲刺 — 特定数量的距离段落",
+            "爬楼梯 — 楼层/台阶次数",
+            "跑道圈数 — 固定圈数",
+            "移动俯卧撑 — 次数 + 移动"
+        ],
+        "weight+time+reps": [
+            "综合组数 — 三个参数都固定",
+            "递进负荷 — 改变所有参数",
+            "限制超级组 — 三参数组合练习",
+            "循环训练 — 重量、时间、次数站点",
+            "负重爆发力 — 爆发动作加限制",
+            "CrossFit WOD — 三参数功能性动作",
+            "负重节奏组 — 控制所有变量",
+            "间歇力量 — 结合有氧和力量参数"
+        ],
+        "weight+time+distance": [
+            "负重马拉松 — 带重量在时间内完成距离",
+            "军事标准 — 全装备在时间限制内完成距离",
+            "障碍赛跑 — OCR 加额外重量",
+            "负重登山 — 带装备攀登高度",
+            "负重铁人三项 — 组合项目加重量"
+        ],
+        "weight+reps+distance": [
+            "移动波比跳 — 练习次数加移动",
+            "功能性接力 — 沿路线的重量站点",
+            "CrossFit旅程 — 区域间移动的WOD",
+            "斯巴达赛 — 距离上的障碍次数",
+            "军事应用练习 — 所有参数组合"
+        ],
+        "time+reps+distance": [
+            "距离间歇训练 — 在时间内完成距离段落次数",
+            "循环跑步 — 在特定时间内完成圈数",
+            "跑道金字塔 — 改变距离和次数",
+            "节奏变速跑 — 跑步过程中的自由加速",
+            "多阶段测试 — 参数递进增加"
+        ],
+        "weight+time+reps+distance": [
+            "综合功能训练 — 控制所有参数",
+            "军事体育全能 — 完全控制所有变量",
+            "极限赛事 — 铁三+ 加额外任务",
+            "职业测试 — 消防、警察、军事测试",
+            "CrossFit Games风格 — 最高难度精英竞赛",
+            "大力士马拉松 — 力量练习加移动",
+            "极限挑战 — 耐力极限测试",
+            "高水平功能健身 — 运动应用",
+            "特种军事行动 — 实战任务",
+            "探险竞赛 — 多日全负荷赛事"
+        ]
+    },
+    "muscleGroup": {
+        "neck": "颈部",
+        "sternocleidomastoid": "胸锁乳突肌",
+        "scalenes": "斜角肌",
+        "splenius_capitis": "头夹肌",
+        "shoulders": "肩部",
+        "front_deltoid": "三角肌前束",
+        "lateral_deltoid": "三角肌中束",
+        "rear_deltoid": "三角肌后束",
+        "rotator_cuff": "肩袖肌群",
+        "supraspinatus": "冈上肌",
+        "infraspinatus": "冈下肌",
+        "teres_minor": "小圆肌",
+        "subscapularis": "肩胛下肌",
+        "chest": "胸部",
+        "pectoralis_major": "胸大肌",
+        "clavicular_head": "锁骨部",
+        "sternal_head": "胸骨部",
+        "abdominal_head": "腹部",
+        "pectoralis_minor": "胸小肌",
+        "serratus_anterior": "前锯肌",
+        "arms": "手臂",
+        "biceps": "肱二头肌",
+        "biceps_long_head": "肱二头肌长头",
+        "biceps_short_head": "肱二头肌短头",
+        "brachialis": "肱肌",
+        "triceps": "肱三头肌",
+        "triceps_long_head": "肱三头肌长头",
+        "triceps_lateral_head": "肱三头肌外侧头",
+        "triceps_medial_head": "肱三头肌内侧头",
+        "forearms": "前臂",
+        "brachioradialis": "肱桡肌",
+        "wrist_flexors": "腕屈肌群",
+        "wrist_extensors": "腕伸肌群",
+        "back": "背部",
+        "traps": "斜方肌",
+        "upper_traps": "斜方肌上束",
+        "middle_traps": "斜方肌中束",
+        "lower_traps": "斜方肌下束",
+        "lats": "背阔肌",
+        "latissimus_dorsi": "背阔肌",
+        "teres_major": "大圆肌",
+        "rhomboids": "菱形肌",
+        "rhomboid_major": "大菱形肌",
+        "rhomboid_minor": "小菱形肌",
+        "lower_back": "下背部",
+        "erector_spinae": "竖脊肌",
+        "multifidus": "多裂肌",
+        "quadratus_lumborum": "腰方肌",
+        "abs": "腹肌",
+        "core": "核心",
+        "rectus_abdominis": "腹直肌",
+        "upper_abs": "上腹",
+        "lower_abs": "下腹",
+        "transverse_abdominis": "腹横肌",
+        "obliques": "腹斜肌",
+        "external_obliques": "腹外斜肌",
+        "internal_obliques": "腹内斜肌",
+        "legs": "腿部",
+        "glutes": "臀肌",
+        "gluteus_maximus": "臀大肌",
+        "gluteus_medius": "臀中肌",
+        "gluteus_minimus": "臀小肌",
+        "hip_abductors": "髋外展肌群",
+        "tensor_fasciae_latae": "阔筋膜张肌",
+        "hip_external_rotators": "髋外旋肌群",
+        "piriformis": "梨状肌",
+        "obturator_internus": "闭孔内肌",
+        "adductors": "髋内收肌群",
+        "adductor_longus": "长收肌",
+        "adductor_brevis": "短收肌",
+        "adductor_magnus": "大收肌",
+        "gracilis": "股薄肌",
+        "hip_flexors": "髋屈肌群",
+        "iliopsoas": "髂腰肌",
+        "sartorius": "缝匠肌",
+        "pectineus": "耻骨肌",
+        "hamstrings": "腘绳肌群",
+        "biceps_femoris": "股二头肌",
+        "semitendinosus": "半腱肌",
+        "semimembranosus": "半膜肌",
+        "quads": "股四头肌",
+        "rectus_femoris": "股直肌",
+        "vastus_lateralis": "股外侧肌",
+        "vastus_medialis": "股内侧肌",
+        "vastus_intermedius": "股中间肌",
+        "calves": "小腿肌群",
+        "gastrocnemius_medial_head": "腓肠肌内侧头",
+        "gastrocnemius_lateral_head": "腓肠肌外侧头",
+        "soleus": "比目鱼肌",
+        "shins": "小腿前侧",
+        "tibialis_anterior": "胫前肌"
+    },
+    "weightUnit": {
+        "kg": "公斤",
+        "lb": "磅"
+    },
+    "distanceUnit": {
+        "km": "公里",
+        "mi": "英里"
+    },
+    "distanceActivityType": {
+        "outdoor_running": "户外跑步",
+        "indoor_running": "室内跑步",
+        "outdoor_walking": "户外步行",
+        "indoor_walking": "室内步行",
+        "stationary_bike": "健身单车",
+        "bike": "自行车",
+        "elliptical": "椭圆机",
+        "cardio": "有氧运动"
+    },
+    "timeOption": {
+        "log": "记录",
+        "timer": "定时器",
+        "stopwatch": "秒表"
+    },
+    "workoutStatus": {
+        "planned": "已安排",
+        "in_progress": "进行中",
+        "completed": "已完成",
+        "cancelled": "已取消"
+    },
+    "setType": {
+        "working": "工作组",
+        "warmup": "热身组",
+        "dropset": "递减组",
+        "failure": "力竭组"
+    },
+    "setTypeShort": {
+        "working": "W",
+        "warmup": "WU",
+        "dropset": "DS",
+        "failure": "F"
+    },
+    "workoutRemind": {
+        "start": "训练开始",
+        "5m": "提前5分钟",
+        "10m": "提前10分钟",
+        "15m": "提前15分钟",
+        "30m": "提前30分钟",
+        "1h": "提前1小时",
+        "2h": "提前2小时"
+    },
+    "setRestType": {
+        "after_set": "组后",
+        "between_sets": "组间",
+        "after_exercise": "练习后",
+        "all_intervals": "所有间歇"
+    },
+    "errors": {
+        "exercise": {
+            "name": {
+                "required": "练习名称为必填项"
+            },
+            "category": {
+                "required": "请选择类别"
+            },
+            "tracking": {
+                "required": "请选择追踪类型"
+            },
+            "weightUnits": {
+                "required": "请选择重量单位"
+            },
+            "weightAssisted": {
+                "required": "这是辅助练习吗？"
+            },
+            "weightDoubleInStats": {
+                "required": "在统计中重量翻倍吗？"
+            },
+            "timeOptions": {
+                "required": "请选择时间设置"
+            },
+            "timeHalfwayAlert": {
+                "required": "时间过半时提醒吗？"
+            },
+            "distanceUnits": {
+                "required": "请选择距离单位"
+            },
+            "distanceActivityType": {
+                "required": "请选择活动类型"
+            },
+            "distanceTrackAW": {
+                "required": "使用Apple Watch追踪吗？"
+            },
+            "primaryMuscleGroups": {
+                "invalidSelection": "主要肌群不能包含重复项，也不能同时选择父级和子级分组"
+            },
+            "secondaryMuscleGroups": {
+                "invalidSelection": "次要肌群不能包含重复项，也不能同时选择父级和子级分组",
+                "overlapPrimary": "次要肌群不能与主要肌群重叠"
+            }
+        }
+    },
+    "pushes": {
+        "workouts": {
+            "ended": {
+                "title": "休息结束",
+                "body": "训练完成。干得漂亮！"
+            },
+            "work": {
+                "title": "开始组训练",
+                "body": "{{exerciseName}}，第{{setNumber}}组，{{setTracking}}"
+            }
+        }
+    },
+    "placeholder": {
+        "search": "搜索"
+    },
+    "durations": {
+        "hr": "时",
+        "min": "分",
+        "sec": "秒"
+    },
+    "promo": {
+        "pushes": {
+            "title": "通知",
+            "description": "开启后可以了解新组训练和休息结束的提醒。",
+            "turnOn": "开启",
+            "delay": "暂时不需要"
+        }
+    }
+}

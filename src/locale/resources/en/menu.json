@@ -1,0 +1,14 @@
+{
+    "home": {
+        "title": "Home"
+    },
+    "results": {
+        "title": "Results"
+    },
+    "exercises": {
+        "title": "Exercises"
+    },
+    "settings": {
+        "title": "Settings"
+    }
+}

@@ -1,0 +1,411 @@
+{
+    "home": {
+        "title": "Inicio",
+        "planned": "Entrenamientos programados",
+        "workoutsCount_one": "{{count}} entrenamiento",
+        "workoutsCount_other": "{{count}} entrenamientos",
+        "empty": {
+            "title": "Esto es Skulpt",
+            "description": "La aplicación para hacer seguimiento cómodo de tus entrenamientos.",
+            "button": {
+                "title": "Planificar",
+                "description": "Tu primer entrenamiento"
+            }
+        }
+    },
+    "results": {
+        "title": "Resultados",
+        "stats": {
+            "title": "Estadísticas",
+            "trainingWeeks": {
+                "title": "Semanas de entrenamiento"
+            },
+            "trainingDays": {
+                "title": "Días de entrenamiento"
+            },
+            "trainingHours": {
+                "title": "Horas de entrenamiento"
+            },
+            "workoutsCount": {
+                "title": "Entrenamientos"
+            },
+            "volume": {
+                "title": "Volumen"
+            },
+            "exercisesCount": {
+                "title": "Ejercicios"
+            },
+            "setsCount": {
+                "title": "Series"
+            },
+            "repsCount": {
+                "title": "Repeticiones"
+            }
+        },
+        "activitySummary": {
+            "title": "Resumen de actividad"
+        },
+        "scale": {
+            "title": "Báscula",
+            "metrics": {
+                "currentWeight": "Peso actual"
+            },
+            "chart": {
+                "empty": "Aún no hay registros de peso"
+            },
+            "modal": {
+                "date": "Fecha",
+                "weight": "Peso"
+            },
+            "actions": {
+                "weighIn": "Registrar peso",
+                "log": "Guardar"
+            }
+        },
+        "daySummary": {
+            "title": "Resumen del día",
+            "stats": {
+                "workoutsCount": "Entrenamientos",
+                "totalWorkoutDuration": "Tiempo de entrenamiento",
+                "totalActiveTime": "Tiempo activo",
+                "totalRestTime": "Tiempo de descanso",
+                "volume": "Volumen",
+                "exercisesCount": "Ejercicios",
+                "setsCount": "Series",
+                "repsCount": "Repeticiones"
+            }
+        },
+        "strength": {
+            "metrics": {
+                "totalVolume": "Volumen total",
+                "workoutFrequency": "Frecuencia de entrenamiento",
+                "muscularLoad": "Carga muscular"
+            },
+            "sessions_one": "{{count}} sesión",
+            "sessions_other": "{{count}} sesiones",
+            "kSuffix": "K"
+        }
+    },
+    "exercises": {
+        "title": "Ejercicios",
+        "empty": {
+            "title": "No hay ejercicios",
+            "description": "Toca \"+\" y crea tu primer ejercicio."
+        }
+    },
+    "filter": {
+        "title": "Filtro",
+        "ownership": {
+            "title": "Ejercicios",
+            "all": "Todos los ejercicios",
+            "mine": "Mis ejercicios",
+            "system": "Ejercicios del sistema"
+        },
+        "category": {
+            "title": "Categoría"
+        },
+        "tracking": {
+            "title": "Seguimiento"
+        },
+        "primaryMuscle": {
+            "title": "Grupo muscular"
+        }
+    },
+    "exercise": {
+        "deleteExerciseAlert": "¿Estás seguro de que quieres eliminar este ejercicio?",
+        "tabs": {
+            "history": "Historial",
+            "guide": "Guía",
+            "statistics": "Estadísticas"
+        },
+        "history": {
+            "empty": {
+                "title": "Sin historial",
+                "description": "Inicia un entrenamiento con este ejercicio para ver tu historial."
+            }
+        },
+        "guide": {
+            "instructions": "Instrucciones",
+            "mistakes": "Errores comunes",
+            "empty": {
+                "title": "Sin guía",
+                "description": "Aún no hay guía disponible para este ejercicio."
+            }
+        },
+        "stats": {
+            "empty": {
+                "title": "Sin datos de 1RM",
+                "description": "Completa series con peso y repeticiones para calcular el 1RM."
+            },
+            "oneRm": {
+                "cardTitle": "1RM (una repetición máxima)",
+                "description": "Estimación del peso máximo para una repetición",
+                "latest": "Último",
+                "workoutsCount": "Ejercicios de entrenamiento"
+            },
+            "volume": {
+                "cardTitle": "Volumen total",
+                "description": "Carga total por sesión de ejercicio",
+                "latest": "Último",
+                "progress": "Progreso",
+                "empty": {
+                    "title": "Sin datos de volumen",
+                    "description": "Completa series con peso y repeticiones para calcular el volumen total."
+                }
+            },
+            "averageWeight": {
+                "cardTitle": "Peso promedio del período",
+                "description": "Indicador de intensidad de entrenamiento del período",
+                "latest": "Último",
+                "workoutsCount": "Ejercicios de entrenamiento",
+                "empty": {
+                    "title": "Sin datos de peso promedio",
+                    "description": "Completa series con peso y repeticiones para calcular el peso promedio."
+                }
+            },
+            "intensity": {
+                "cardTitle": "Intensidad del entrenamiento (% del 1RM)",
+                "description": "Qué tan duro entrenas en relación con tu máximo",
+                "latest": "Última",
+                "workoutsCount": "Ejercicios de entrenamiento",
+                "empty": {
+                    "title": "Sin datos de intensidad",
+                    "description": "Completa series con peso y repeticiones para calcular la intensidad."
+                }
+            },
+            "relativeStrength": {
+                "cardTitle": "Fuerza relativa",
+                "description": "Fuerza en relación con el peso corporal",
+                "latest": "Última",
+                "classificationLabel": "Clase",
+                "classification": {
+                    "novice": "Novato",
+                    "beginner": "Inicial",
+                    "intermediate": "Intermedio",
+                    "advanced": "Avanzado",
+                    "elite": "Élite"
+                },
+                "empty": {
+                    "noTraining": {
+                        "title": "Sin datos de fuerza relativa",
+                        "description": "Completa series de trabajo con peso y repeticiones para calcular el 1RM."
+                    },
+                    "noBodyWeight": {
+                        "title": "Se requiere peso corporal",
+                        "description": "Indica tu peso corporal en la pantalla Resultados para calcular la fuerza relativa."
+                    }
+                }
+            }
+        }
+    },
+    "exercise-create": {
+        "name": "Nombre",
+        "category": "Categoría",
+        "tracking": "Seguimiento",
+        "weight": "Peso",
+        "weightUnits": "Unidades",
+        "weightAssisted": "Asistido",
+        "weightDoubleInStats": "Duplicar en estadísticas",
+        "distance": "Distancia",
+        "distanceUnits": "Unidades",
+        "distanceActivityType": "Tipo de actividad",
+        "distanceTrackAW": "Seguir con Apple Watch",
+        "time": "Tiempo",
+        "timeOptions": "Opciones de tiempo",
+        "timeHalfwayAlert": "Alerta a mitad de camino",
+        "muscleGroups": "Grupos Musculares",
+        "primaryMuscleGroup": "Principal",
+        "secondaryMuscleGroup": "Secundario"
+    },
+    "workout-editor": {
+        "name": "Nombre",
+        "namePlaceholder": "Nueva rutina",
+        "status": "Estado",
+        "startDate": "Fecha de inicio",
+        "setStartDate": "Establecer fecha de inicio",
+        "start": "Inicio",
+        "end": "Fin",
+        "remind": "Recordar",
+        "duration": "Duración"
+    },
+    "workout": {
+        "deleteWorkoutAlert": "¿Estás seguro de que quieres eliminar este entrenamiento?",
+        "repeat": {
+            "now": "Ahora",
+            "plan": "Planificar",
+            "completed": "Agregar como completado"
+        },
+        "empty": {
+            "title": {
+                "planned": "Programar entrenamiento",
+                "in_progress": "Entrenamiento iniciado",
+                "completed": "Entrenamiento completado",
+                "cancelled": "Entrenamiento cancelado"
+            },
+            "description": {
+                "planned": "Toca \"+\" para agregar ejercicios.",
+                "in_progress": "Toca \"+\" para agregar ejercicios.",
+                "completed": "Toca \"+\" para agregar ejercicios.",
+                "cancelled": "Toca \"+\" para agregar ejercicios."
+            }
+        },
+        "supersets": {
+            "edit": "Editar superseries",
+            "create": "Crear superserie",
+            "remove": "Eliminar superserie",
+            "removeFromGroup": "Quitar del grupo"
+        },
+        "stats": {
+            "sections": {
+                "zone": "Zona de frecuencia cardiaca",
+                "activity": "Actividad",
+                "overview": "Resumen",
+                "heartRate": "Frecuencia cardiaca",
+                "recovery": "Recuperación cardiaca"
+            },
+            "activeCalories": "Calorías activas",
+            "totalCalories": "Calorías totales",
+            "avgIntensity": "Intensidad media",
+            "intensityRange": "Rango de intensidad",
+            "avgHeartRate": "FC media",
+            "heartRateRange": "Rango de frecuencia cardiaca",
+            "afterOneMinute": "Después de 1 min",
+            "afterTwoMinutes": "Después de 2 min",
+            "mhrUsed": "FCM",
+            "activeScore": "Puntuación activa",
+            "avgMets": "METs medios",
+            "distance": "Distancia",
+            "pace": "Ritmo",
+            "cadence": "Cadencia"
+        }
+    },
+    "settings": {
+        "title": "Configuración",
+        "version": "Versión",
+        "items": {
+            "notifications": {
+                "title": "Notificaciones"
+            },
+            "autolock": {
+                "title": "Bloqueo automático"
+            },
+            "theme": {
+                "title": "Tema",
+                "auto": "Sistema",
+                "light": "Claro",
+                "dark": "Oscuro"
+            },
+            "sound": {
+                "title": "Sonido"
+            },
+            "dateTime": {
+                "title": "Fecha y hora"
+            },
+            "units": {
+                "title": "Unidades"
+            },
+            "language": {
+                "title": "Idioma"
+            },
+            "heartRate": {
+                "title": "Frecuencia cardíaca"
+            },
+            "resetWatchSync": {
+                "title": "Restablecer reloj",
+                "confirmTitle": "¿Restablecer sincronización con el reloj?",
+                "confirmDescription": "Se borrará el estado de sincronización en caché del iPhone. Los datos de entrenamientos no se eliminarán.",
+                "successTitle": "Sincronización restablecida",
+                "successDescription": "El estado de sincronización se restableció. Si no se reconecta automáticamente, abre de nuevo la app del reloj."
+            }
+        },
+        "watch": {
+            "title": "Reloj"
+        },
+        "help": {
+            "title": "Ayuda",
+            "items": {
+                "reportProblem": {
+                    "title": "Informar de un problema"
+                },
+                "sendFeedback": {
+                    "title": "Enviar comentarios"
+                }
+            }
+        },
+        "supportSkulpt": {
+            "title": "Apoyar a Skulpt",
+            "items": {
+                "tellFriend": {
+                    "title": "Recomendar a un amigo"
+                },
+                "reviewAppStore": {
+                    "title": "Opinar en el App Store",
+                    "message": "Esta es mi app favorita para registrar entrenamientos: {{url}}"
+                }
+            }
+        }
+    },
+    "notifications": {
+        "title": "Notificaciones",
+        "description": "Te enviamos notificaciones para tus entrenamientos y ejercicios. Como alertas de tiempo de serie, alertas de tiempo de descanso, recomendaciones de ejercicios, etc."
+    },
+    "autolock": {
+        "title": "Bloqueo automático",
+        "description": "ACTIVADO: La pantalla no se atenuará ni bloqueará durante entrenamientos activos. DESACTIVADO: La pantalla se bloqueará según la configuración de tu dispositivo."
+    },
+    "units": {
+        "title": "Unidades",
+        "bodyWeightUnits": "Peso corporal",
+        "measurementUnits": "Medidas",
+        "weightUnits": "Peso",
+        "distanceUnits": "Distancia",
+        "description": "Las unidades de peso y distancia seleccionadas se usarán en las estadísticas y como valores predeterminados para nuevos ejercicios.",
+        "exerciseUnits": "Puedes cambiar las unidades para ejercicios individuales en \"Ejercicio → Editar\"."
+    },
+    "datetime": {
+        "firstWeekday": "Primer día de la semana",
+        "timeFormat": "Formato de hora"
+    },
+    "sound": {
+        "playSounds": "Reproducir sonidos",
+        "testSound": "Probar"
+    },
+    "heartrate": {
+        "title": "Frecuencia cardíaca",
+        "description": "Elige una fórmula para calcular tu frecuencia cardíaca máxima (FCM). Las zonas de frecuencia cardíaca se usan para seguir la intensidad del entrenamiento.",
+        "biologicalSex": "Sexo biológico",
+        "activityLevel": "Nivel de actividad",
+        "unset": "No establecido",
+        "formula": "Fórmula FCM",
+        "formulas": {
+            "nes": "211 - (0.64 x age)",
+            "fox": "220 - age",
+            "tanaka": "208 - (0.7 x age)",
+            "inbar": "205.8 - (0.685 x age)",
+            "gulati": "206 - (0.88 x age)",
+            "gellishLegacy": "207 - (0.7 x age) [legacy]",
+            "manual": "Manual"
+        },
+        "biologicalSexOptions": {
+            "female": "Femenino",
+            "male": "Masculino",
+            "other": "Otro"
+        },
+        "activityLevelOptions": {
+            "sedentary": "Sedentario",
+            "active": "Activo",
+            "trained": "Entrenado"
+        },
+        "manualMhr": "FC máxima",
+        "birthday": "Fecha de nacimiento",
+        "bpm": "lpm",
+        "calculatedMhr": "FC máxima",
+        "zones": {
+            "zone1": "Zona 1 — Calentamiento",
+            "zone2": "Zona 2 — Quema de grasa",
+            "zone3": "Zona 3 — Cardio",
+            "zone4": "Zona 4 — Pico",
+            "zone5": "Zona 5 — Máximo"
+        }
+    }
+}

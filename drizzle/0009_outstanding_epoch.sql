@@ -1,0 +1,1 @@
+ALTER TABLE `workout` ADD `hr_recovery_series` text;

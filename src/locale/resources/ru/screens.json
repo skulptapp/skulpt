@@ -1,0 +1,416 @@
+{
+    "home": {
+        "title": "Главная",
+        "planned": "Запланированные",
+        "workoutsCount_one": "{{count}} тренировка",
+        "workoutsCount_two": "{{count}} тренировки",
+        "workoutsCount_few": "{{count}} тренировки",
+        "workoutsCount_many": "{{count}} тренировок",
+        "workoutsCount_other": "{{count}} тренировок",
+        "empty": {
+            "title": "Это Скульпт",
+            "description": "Приложение для удобного отслеживания твоих тренировок.",
+            "button": {
+                "title": "Запланировать",
+                "description": "Свою первую тренировку"
+            }
+        }
+    },
+    "results": {
+        "title": "Результаты",
+        "stats": {
+            "title": "Статистика",
+            "trainingWeeks": {
+                "title": "Недель тренировок"
+            },
+            "trainingDays": {
+                "title": "Дней тренировок"
+            },
+            "trainingHours": {
+                "title": "Часов тренировок"
+            },
+            "workoutsCount": {
+                "title": "Тренировок"
+            },
+            "volume": {
+                "title": "Объём"
+            },
+            "exercisesCount": {
+                "title": "Упражнений"
+            },
+            "setsCount": {
+                "title": "Подходов"
+            },
+            "repsCount": {
+                "title": "Повторений"
+            }
+        },
+        "activitySummary": {
+            "title": "Сводка активности"
+        },
+        "scale": {
+            "title": "Вес",
+            "metrics": {
+                "currentWeight": "Текущий вес"
+            },
+            "chart": {
+                "empty": "Пока нет записей веса"
+            },
+            "modal": {
+                "date": "Дата",
+                "weight": "Вес"
+            },
+            "actions": {
+                "weighIn": "Записать вес",
+                "log": "Сохранить"
+            }
+        },
+        "daySummary": {
+            "title": "Сводка за день",
+            "stats": {
+                "workoutsCount": "Тренировок",
+                "totalWorkoutDuration": "Время тренировок",
+                "totalActiveTime": "Активное время",
+                "totalRestTime": "Время на отдых",
+                "volume": "Поднятый вес",
+                "exercisesCount": "Упражнений",
+                "setsCount": "Подходов",
+                "repsCount": "Повторений"
+            }
+        },
+        "strength": {
+            "metrics": {
+                "totalVolume": "Общий объём",
+                "workoutFrequency": "Частота тренировок",
+                "muscularLoad": "Мышечная нагрузка"
+            },
+            "sessions_one": "{{count}} тренировка",
+            "sessions_few": "{{count}} тренировки",
+            "sessions_many": "{{count}} тренировок",
+            "sessions_other": "{{count}} тренировки",
+            "kSuffix": "K"
+        }
+    },
+    "exercises": {
+        "title": "Упражнения",
+        "empty": {
+            "title": "Нет упражнений",
+            "description": "Нажмите \"+\" и создайте своё первое упражнение."
+        }
+    },
+    "filter": {
+        "title": "Фильтр",
+        "ownership": {
+            "title": "Упражнения",
+            "all": "Все упражнения",
+            "mine": "Мои упражнения",
+            "system": "Системные упражнения"
+        },
+        "category": {
+            "title": "Категория"
+        },
+        "tracking": {
+            "title": "Отслеживание"
+        },
+        "primaryMuscle": {
+            "title": "Группа мышц"
+        }
+    },
+    "exercise": {
+        "deleteExerciseAlert": "Уверены, что хотите удалить упражнение?",
+        "tabs": {
+            "history": "История",
+            "guide": "Гайд",
+            "statistics": "Статистика"
+        },
+        "history": {
+            "empty": {
+                "title": "Нет истории",
+                "description": "Начните тренировку с этим упражнением, чтобы увидеть историю."
+            }
+        },
+        "guide": {
+            "instructions": "Инструкции",
+            "mistakes": "Частые ошибки",
+            "empty": {
+                "title": "Нет гайда",
+                "description": "Для этого упражнения пока нет гайда."
+            }
+        },
+        "stats": {
+            "empty": {
+                "title": "Нет данных 1RM",
+                "description": "Выполните подходы с весом и повторениями, чтобы рассчитать одноповторный максимум."
+            },
+            "oneRm": {
+                "cardTitle": "Одноповторный максимум (1RM)",
+                "description": "Оценка максимального веса на одно повторение",
+                "latest": "Последний",
+                "workoutsCount": "Тренировок"
+            },
+            "volume": {
+                "cardTitle": "Общий тоннаж (Volume)",
+                "description": "Суммарная нагрузка за тренировку по упражнению",
+                "latest": "Последний",
+                "progress": "Прогресс",
+                "empty": {
+                    "title": "Нет данных тоннажа",
+                    "description": "Выполните подходы с весом и повторениями, чтобы рассчитать тоннаж."
+                }
+            },
+            "averageWeight": {
+                "cardTitle": "Средний вес за период",
+                "description": "Показатель тренировочной интенсивности за период",
+                "latest": "Последний",
+                "workoutsCount": "Тренировок",
+                "empty": {
+                    "title": "Нет данных среднего веса",
+                    "description": "Выполните подходы с весом и повторениями, чтобы рассчитать средний вес."
+                }
+            },
+            "intensity": {
+                "cardTitle": "Интенсивность тренировки (% от 1RM)",
+                "description": "Насколько тяжело вы тренируетесь относительно максимума",
+                "latest": "Последняя",
+                "workoutsCount": "Тренировок",
+                "empty": {
+                    "title": "Нет данных интенсивности",
+                    "description": "Выполните подходы с весом и повторениями, чтобы рассчитать интенсивность."
+                }
+            },
+            "relativeStrength": {
+                "cardTitle": "Относительная сила",
+                "description": "Сила относительно собственного веса тела",
+                "latest": "Последняя",
+                "classificationLabel": "Класс",
+                "classification": {
+                    "novice": "Новичок",
+                    "beginner": "Начальный",
+                    "intermediate": "Средний",
+                    "advanced": "Продвинутый",
+                    "elite": "Элита"
+                },
+                "empty": {
+                    "noTraining": {
+                        "title": "Нет данных относительной силы",
+                        "description": "Выполните рабочие подходы с весом и повторениями, чтобы рассчитать 1RM."
+                    },
+                    "noBodyWeight": {
+                        "title": "Нужен вес тела",
+                        "description": "Укажите вес тела на экране Результаты, чтобы рассчитать относительную силу."
+                    }
+                }
+            }
+        }
+    },
+    "exercise-create": {
+        "name": "Название",
+        "category": "Категория",
+        "tracking": "Отслеживание",
+        "weight": "Вес",
+        "weightUnits": "Единицы",
+        "weightAssisted": "С поддержкой",
+        "weightDoubleInStats": "Удваивать в статистике",
+        "distance": "Расстояние",
+        "distanceUnits": "Единицы",
+        "distanceActivityType": "Тип активности",
+        "distanceTrackAW": "Отслеживать с Apple Watch",
+        "time": "Время",
+        "timeOptions": "Настройки времени",
+        "timeHalfwayAlert": "Уведомление на середине",
+        "muscleGroups": "Группы мышц",
+        "primaryMuscleGroup": "Основная",
+        "secondaryMuscleGroup": "Дополнительная"
+    },
+    "workout-editor": {
+        "name": "Название",
+        "namePlaceholder": "Новая тренировка",
+        "status": "Статус",
+        "startDate": "Дата начала",
+        "setStartDate": "Установить дату начала",
+        "start": "Начало",
+        "end": "Конец",
+        "remind": "Напомнить",
+        "duration": "Продолжительность"
+    },
+    "workout": {
+        "deleteWorkoutAlert": "Уверены, что хотите удалить тренировку?",
+        "repeat": {
+            "now": "Сейчас",
+            "plan": "Запланировать",
+            "completed": "Добавить как завершённую"
+        },
+        "empty": {
+            "title": {
+                "planned": "Запланировать тренировку",
+                "in_progress": "Тренировка начата",
+                "completed": "Завершённая тренировка",
+                "cancelled": "Отменённая тренировка"
+            },
+            "description": {
+                "planned": "Нажмите \"+\", чтобы добавить упражнения.",
+                "in_progress": "Нажмите \"+\", чтобы добавить упражнения.",
+                "completed": "Нажмите \"+\", чтобы добавить упражнения.",
+                "cancelled": "Нажмите \"+\", чтобы добавить упражнения."
+            }
+        },
+        "supersets": {
+            "edit": "Редактировать суперсеты",
+            "create": "Создать суперсет",
+            "remove": "Удалить суперсет",
+            "removeFromGroup": "Убрать из группы"
+        },
+        "stats": {
+            "sections": {
+                "zone": "Пульсовые зоны",
+                "activity": "Активность",
+                "overview": "Обзор",
+                "heartRate": "Пульс",
+                "recovery": "Восстановление пульса"
+            },
+            "activeCalories": "Активные калории",
+            "totalCalories": "Всего калорий",
+            "avgIntensity": "Средняя интенсивность",
+            "intensityRange": "Диапазон интенсивности",
+            "avgHeartRate": "Средний пульс",
+            "heartRateRange": "Диапазон пульса",
+            "afterOneMinute": "Через 1 мин",
+            "afterTwoMinutes": "Через 2 мин",
+            "mhrUsed": "МЧП",
+            "activeScore": "Active Score",
+            "avgMets": "Средние METs",
+            "distance": "Дистанция",
+            "pace": "Темп",
+            "cadence": "Каденс"
+        }
+    },
+    "settings": {
+        "title": "Настройки",
+        "version": "Версия",
+        "items": {
+            "notifications": {
+                "title": "Уведомления"
+            },
+            "autolock": {
+                "title": "Автоблокировка"
+            },
+            "theme": {
+                "title": "Тема",
+                "auto": "Системная",
+                "light": "Светлая",
+                "dark": "Тёмная"
+            },
+            "sound": {
+                "title": "Звук"
+            },
+            "dateTime": {
+                "title": "Дата и время"
+            },
+            "units": {
+                "title": "Единицы"
+            },
+            "language": {
+                "title": "Язык"
+            },
+            "heartRate": {
+                "title": "Пульс"
+            },
+            "resetWatchSync": {
+                "title": "Сбросить часы",
+                "confirmTitle": "Сбросить синхронизацию с часами?",
+                "confirmDescription": "Кэш состояния синхронизации на iPhone будет очищен. Данные тренировок не удалятся.",
+                "successTitle": "Синхронизация с часами сброшена",
+                "successDescription": "Состояние синхронизации сброшено. Если подключение не восстановилось автоматически, откройте приложение на часах заново."
+            }
+        },
+        "watch": {
+            "title": "Часы"
+        },
+        "help": {
+            "title": "Помощь",
+            "items": {
+                "reportProblem": {
+                    "title": "Сообщить о проблеме"
+                },
+                "sendFeedback": {
+                    "title": "Отправить отзыв"
+                }
+            }
+        },
+        "supportSkulpt": {
+            "title": "Поддержать Скульпт",
+            "items": {
+                "tellFriend": {
+                    "title": "Рассказать другу"
+                },
+                "reviewAppStore": {
+                    "title": "Оценить в App Store",
+                    "message": "Вот моё любимое приложение для записи тренировок: {{url}}"
+                }
+            }
+        }
+    },
+    "notifications": {
+        "title": "Уведомления",
+        "description": "Мы отправляем вам уведомления о тренировках и упражнениях. Например, напоминания о времени подхода, времени отдыха, рекомендации упражнений и т.д."
+    },
+    "autolock": {
+        "title": "Автоблокировка",
+        "description": "ВКЛ: Экран не будет затемняться или блокироваться во время активной тренировки. ОТКЛ: Экран будет блокироваться согласно настройкам устройства."
+    },
+    "units": {
+        "title": "Единицы",
+        "bodyWeightUnits": "Вес тела",
+        "measurementUnits": "Измерения",
+        "weightUnits": "Вес",
+        "distanceUnits": "Дистанция",
+        "description": "Выбранные единицы веса и дистанции будут использоваться в статистике и по умолчанию для новых упражнений.",
+        "exerciseUnits": "Вы можете изменить единицы измерения для отдельных упражнений в разделе «Упражнение → Редактировать»."
+    },
+    "datetime": {
+        "firstWeekday": "Первый день недели",
+        "timeFormat": "Формат времени"
+    },
+    "sound": {
+        "playSounds": "Воспроизводить звуки",
+        "testSound": "Тест"
+    },
+    "heartrate": {
+        "title": "Пульс",
+        "description": "Выберите формулу для расчёта максимального пульса (МЧП). Пульсовые зоны используются для отслеживания интенсивности тренировки.",
+        "biologicalSex": "Биологический пол",
+        "activityLevel": "Уровень активности",
+        "unset": "Не задано",
+        "formula": "Формула МЧП",
+        "formulas": {
+            "nes": "211 - (0.64 x age)",
+            "fox": "220 - age",
+            "tanaka": "208 - (0.7 x age)",
+            "inbar": "205.8 - (0.685 x age)",
+            "gulati": "206 - (0.88 x age)",
+            "gellishLegacy": "207 - (0.7 x age) [legacy]",
+            "manual": "Вручную"
+        },
+        "biologicalSexOptions": {
+            "female": "Женский",
+            "male": "Мужской",
+            "other": "Другое"
+        },
+        "activityLevelOptions": {
+            "sedentary": "Малоподвижный",
+            "active": "Активный",
+            "trained": "Тренированный"
+        },
+        "manualMhr": "Макс. пульс",
+        "birthday": "Дата рождения",
+        "bpm": "уд/мин",
+        "calculatedMhr": "Макс. пульс",
+        "zones": {
+            "zone1": "Зона 1 — Разминка",
+            "zone2": "Зона 2 — Жиросжигание",
+            "zone3": "Зона 3 — Кардио",
+            "zone4": "Зона 4 — Пиковая",
+            "zone5": "Зона 5 — Максимум"
+        }
+    }
+}

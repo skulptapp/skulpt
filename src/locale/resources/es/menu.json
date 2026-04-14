@@ -1,0 +1,14 @@
+{
+    "home": {
+        "title": "Inicio"
+    },
+    "results": {
+        "title": "Resultados"
+    },
+    "exercises": {
+        "title": "Ejercicios"
+    },
+    "settings": {
+        "title": "Ajustes"
+    }
+}

@@ -1,0 +1,411 @@
+{
+    "home": {
+        "title": "Home",
+        "planned": "Planned",
+        "workoutsCount_one": "{{count}} workout",
+        "workoutsCount_other": "{{count}} workouts",
+        "empty": {
+            "title": "This is Skulpt",
+            "description": "App for easy and efficient workout tracking.",
+            "button": {
+                "title": "Plan",
+                "description": "Your first workout"
+            }
+        }
+    },
+    "results": {
+        "title": "Results",
+        "stats": {
+            "title": "Stats",
+            "trainingWeeks": {
+                "title": "Training weeks"
+            },
+            "trainingDays": {
+                "title": "Training days"
+            },
+            "trainingHours": {
+                "title": "Training hours"
+            },
+            "workoutsCount": {
+                "title": "Workouts"
+            },
+            "volume": {
+                "title": "Volume"
+            },
+            "exercisesCount": {
+                "title": "Exercises"
+            },
+            "setsCount": {
+                "title": "Sets"
+            },
+            "repsCount": {
+                "title": "Reps"
+            }
+        },
+        "activitySummary": {
+            "title": "Activity Summary"
+        },
+        "scale": {
+            "title": "Scale",
+            "metrics": {
+                "currentWeight": "Current weight"
+            },
+            "chart": {
+                "empty": "No weight logs yet"
+            },
+            "modal": {
+                "date": "Date",
+                "weight": "Weight"
+            },
+            "actions": {
+                "weighIn": "Log Weight",
+                "log": "Log"
+            }
+        },
+        "daySummary": {
+            "title": "Day Summary",
+            "stats": {
+                "workoutsCount": "Workouts",
+                "totalWorkoutDuration": "Workout time",
+                "totalActiveTime": "Active time",
+                "totalRestTime": "Rest time",
+                "volume": "Volume",
+                "exercisesCount": "Exercises",
+                "setsCount": "Sets",
+                "repsCount": "Reps"
+            }
+        },
+        "strength": {
+            "metrics": {
+                "totalVolume": "Total Volume",
+                "workoutFrequency": "Workout Frequency",
+                "muscularLoad": "Muscular Load"
+            },
+            "sessions_one": "{{count}} session",
+            "sessions_other": "{{count}} sessions",
+            "kSuffix": "K"
+        }
+    },
+    "exercises": {
+        "title": "Exercises",
+        "empty": {
+            "title": "No exercises",
+            "description": "Tap \"+\" and create your first exercise."
+        }
+    },
+    "filter": {
+        "title": "Filter",
+        "ownership": {
+            "title": "Exercises",
+            "all": "All Exercises",
+            "mine": "My Exercises",
+            "system": "System Exercises"
+        },
+        "category": {
+            "title": "Category"
+        },
+        "tracking": {
+            "title": "Tracking"
+        },
+        "primaryMuscle": {
+            "title": "Muscle Group"
+        }
+    },
+    "exercise": {
+        "deleteExerciseAlert": "Are you sure you want to delete this exercise?",
+        "tabs": {
+            "history": "History",
+            "guide": "Guide",
+            "statistics": "Stats"
+        },
+        "history": {
+            "empty": {
+                "title": "No history",
+                "description": "Start a workout with this exercise to see your history."
+            }
+        },
+        "guide": {
+            "instructions": "Instructions",
+            "mistakes": "Common Mistakes",
+            "empty": {
+                "title": "No guide",
+                "description": "There is no guide available for this exercise yet."
+            }
+        },
+        "stats": {
+            "empty": {
+                "title": "No 1RM data",
+                "description": "Complete sets with weight and reps to calculate one-rep max."
+            },
+            "oneRm": {
+                "cardTitle": "One-rep max (1RM)",
+                "description": "Estimated max weight for one repetition",
+                "latest": "Latest",
+                "workoutsCount": "Workout exercises"
+            },
+            "volume": {
+                "cardTitle": "Total volume",
+                "description": "Total load for each workout exercise",
+                "latest": "Latest",
+                "progress": "Progress",
+                "empty": {
+                    "title": "No volume data",
+                    "description": "Complete sets with weight and reps to calculate total volume."
+                }
+            },
+            "averageWeight": {
+                "cardTitle": "Average weight over period",
+                "description": "Training intensity indicator across the period",
+                "latest": "Latest",
+                "workoutsCount": "Workout exercises",
+                "empty": {
+                    "title": "No average-weight data",
+                    "description": "Complete sets with weight and reps to calculate average weight."
+                }
+            },
+            "intensity": {
+                "cardTitle": "Workout intensity (% of 1RM)",
+                "description": "How hard you train relative to your max",
+                "latest": "Latest",
+                "workoutsCount": "Workout exercises",
+                "empty": {
+                    "title": "No intensity data",
+                    "description": "Complete sets with weight and reps to calculate intensity."
+                }
+            },
+            "relativeStrength": {
+                "cardTitle": "Relative strength",
+                "description": "Strength relative to body weight",
+                "latest": "Latest",
+                "classificationLabel": "Class",
+                "classification": {
+                    "novice": "Novice",
+                    "beginner": "Beginner",
+                    "intermediate": "Intermediate",
+                    "advanced": "Advanced",
+                    "elite": "Elite"
+                },
+                "empty": {
+                    "noTraining": {
+                        "title": "No relative-strength data",
+                        "description": "Complete working sets with weight and reps to calculate 1RM."
+                    },
+                    "noBodyWeight": {
+                        "title": "Body weight required",
+                        "description": "Set your body weight on the Results screen to calculate relative strength."
+                    }
+                }
+            }
+        }
+    },
+    "exercise-create": {
+        "name": "Name",
+        "category": "Category",
+        "tracking": "Tracking",
+        "weight": "Weight",
+        "weightUnits": "Units",
+        "weightAssisted": "Assisted",
+        "weightDoubleInStats": "Double in stats",
+        "distance": "Distance",
+        "distanceUnits": "Units",
+        "distanceActivityType": "Activity type",
+        "distanceTrackAW": "Track with Apple Watch",
+        "time": "Time",
+        "timeOptions": "Time options",
+        "timeHalfwayAlert": "Halfway alert",
+        "muscleGroups": "Muscle Groups",
+        "primaryMuscleGroup": "Primary",
+        "secondaryMuscleGroup": "Secondary"
+    },
+    "workout-editor": {
+        "name": "Name",
+        "namePlaceholder": "New workout",
+        "status": "Status",
+        "startDate": "Start Date",
+        "setStartDate": "Set start date",
+        "start": "Start",
+        "end": "End",
+        "remind": "Remind",
+        "duration": "Duration"
+    },
+    "workout": {
+        "deleteWorkoutAlert": "Are you sure you want to delete this workout?",
+        "repeat": {
+            "now": "Now",
+            "plan": "Plan",
+            "completed": "Add Complete"
+        },
+        "empty": {
+            "title": {
+                "planned": "Plan Workout",
+                "in_progress": "Workout Started",
+                "completed": "Completed Workout",
+                "cancelled": "Cancelled Workout"
+            },
+            "description": {
+                "planned": "Tap \"+\" to add exercises.",
+                "in_progress": "Tap \"+\" to add exercises.",
+                "completed": "Tap \"+\" to add exercises.",
+                "cancelled": "Tap \"+\" to add exercises."
+            }
+        },
+        "supersets": {
+            "edit": "Edit supersets",
+            "create": "Create superset",
+            "remove": "Remove superset",
+            "removeFromGroup": "Remove from group"
+        },
+        "stats": {
+            "sections": {
+                "zone": "Heart Rate Zone",
+                "activity": "Activity",
+                "overview": "Overview",
+                "heartRate": "Heart Rate",
+                "recovery": "Heart Rate Recovery"
+            },
+            "activeCalories": "Active Calories",
+            "totalCalories": "Total Calories",
+            "avgIntensity": "Avg Intensity",
+            "intensityRange": "Intensity Range",
+            "avgHeartRate": "Avg Heart Rate",
+            "heartRateRange": "Heart Rate Range",
+            "afterOneMinute": "After 1 min",
+            "afterTwoMinutes": "After 2 min",
+            "mhrUsed": "MHR",
+            "activeScore": "Active Score",
+            "avgMets": "Avg METs",
+            "distance": "Distance",
+            "pace": "Pace",
+            "cadence": "Cadence"
+        }
+    },
+    "settings": {
+        "title": "Settings",
+        "version": "Version",
+        "items": {
+            "notifications": {
+                "title": "Notifications"
+            },
+            "autolock": {
+                "title": "Autolock"
+            },
+            "theme": {
+                "title": "Theme",
+                "auto": "System",
+                "light": "Light",
+                "dark": "Dark"
+            },
+            "sound": {
+                "title": "Sound"
+            },
+            "dateTime": {
+                "title": "Date & Time"
+            },
+            "units": {
+                "title": "Units"
+            },
+            "language": {
+                "title": "Language"
+            },
+            "heartRate": {
+                "title": "Heart Rate"
+            },
+            "resetWatchSync": {
+                "title": "Reset Watch",
+                "confirmTitle": "Reset Watch Sync?",
+                "confirmDescription": "This clears cached watch sync state on iPhone. Workouts data will not be deleted.",
+                "successTitle": "Watch Sync Reset",
+                "successDescription": "Sync state was reset. Reopen the Watch app if it does not reconnect automatically."
+            }
+        },
+        "watch": {
+            "title": "Watch"
+        },
+        "help": {
+            "title": "Help",
+            "items": {
+                "reportProblem": {
+                    "title": "Report Problem"
+                },
+                "sendFeedback": {
+                    "title": "Send Feedback"
+                }
+            }
+        },
+        "supportSkulpt": {
+            "title": "Support Skulpt",
+            "items": {
+                "tellFriend": {
+                    "title": "Tell a Friend"
+                },
+                "reviewAppStore": {
+                    "title": "Review in the App Store",
+                    "message": "Here's my favorite workout logging app: {{url}}"
+                }
+            }
+        }
+    },
+    "notifications": {
+        "title": "Notifications",
+        "description": "We send you notifications for your workouts and exercises. Like set time alerts, rest time alerts, exercises recommendations and etc."
+    },
+    "autolock": {
+        "title": "Autolock",
+        "description": "ON: Screen will not be dimmed or locked during active workouts. OFF: Screen will lock based on your device settings."
+    },
+    "units": {
+        "title": "Units",
+        "bodyWeightUnits": "Body Weight",
+        "measurementUnits": "Measurements",
+        "weightUnits": "Weight",
+        "distanceUnits": "Distance",
+        "description": "Selected weight and distance units will be used in stats and set as default for new exercises.",
+        "exerciseUnits": "You can change units for individual exercises in \"Exercise → Edit\"."
+    },
+    "datetime": {
+        "firstWeekday": "First Weekday",
+        "timeFormat": "Time Format"
+    },
+    "sound": {
+        "playSounds": "Play sounds",
+        "testSound": "Test"
+    },
+    "heartrate": {
+        "title": "Heart Rate",
+        "description": "Choose a formula to calculate your Maximum Heart Rate (MHR). Heart rate zones are used to track workout intensity.",
+        "biologicalSex": "Biological Sex",
+        "activityLevel": "Activity Level",
+        "unset": "Not set",
+        "formula": "MHR Formula",
+        "formulas": {
+            "nes": "211 - (0.64 x age)",
+            "fox": "220 - age",
+            "tanaka": "208 - (0.7 x age)",
+            "inbar": "205.8 - (0.685 x age)",
+            "gulati": "206 - (0.88 x age)",
+            "gellishLegacy": "207 - (0.7 x age) [legacy]",
+            "manual": "Manual"
+        },
+        "biologicalSexOptions": {
+            "female": "Female",
+            "male": "Male",
+            "other": "Other"
+        },
+        "activityLevelOptions": {
+            "sedentary": "Sedentary",
+            "active": "Active",
+            "trained": "Trained"
+        },
+        "manualMhr": "Max Heart Rate",
+        "birthday": "Birthday",
+        "bpm": "bpm",
+        "calculatedMhr": "Max Heart Rate",
+        "zones": {
+            "zone1": "Zone 1 — Warm Up",
+            "zone2": "Zone 2 — Fat Burn",
+            "zone3": "Zone 3 — Cardio",
+            "zone4": "Zone 4 — Peak",
+            "zone5": "Zone 5 — Max"
+        }
+    }
+}

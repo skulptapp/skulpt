@@ -1,0 +1,27 @@
+ALTER TABLE `workout` DROP COLUMN `avg_heart_rate`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `min_heart_rate`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `max_heart_rate`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `mhr_used`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `avg_intensity`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `min_intensity`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `max_intensity`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `active_calories`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `heart_rate_recovery`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `heart_rate_recovery_two_minutes`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `active_score`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `avg_mets`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `distance_meters`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `pace_seconds_per_km`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `cadence`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `zone_1_seconds`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `zone_2_seconds`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `zone_3_seconds`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `zone_4_seconds`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `zone_5_seconds`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `zone_1_minutes`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `zone_2_minutes`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `zone_3_minutes`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `zone_4_minutes`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `zone_5_minutes`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `hr_time_series`;--> statement-breakpoint
+ALTER TABLE `workout` DROP COLUMN `hr_recovery_series`;
