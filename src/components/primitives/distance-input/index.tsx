@@ -43,7 +43,6 @@ const styles = StyleSheet.create((theme) => ({
         top: 0,
         bottom: 0,
         color: 'transparent',
-        opacity: 0,
         borderBottomWidth: 0,
     },
 }));
