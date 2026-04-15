@@ -1,4 +1,8 @@
 {
-    "CFBundleDisplayName": "Skulpt",
-    "app_name": "Skulpt"
+    "ios": {
+        "CFBundleDisplayName": "Skulpt"
+    },
+    "android": {
+        "app_name": "Skulpt"
+    }
 }
