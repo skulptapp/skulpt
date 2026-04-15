@@ -1,6 +1,42 @@
-# Skulpt
+<picture>
+    <img alt="skulpt" src="./.github/resources/banner.png" />
+</picture>
 
-A full-featured, **local-first** workout tracking app for iOS and Android built with React Native / Expo. All your data lives on-device in a local SQLite database — the app works fully offline with zero backend dependency. Sync is an optional layer on top: connect to the hosted Skulpt server, run your own self-hosted sync backend, or skip sync entirely and stay completely local.
+<p align="center">
+  <a href="https://apps.apple.com/us/app/skulpt-gym-workout-tracker/id6749158262">
+    <img src="https://img.shields.io/badge/App_Store-Download-0A84FF?style=flat&logo=apple&logoColor=white" alt="App Store" />
+  </a>
+  &nbsp;
+  <img src="https://img.shields.io/github/license/skulptapp/skulpt?style=flat&color=22c55e" alt="License: GPL-3.0" />
+  &nbsp;
+  <img src="https://img.shields.io/badge/platforms-iOS%20%7C%20Android-lightgrey?style=flat" alt="Platforms: iOS & Android" />
+  &nbsp;
+  <img src="https://img.shields.io/github/stars/skulptapp/skulpt?style=flat&color=facc15" alt="GitHub Stars" />
+</p>
+
+<p align="center">
+  <strong>Free · Open Source · Local-First · No Subscriptions</strong><br/>
+  Your workout data lives on your device. Sync is optional and fully self-hostable.
+</p>
+
+---
+
+A full-featured workout tracker for iOS and Android built with React Native / Expo. All data lives on-device in a local SQLite database — the app works fully offline with zero backend dependency. Sync is an optional layer on top: connect to the hosted Skulpt server, run your own self-hosted sync backend, or skip sync entirely and stay completely local.
+
+---
+
+## Why Skulpt?
+
+| | Skulpt | Strong | Hevy |
+|---|:---:|:---:|:---:|
+| Free forever | ✅ | ❌ Freemium | ❌ Freemium |
+| Open source | ✅ GPL-3.0 | ❌ | ❌ |
+| Local-first (data on device) | ✅ | ❌ | ❌ |
+| Self-hosted sync | ✅ | ❌ | ❌ |
+| Works fully offline | ✅ | ❌ | ❌ |
+| Health data never uploaded | ✅ | ❌ | ❌ |
+| Apple Watch app | ✅ | ✅ | ❌ |
+| Live Activity / Dynamic Island | ✅ | ✅ | ❌ |
 
 ---
 
@@ -8,7 +44,7 @@ A full-featured, **local-first** workout tracking app for iOS and Android built 
 
 **[Download on the App Store](https://apps.apple.com/us/app/skulpt-gym-workout-tracker/id6749158262)** — free, no subscriptions.
 
-The App Store build comes with Skulpt cloud sync enabled. Only workout data is synced — workouts, exercises, sets, and measurements — i.e. the data you can't recover if you reinstall or switch to a new device. Health data (from Apple Health or Google Health Connect) is never uploaded anywhere and stays entirely on your device.
+The App Store build comes with Skulpt cloud sync enabled. Only workout data is synced — workouts, exercises, sets, and measurements — i.e. the data you can't recover if you reinstall or switch devices. Health data (from Apple Health or Google Health Connect) is **never** uploaded anywhere and stays entirely on your device.
 
 If you need a build with sync completely disabled, follow the [Getting Started](#getting-started) guide below to build your own binary with `EXPO_PUBLIC_SYNC_HOST` unset.
 
@@ -32,6 +68,60 @@ If you need a build with sync completely disabled, follow the [Getting Started](
 
 ---
 
+## Self-Hosting
+
+Skulpt's sync protocol is intentionally minimal. Your server needs to implement exactly two endpoints — a batch push and an incremental pull — and the client handles everything else.
+
+### Protocol
+
+**Push** — the client sends a single batch request with all pending mutations:
+
+```
+POST /sync/push
+Authorization: Bearer <token>
+x-skulpt-sync-schema: 2
+
+{
+  "<table>": {
+    "created": [ { ...record } ],
+    "updated": [ { ...record } ],
+    "deleted": [ "<id>", ... ]
+  },
+  ...
+}
+```
+
+**Pull** — the client requests all changes since its last sync timestamp:
+
+```
+GET /sync/pull?since=<lastSyncTimestamp>
+Authorization: Bearer <token>
+x-skulpt-sync-schema: 2
+
+→ {
+    "<table>": {
+      "records":    [ { ...record } ],
+      "deletedIds": [ "<id>", ... ],
+      "timestamp":  1234567890
+    },
+    ...
+  }
+```
+
+The client uses last-write-wins conflict resolution keyed on `updatedAt`. On a `409 missing_record` response to a push, the client automatically pulls the latest state and retries.
+
+### Connecting the app
+
+```env
+EXPO_PUBLIC_SYNC_HOST=https://your-server.example.com
+```
+
+All workout data syncs through your own infrastructure. Health data never leaves the device regardless of sync configuration.
+
+> **No server? No problem.** Omit `EXPO_PUBLIC_SYNC_HOST` entirely and the app runs in fully local-only mode — no network calls, no registration, nothing.
+
+---
+
 ## Roadmap
 
 ### ① Stable workout core
@@ -51,6 +141,66 @@ A native interface for managing and interacting with connected agents directly i
 
 ---
 
+## Architecture
+
+### Local-First Data Layer
+
+Every piece of data — workouts, exercises, sets, measurements, user settings — is stored in an on-device SQLite database managed by [Drizzle ORM](https://orm.drizzle.team/). The app boots instantly, works fully offline, and never requires a server connection.
+
+```
+┌─────────────────────────────────┐
+│         React Native App        │
+│                                 │
+│  ┌──────────────────────────┐   │
+│  │   Drizzle ORM + SQLite   │   │
+│  │   (on-device, always)    │   │
+│  └──────────┬───────────────┘   │
+│             │ mutations         │
+│  ┌──────────▼───────────────┐   │
+│  │       sync_queue         │   │
+│  └──────────┬───────────────┘   │
+└────────────-│-------------------┘
+             │ (optional)
+    ┌────────▼─────────┐
+    │   Sync Engine    │
+    │   src/sync/      │
+    │                  │
+    │  push: compact   │
+    │  + batch send    │
+    │                  │
+    │  pull: incremental│
+    │  + LWW upsert    │
+    └────────┬─────────┘
+             │
+    ┌────────▼──────────────────┐
+    │  Your server (two routes) │
+    │  POST /sync/push          │
+    │  GET  /sync/pull          │
+    └───────────────────────────┘
+```
+
+### Sync Engine
+
+A `sync_queue` table records every local mutation (create / update / delete) as it happens. The sync cycle:
+
+1. **Push** — pending operations are compacted per record (multiple updates to the same row collapse into one) and sent to the server in a single batch request.
+2. **Pull** — the server returns all records changed since the stored `lastSyncTimestamp`; incoming records are upserted with a last-write-wins strategy keyed on `updatedAt`.
+3. **Conflict resolution** — if the server returns a `409 missing_record`, the client pulls the latest state and retries the push automatically.
+4. **Cleanup** — synced queue entries are pruned after every successful cycle to keep the local DB lean.
+
+The entire sync engine lives in `src/sync/` and is fully decoupled from the rest of the app — it can be studied, forked, or replaced without touching any product code.
+
+### Apple Watch & Live Activity
+
+Two native Expo modules bridge the JavaScript layer to native code:
+
+- **`modules/live-activity`** — starts, updates, and ends an iOS Live Activity that shows the current exercise, set progress, and rest countdown on the lock screen and Dynamic Island.
+- **`modules/watch-connectivity`** — sends workout state to the watchOS app via WatchConnectivity and receives commands (complete set, start rest, etc.) back.
+
+The watchOS app is a standalone SwiftUI app located in `targets/watch/`.
+
+---
+
 ## Getting Started
 
 ### Prerequisites
@@ -61,23 +211,23 @@ A native interface for managing and interacting with connected agents directly i
 - [EAS CLI](https://docs.expo.dev/eas/) — `npm i -g eas-cli` (for device builds)
 - Xcode 15+ (iOS) or Android Studio (Android)
 
+> **Note:** The app uses native modules (HealthKit / Health Connect, WatchConnectivity, Live Activity, MMKV) and therefore requires a native build. Expo Go is not supported.
+
 ### Installation
 
 ```bash
-git clone https://github.com/your-org/skulpt-app.git
-cd skulpt-app
+git clone https://github.com/skulptapp/skulpt.git
+cd skulpt
 bun install
 ```
 
 ### Environment
 
-Copy the example env file and fill in the required values:
-
 ```bash
 cp .env.local.example .env.local
 ```
 
-The minimum set for local development:
+Minimum required for local development:
 
 ```env
 APP_NAME=Skulpt
@@ -87,11 +237,9 @@ APP_BUNDLE_IDENTIFIER=app.skulpt.development
 APP_VARIANT=development
 ```
 
-All other variables (Sentry, AppMetrica, PostHog, EAS project ID) are optional and only needed for their respective features. **`EXPO_PUBLIC_SYNC_HOST` is also optional** — omit it to run in fully local-only mode with no server dependency whatsoever.
+All other variables (Sentry, AppMetrica, PostHog, EAS project ID) are optional and only needed for their respective features. `EXPO_PUBLIC_SYNC_HOST` is also optional — omit it to run in fully local-only mode.
 
 ### Running
-
-The app requires a native build — it uses native modules for HealthKit / Health Connect, Apple Watch connectivity, Live Activity, and MMKV.
 
 ```bash
 # iOS simulator
@@ -111,47 +259,7 @@ bun run build:android
 bun run db:generate   # generate a new migration after schema changes
 ```
 
-The migrations are applied automatically on app startup by the Drizzle migration runner.
-
----
-
-## Local-First Architecture & Sync
-
-### Local-only (default)
-
-Skulpt is local-first by design. Every piece of data — workouts, exercises, sets, measurements, user settings — is stored in an on-device SQLite database managed by Drizzle ORM. The app boots instantly, works fully offline, and never requires a server connection.
-
-If you don't set `EXPO_PUBLIC_SYNC_HOST`, sync is completely disabled. There is no fallback network call, no registration step, nothing. The app behaves identically — just without the cross-device sync layer.
-
-### Adding sync
-
-When `EXPO_PUBLIC_SYNC_HOST` is set, the app enables a lightweight push/pull sync engine (`src/sync/`). You have two options:
-
-**Option 1 — Skulpt cloud.** Point `EXPO_PUBLIC_SYNC_HOST` at the hosted Skulpt server and get sync out of the box with no infrastructure to manage.
-
-**Option 2 — Self-hosted.** Run your own sync server and point the variable at it. The sync protocol is intentionally simple — the server only needs to implement two endpoints (batch push and incremental pull) described below. This lets you keep your data entirely under your control.
-
-### How sync works
-
-A `sync_queue` table records every local mutation (create / update / delete) as it happens.
-
-1. **Push** — pending operations are compacted per record (multiple updates to the same row collapse into one) and sent to the server in a single batch request.
-2. **Pull** — the server returns all records changed since the stored `lastSyncTimestamp`; incoming records are upserted with a last-write-wins strategy keyed on `updatedAt`.
-3. **Conflict resolution** — if the server returns a `409 missing_record`, the client pulls the latest state and retries the push automatically.
-4. **Cleanup** — synced queue entries are pruned after every successful cycle to keep the local DB lean.
-
-The entire sync engine lives in `src/sync/` and is fully decoupled from the rest of the app. It can be studied, forked, or replaced without touching any product code.
-
----
-
-## Apple Watch & Live Activity
-
-Two native Expo modules bridge the JS layer to native code:
-
-- **`modules/live-activity`** — starts, updates, and ends an iOS Live Activity that shows the current exercise, set progress, and rest countdown on the lock screen and Dynamic Island.
-- **`modules/watch-connectivity`** — sends workout state to the watchOS app via WatchConnectivity and receives commands (complete set, start rest, etc.) back.
-
-The watchOS app is a standalone SwiftUI app located in `targets/watch/`.
+Migrations are applied automatically on app startup by the Drizzle migration runner.
 
 ---
 
@@ -197,10 +305,15 @@ bun run release:android
 
 ## Contributing
 
-1. Fork the repository and create a feature branch: `git checkout -b feat/my-feature`
-2. Follow the existing code style — ESLint + Prettier are enforced (`bun run lint`)
-3. Write meaningful commit messages
-4. Open a pull request against `main`
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions and guidelines.
+
+Good places to start:
+
+- Add a new exercise to the library
+- Add a localisation for a new language (see `src/locale/resources/` for the structure)
+- Implement an additional heart-rate formula in the HR zones settings
+- Write tests for the sync engine (`src/sync/`)
+- Improve the self-hosted server documentation
 
 ---
 
