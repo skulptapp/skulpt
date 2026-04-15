@@ -214,25 +214,16 @@ export const buildRecoveryMetrics = ({
     return metrics;
 };
 
+const FORECAST_SET_DURATION_SECONDS = 30;
+
 export const buildWorkoutMetricsValues = ({
     workout,
     exercises,
     userWeightUnits,
 }: BuildWorkoutMetricsValuesParams): WorkoutStatsDisplay | null => {
-    if (workout.status !== 'completed') return null;
+    if (exercises.length === 0) return null;
 
-    const workoutDurationSeconds = (() => {
-        if (workout.duration != null) {
-            return Math.max(0, Math.round(workout.duration));
-        }
-
-        if (workout.startedAt && workout.completedAt) {
-            const durationMs = workout.completedAt.getTime() - workout.startedAt.getTime();
-            return Math.max(0, Math.round(durationMs / 1000));
-        }
-
-        return 0;
-    })();
+    const { status } = workout;
 
     let setsCount = 0;
     let repsCount = 0;
@@ -242,41 +233,52 @@ export const buildWorkoutMetricsValues = ({
 
     for (const item of exercises) {
         for (const set of item.sets ?? []) {
-            if (!set.completedAt) continue;
+            const isCompleted = !!set.completedAt;
+
+            if (status === 'completed' && !isCompleted) continue;
 
             setsCount += 1;
             repsCount += set.reps ?? 0;
 
-            if (
-                set.startedAt &&
-                set.completedAt &&
-                set.completedAt.getTime() >= set.startedAt.getTime()
-            ) {
-                totalSetTimeSeconds += Math.floor(
-                    (set.completedAt.getTime() - set.startedAt.getTime()) / 1000,
-                );
-            } else if ((set.time ?? 0) > 0) {
-                totalSetTimeSeconds += set.time ?? 0;
-            }
-
-            if ((set.restTime ?? 0) > 0) {
-                if (set.finalRestTime != null) {
-                    totalRestTimeSeconds += Math.max(0, set.finalRestTime);
-                } else if (
-                    set.restCompletedAt &&
+            if (isCompleted) {
+                if (
+                    set.startedAt &&
                     set.completedAt &&
-                    set.restCompletedAt.getTime() >= set.completedAt.getTime()
+                    set.completedAt.getTime() >= set.startedAt.getTime()
                 ) {
-                    totalRestTimeSeconds += Math.max(
-                        0,
-                        Math.min(
-                            set.restTime ?? 0,
-                            Math.floor(
-                                (set.restCompletedAt.getTime() - set.completedAt.getTime()) / 1000,
-                            ),
-                        ),
+                    totalSetTimeSeconds += Math.floor(
+                        (set.completedAt.getTime() - set.startedAt.getTime()) / 1000,
                     );
+                } else if ((set.time ?? 0) > 0) {
+                    totalSetTimeSeconds += set.time ?? 0;
                 }
+
+                if ((set.restTime ?? 0) > 0) {
+                    if (set.finalRestTime != null) {
+                        totalRestTimeSeconds += Math.max(0, set.finalRestTime);
+                    } else if (
+                        set.restCompletedAt &&
+                        set.completedAt &&
+                        set.restCompletedAt.getTime() >= set.completedAt.getTime()
+                    ) {
+                        totalRestTimeSeconds += Math.max(
+                            0,
+                            Math.min(
+                                set.restTime ?? 0,
+                                Math.floor(
+                                    (set.restCompletedAt.getTime() - set.completedAt.getTime()) /
+                                        1000,
+                                ),
+                            ),
+                        );
+                    }
+                }
+            } else {
+                // Forecast: use set's configured time if available, otherwise 30 seconds
+                totalSetTimeSeconds +=
+                    (set.time ?? 0) > 0 ? set.time! : FORECAST_SET_DURATION_SECONDS;
+                // Rest: use configured rest time if available, otherwise 0
+                totalRestTimeSeconds += set.restTime ?? 0;
             }
 
             if (
@@ -293,6 +295,24 @@ export const buildWorkoutMetricsValues = ({
             }
         }
     }
+
+    const workoutDurationSeconds = (() => {
+        if (status === 'completed') {
+            if (workout.duration != null) {
+                return Math.max(0, Math.round(workout.duration));
+            }
+
+            if (workout.startedAt && workout.completedAt) {
+                const durationMs = workout.completedAt.getTime() - workout.startedAt.getTime();
+                return Math.max(0, Math.round(durationMs / 1000));
+            }
+
+            return 0;
+        }
+
+        // For planned/in_progress: estimate from set + rest totals
+        return totalSetTimeSeconds + totalRestTimeSeconds;
+    })();
 
     const totalVolume =
         userWeightUnits === 'lb' ? convertWeight(totalVolumeKg, 'kg', 'lb') : totalVolumeKg;

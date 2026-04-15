@@ -609,12 +609,11 @@ export const Stats: FC<StatsProps> = ({
         recoveryChartModel != null || (recoveryMetrics && recoveryMetrics.length > 0);
 
     if (
-        workout.status !== 'completed' ||
-        (!hasOverviewSection &&
-            !hasZoneSection &&
-            !hasActivitySection &&
-            !hasHeartRateSection &&
-            !hasRecoverySection)
+        !hasOverviewSection &&
+        !hasZoneSection &&
+        !hasActivitySection &&
+        !hasHeartRateSection &&
+        !hasRecoverySection
     ) {
         return null;
     }
