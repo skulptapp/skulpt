@@ -1,6 +1,8 @@
-<picture>
+<p align="center">
+  <picture>
     <img alt="skulpt" src="./.github/resources/banner.png" />
-</picture>
+  </picture>
+</p>
 
 <p align="center">
   <a href="https://apps.apple.com/us/app/skulpt-gym-workout-tracker/id6749158262">
@@ -272,6 +274,20 @@ The project uses [EAS Build](https://docs.expo.dev/build/introduction/) with thr
 | `development` | development | Dev client, internal distribution |
 | `preview` | preview | Internal TestFlight / internal track |
 | `production` | production | App Store / Play Store |
+
+### EAS configuration
+
+EAS Build requires an `eas.json` with account-specific configuration (Apple ID, App Store Connect app ID, Apple Team ID). Copy the example and fill in your values:
+
+```bash
+cp eas.json.example eas.json
+```
+
+| Field | Where to find it |
+|---|---|
+| `appleId` | Your Apple ID email used for App Store Connect |
+| `ascAppId` | App Store Connect → App Information (numeric ID) |
+| `appleTeamId` | [developer.apple.com/account](https://developer.apple.com/account) → Membership (10-character string) |
 
 ```bash
 # OTA update to production

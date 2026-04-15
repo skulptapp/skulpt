@@ -13,6 +13,7 @@ web-build/
 expo-env.d.ts
 /ios
 /android
+eas.json
 
 # Native
 .kotlin/
