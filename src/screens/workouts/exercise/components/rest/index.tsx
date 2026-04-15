@@ -22,6 +22,7 @@ const styles = StyleSheet.create((theme) => ({
         paddingHorizontal: theme.space(2),
         paddingVertical: theme.space(0.5),
         borderRadius: theme.radius.lg,
+        overflow: 'hidden',
         minWidth: theme.space(8),
         minHeight: theme.space(4),
     }),

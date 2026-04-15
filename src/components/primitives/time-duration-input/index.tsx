@@ -1,5 +1,5 @@
 import { FC, useEffect, useMemo, useRef, useState } from 'react';
-import { TextInput, TextStyle } from 'react-native';
+import { Platform, TextInput, TextStyle } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 import { Box } from '@/components/primitives/box';
@@ -45,6 +45,7 @@ const styles = StyleSheet.create((theme) => ({
         top: 0,
         bottom: 0,
         color: 'transparent',
+        opacity: Platform.OS === 'android' ? 0 : 1,
         borderBottomWidth: 0,
     },
 }));

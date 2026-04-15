@@ -94,6 +94,7 @@ const styles = StyleSheet.create((theme, rt) => ({
         top: 0,
         bottom: 0,
         color: 'transparent',
+        opacity: Platform.OS === 'android' ? 0 : 1,
         borderBottomWidth: 0,
     },
     secondsContainer: {
