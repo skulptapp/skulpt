@@ -8,6 +8,8 @@ import { getLocales, getCalendars } from 'expo-localization';
 import i18n from '@/locale/i18n';
 import { createOrUpdateCurrentUser, getCurrentUser } from '@/crud/user';
 import { queryClient } from '@/queries';
+import { ensureValidToken } from '@/services/auth';
+import { isSyncEnabled } from '@/sync/config';
 import { supportedLanguages } from '@/locale/constants';
 import type { UserSelect } from '@/db/schema/user';
 import { z } from 'zod';
@@ -69,6 +71,13 @@ const useUserProvider = () => {
             return await getCurrentUser();
         },
     });
+
+    // Bootstrap auth token once when the user ID is known.
+    // Runs in the background — if the server is unreachable the next sync cycle will retry.
+    useEffect(() => {
+        if (!user?.id || !isSyncEnabled()) return;
+        ensureValidToken(user.id).catch(() => {});
+    }, [user?.id]);
 
     const { mutate, mutateAsync, isPending } = useMutation({
         mutationFn: createOrUpdateCurrentUser,

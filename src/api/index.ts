@@ -1,5 +1,7 @@
-import axios, { isAxiosError } from 'axios';
+import axios, { isAxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { reportError } from '@/services/error-reporting';
+import { bootstrapAuth, clearToken, getStoredToken, isTokenValid } from '@/services/auth';
+import { storage } from '@/storage';
 
 interface ApiResponse<T> {
     success: boolean;
@@ -48,6 +50,8 @@ type AxiosRequestFallback = {
     _response?: unknown;
 };
 
+type RetryableConfig = InternalAxiosRequestConfig & { _retried?: boolean };
+
 const TRANSIENT_NETWORK_ERRORS = new Set(['NO_INTERNET', 'TIMEOUT']);
 const SYNC_SCHEMA_VERSION = '2';
 
@@ -63,6 +67,48 @@ const createSyncClient = () => {
 };
 
 export const syncClient = createSyncClient();
+
+// Request: attach Bearer token. MMKV reads are synchronous — no async overhead.
+syncClient.interceptors.request.use((config) => {
+    if (isTokenValid()) {
+        const token = getStoredToken();
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+    }
+    return config;
+});
+
+// Response: on 401 immediately re-bootstrap and retry the request once.
+// A _retried flag prevents infinite loops if the server keeps rejecting.
+syncClient.interceptors.response.use(
+    (response) => response,
+    async (error: unknown) => {
+        if (!isAxiosError(error) || error.response?.status !== 401) {
+            return Promise.reject(error);
+        }
+
+        const config = error.config as RetryableConfig | undefined;
+        if (!config || config._retried) {
+            return Promise.reject(error);
+        }
+
+        config._retried = true;
+        clearToken();
+
+        const userId = storage.getString('auth.userId');
+        if (!userId) return Promise.reject(error);
+
+        const ok = await bootstrapAuth(userId);
+        if (!ok) return Promise.reject(error);
+
+        const newToken = getStoredToken();
+        if (!newToken) return Promise.reject(error);
+
+        config.headers.Authorization = `Bearer ${newToken}`;
+        return syncClient(config);
+    },
+);
 
 const resolveErrorCode = (status: number, data: unknown): string => {
     if (typeof data === 'object' && data !== null) {

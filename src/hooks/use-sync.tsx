@@ -12,6 +12,7 @@ import { useNetworkState } from 'expo-network';
 import { performSync, getSyncStats } from '@/sync';
 import { reportError, runInBackground } from '@/services/error-reporting';
 import { isSyncEnabled } from '@/sync/config';
+import { refreshTokenIfNeeded } from '@/services/auth';
 
 interface SyncState {
     isSyncing: boolean;
@@ -99,6 +100,8 @@ const useSyncProvider = () => {
         setState((prev) => ({ ...prev, isSyncing: true }));
 
         try {
+            await refreshTokenIfNeeded();
+
             const success = await performSync();
             failedSyncAttemptsRef.current = success ? 0 : failedSyncAttemptsRef.current + 1;
 
