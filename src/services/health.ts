@@ -261,7 +261,7 @@ export async function readHealthMeasurementSamples(
                 | 'HKQuantityTypeIdentifierWaistCircumference';
             metric: string;
             unit: string;
-            queryUnit?: string;
+            queryUnit?: 'count' | '%' | 'kg' | 'cm';
             resolveValue: (value: number) => number;
         }[] = [
             {
@@ -665,14 +665,14 @@ const chooseClosestWorkout = async (startDate: Date, endDate: Date) => {
 
     return workouts.reduce<(typeof workouts)[number] | null>((best, candidate) => {
         const candidateDataScore =
-            (candidate.totalDistance ? 1 : 0) + (candidate.metadataAverageMETs ? 1 : 0);
+            (candidate.totalDistance ? 1 : 0) + (candidate.metadata?.HKAverageMETs ? 1 : 0);
         const candidateDelta =
             Math.abs(candidate.startDate.getTime() - targetStartMs) +
             Math.abs(candidate.endDate.getTime() - targetEndMs);
 
         if (!best) return candidate;
 
-        const bestDataScore = (best.totalDistance ? 1 : 0) + (best.metadataAverageMETs ? 1 : 0);
+        const bestDataScore = (best.totalDistance ? 1 : 0) + (best.metadata?.HKAverageMETs ? 1 : 0);
         const bestDelta =
             Math.abs(best.startDate.getTime() - targetStartMs) +
             Math.abs(best.endDate.getTime() - targetEndMs);
@@ -782,7 +782,7 @@ export async function readWorkoutSummaryMetrics(
             );
 
             return {
-                avgMets: workout?.metadataAverageMETs?.quantity ?? null,
+                avgMets: workout?.metadata?.HKAverageMETs?.quantity ?? null,
                 activeCalories: resolvedActiveCalories,
                 totalCalories: resolvedTotalCalories,
                 distanceMeters: quantityToMeters(workout?.totalDistance) ?? distanceMeters,
