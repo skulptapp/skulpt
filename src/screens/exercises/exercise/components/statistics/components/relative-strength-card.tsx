@@ -15,7 +15,13 @@ import { MetricBarChart } from './metric-bar-chart';
 import { MetricCardEmptyState } from './metric-card-empty-state';
 import { MetricCardShell } from './metric-card-shell';
 import { MetricStatCard } from './metric-stat-card';
-import { type MetricChartPoint, resolveWorkoutDate, sortMetricPoints } from './metric-utils';
+import {
+    type MetricChartPoint,
+    isWeightUnit,
+    resolveWorkoutDate,
+    roundTwoDecimals,
+    sortMetricPoints,
+} from './metric-utils';
 
 interface RelativeStrengthCardProps {
     history: ExerciseHistoryItem[];
@@ -45,8 +51,6 @@ const styles = StyleSheet.create((theme) => ({
     },
 }));
 
-const isWeightUnit = (value: string): value is 'kg' | 'lb' => value === 'kg' || value === 'lb';
-
 const resolveClassification = (value: number): StrengthClassification => {
     if (value < 0.75) return 'novice';
     if (value <= 1.0) return 'beginner';
@@ -55,7 +59,6 @@ const resolveClassification = (value: number): StrengthClassification => {
     return 'elite';
 };
 
-const roundTwoDecimals = (value: number): number => Math.round(value * 100) / 100;
 const getDayKey = (date: Date): string => dayjs(date).format('YYYY-MM-DD');
 
 export const RelativeStrengthCard = ({ history, exercise }: RelativeStrengthCardProps) => {

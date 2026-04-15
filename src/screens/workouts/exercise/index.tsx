@@ -19,6 +19,7 @@ import { useRunningWorkoutTicker } from '@/hooks/use-running-workout';
 import { Header } from './components/header';
 import { Actions } from './components/actions';
 import { SetItem } from './components/set-item';
+import { WorkoutExerciseStats } from './components/stats';
 import { Pushes } from '@/components/promo/pushes';
 
 const styles = StyleSheet.create((theme, rt) => ({
@@ -121,6 +122,13 @@ const WorkoutExerciseScreen: FC = () => {
                 ) : (
                     <>
                         <Pushes wrapperStyle={styles.pushes} />
+                        {exerciseInfo && (
+                            <WorkoutExerciseStats
+                                sets={exerciseInfo.sets}
+                                exercise={exerciseInfo.exercise}
+                                workoutId={workoutId}
+                            />
+                        )}
                         <Sortable.Grid
                             columns={1}
                             data={localItems}

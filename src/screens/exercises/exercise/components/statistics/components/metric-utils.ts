@@ -9,6 +9,11 @@ export interface MetricChartPoint {
 
 export const roundOneDecimal = (value: number): number => Math.round(value * 10) / 10;
 
+export const roundTwoDecimals = (value: number): number => Math.round(value * 100) / 100;
+
+export const isWeightUnit = (value: string): value is 'kg' | 'lb' =>
+    value === 'kg' || value === 'lb';
+
 export const resolveWorkoutDate = (historyItem: ExerciseHistoryItem): Date => {
     return (
         historyItem.workout.completedAt ??
