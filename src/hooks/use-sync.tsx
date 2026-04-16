@@ -9,10 +9,12 @@ import {
     useContext,
 } from 'react';
 import { useNetworkState } from 'expo-network';
+import { AppState } from 'react-native';
 import { performSync, getSyncStats } from '@/sync';
 import { reportError, runInBackground } from '@/services/error-reporting';
 import { isSyncEnabled } from '@/sync/config';
 import { refreshTokenIfNeeded } from '@/services/auth';
+import { queryClient } from '@/queries';
 
 interface SyncState {
     isSyncing: boolean;
@@ -68,6 +70,7 @@ const useSyncProvider = () => {
     const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastSyncAttemptAtRef = useRef(0);
     const failedSyncAttemptsRef = useRef(0);
+    const hasInitialSyncedRef = useRef(false);
 
     const networkState = useNetworkState();
 
@@ -104,6 +107,10 @@ const useSyncProvider = () => {
 
             const success = await performSync();
             failedSyncAttemptsRef.current = success ? 0 : failedSyncAttemptsRef.current + 1;
+
+            if (success) {
+                queryClient.invalidateQueries({ queryKey: ['exercises-list'] });
+            }
 
             const stats = await getSyncStats();
 
@@ -178,6 +185,13 @@ const useSyncProvider = () => {
 
         runInBackground(loadStats, 'Failed to load initial sync stats:');
     }, []);
+
+    useEffect(() => {
+        if (isOnline && AppState.currentState === 'active' && !hasInitialSyncedRef.current) {
+            hasInitialSyncedRef.current = true;
+            runInBackground(sync, 'Failed to run initial sync:');
+        }
+    }, [isOnline, sync]);
 
     useEffect(() => {
         if (!state.isSyncing) {
