@@ -66,7 +66,7 @@ module.exports = {
             {
                 android: {
                     parentTheme: 'Default',
-                    enforceNavigationBarContrast: true,
+                    enforceNavigationBarContrast: false,
                 },
             },
         ],
