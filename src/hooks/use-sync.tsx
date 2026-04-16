@@ -9,12 +9,13 @@ import {
     useContext,
 } from 'react';
 import { useNetworkState } from 'expo-network';
-import { AppState } from 'react-native';
+
 import { performSync, getSyncStats } from '@/sync';
 import { reportError, runInBackground } from '@/services/error-reporting';
 import { isSyncEnabled } from '@/sync/config';
 import { refreshTokenIfNeeded } from '@/services/auth';
 import { queryClient } from '@/queries';
+import { useAppState } from '@/hooks/use-app-state';
 
 interface SyncState {
     isSyncing: boolean;
@@ -73,6 +74,7 @@ const useSyncProvider = () => {
     const hasInitialSyncedRef = useRef(false);
 
     const networkState = useNetworkState();
+    const { isInForeground } = useAppState();
 
     const isOnline = Boolean(networkState.isConnected && networkState.isInternetReachable);
 
@@ -187,18 +189,11 @@ const useSyncProvider = () => {
     }, []);
 
     useEffect(() => {
-        const tryInitialSync = () => {
-            if (isOnline && AppState.currentState === 'active' && !hasInitialSyncedRef.current) {
-                hasInitialSyncedRef.current = true;
-                runInBackground(sync, 'Failed to run initial sync:');
-            }
-        };
-
-        tryInitialSync();
-
-        const subscription = AppState.addEventListener('change', tryInitialSync);
-        return () => subscription.remove();
-    }, [isOnline, sync]);
+        if (isOnline && isInForeground && !hasInitialSyncedRef.current) {
+            hasInitialSyncedRef.current = true;
+            runInBackground(sync, 'Failed to run initial sync:');
+        }
+    }, [isOnline, isInForeground, sync]);
 
     useEffect(() => {
         if (!state.isSyncing) {
