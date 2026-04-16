@@ -187,10 +187,17 @@ const useSyncProvider = () => {
     }, []);
 
     useEffect(() => {
-        if (isOnline && AppState.currentState === 'active' && !hasInitialSyncedRef.current) {
-            hasInitialSyncedRef.current = true;
-            runInBackground(sync, 'Failed to run initial sync:');
-        }
+        const tryInitialSync = () => {
+            if (isOnline && AppState.currentState === 'active' && !hasInitialSyncedRef.current) {
+                hasInitialSyncedRef.current = true;
+                runInBackground(sync, 'Failed to run initial sync:');
+            }
+        };
+
+        tryInitialSync();
+
+        const subscription = AppState.addEventListener('change', tryInitialSync);
+        return () => subscription.remove();
     }, [isOnline, sync]);
 
     useEffect(() => {
