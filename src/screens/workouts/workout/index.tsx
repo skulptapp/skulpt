@@ -555,9 +555,9 @@ const WorkoutScreen: FC = () => {
                     onRemoveCircuit={handleRemoveCircuit}
                     onRemoveFromGroup={handleRemoveFromGroup}
                 />
-            ) : (
+            ) : items.length > 0 ? (
                 <Actions workout={workoutDetails?.workout} />
-            )}
+            ) : null}
         </Box>
     );
 };
