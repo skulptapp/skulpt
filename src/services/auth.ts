@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { isAxiosError } from 'axios';
 
 import { nanoid } from '@/helpers/nanoid';
 import { reportError } from '@/services/error-reporting';
@@ -86,9 +86,15 @@ export const bootstrapAuth = async (userId: string): Promise<boolean> => {
         storage.set(STORAGE_KEYS.userId, userId);
         return true;
     } catch (error) {
-        reportError(error, '[auth] bootstrapAuth failed:', {
-            tags: { scope: 'auth' },
-        });
+        const isTransient =
+            isAxiosError(error) &&
+            !error.response &&
+            (error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK');
+        if (!isTransient) {
+            reportError(error, '[auth] bootstrapAuth failed:', {
+                tags: { scope: 'auth' },
+            });
+        }
         return false;
     }
 };
