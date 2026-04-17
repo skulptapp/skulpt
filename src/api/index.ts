@@ -118,6 +118,10 @@ const resolveErrorCode = (status: number, data: unknown): string => {
         }
     }
 
+    if (typeof data === 'string' && data.toLowerCase() === 'timeout') {
+        return 'TIMEOUT';
+    }
+
     if (status === 422) return 'VALIDATION';
     if (status >= 500) return 'SERVER_ERROR';
     if (status === 404) return 'NOT_FOUND';
