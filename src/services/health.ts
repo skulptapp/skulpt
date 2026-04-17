@@ -114,11 +114,22 @@ const isHealthServiceUnavailableError = (error: unknown) => {
     );
 };
 
+// iOS Guided Access locks the device to a single app. When HealthKit tries to
+// open com.apple.HealthPrivacyService for the permissions dialog it gets denied
+// with FBSOpenApplicationErrorDomain "Guided Access active". This is a device
+// configuration issue, not a code bug — suppress it from Sentry.
+const isGuidedAccessHealthError = (error: unknown) => {
+    const message = getErrorMessage(error);
+
+    return message.includes('guided access active') || message.includes('healthprivacyservice');
+};
+
 const isBenignHealthAccessError = (error: unknown) =>
     isHealthAuthorizationNotDeterminedError(error) ||
     isHealthProtectedDataInaccessibleError(error) ||
     isHealthNotAuthorizedError(error) ||
-    isHealthServiceUnavailableError(error);
+    isHealthServiceUnavailableError(error) ||
+    isGuidedAccessHealthError(error);
 
 const IOS_HEALTH_READ_TYPES = [
     WorkoutTypeIdentifier,
