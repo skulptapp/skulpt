@@ -132,7 +132,7 @@ export const RepsInput: FC<RepsInputProps> = ({
                 onFocus={handleFocus}
                 onBlur={handleBlur}
                 onChangeText={handleChangeText}
-                selection={selection}
+                {...(selection != null ? { selection } : {})}
                 placeholder=""
                 placeholderTextColor={theme.colors.neutral[400]}
             />

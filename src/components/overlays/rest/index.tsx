@@ -349,7 +349,7 @@ const RestInput: FC = () => {
                                 onFocus={handleFocus}
                                 onBlur={handleBlur}
                                 onChangeText={handleChangeText}
-                                selection={selection}
+                                {...(selection != null ? { selection } : {})}
                                 placeholder=""
                             />
                         </Box>

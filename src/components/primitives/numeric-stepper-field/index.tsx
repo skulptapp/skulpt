@@ -355,7 +355,7 @@ const NumericStepperField: FC<NumericStepperFieldProps> = ({
                                     onFocus={handleFocus}
                                     onBlur={handleBlur}
                                     onChangeText={handleChangeText}
-                                    selection={selection}
+                                    {...(selection != null ? { selection } : {})}
                                     placeholder=""
                                 />
                             </Box>
