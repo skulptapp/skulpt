@@ -10,6 +10,7 @@ import {
 import { Platform, AppState, AppStateStatus } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { router, Href } from 'expo-router';
+import * as Linking from 'expo-linking';
 import * as Device from 'expo-device';
 import {
     checkNotifications,
@@ -412,7 +413,15 @@ const useNotificationsProvider = () => {
                 const redirect = (notification: Notifications.Notification) => {
                     const url = notification.request.content.data?.url;
                     if (typeof url === 'string') {
-                        router.push(url as Href);
+                        // The stored URL is a full deep link (e.g. skulpt:///workout/id/exerciseId).
+                        // Passing it directly to router.push makes Expo Router call Linking.openURL
+                        // which fails when the app is already in the foreground (iOS won't re-open
+                        // its own URL scheme). Extract just the path and navigate within the app.
+                        const parsed = Linking.parse(url);
+                        const path = parsed.path ? `/${parsed.path}` : null;
+                        if (path) {
+                            router.push(path as Href);
+                        }
                     }
                 };
 
