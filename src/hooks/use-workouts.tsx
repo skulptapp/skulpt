@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import * as Notifications from 'expo-notifications';
 import {
     WorkoutSelect,
     WorkoutInsert,
@@ -197,6 +198,11 @@ export const useDeleteWorkout = () => {
             queryClient.invalidateQueries({ queryKey: ['exercise-sets'] });
             queryClient.invalidateQueries({ queryKey: ['active-workout'] });
             track('workout:delete');
+            // Cancel any stale scheduled timer notifications that may have been left
+            // from this workout. Notification identifiers are tied to setIds which are
+            // no longer accessible after deletion, so cancel all scheduled notifications.
+            // This is safe because workout timers are the only scheduled notifications.
+            Notifications.cancelAllScheduledNotificationsAsync().catch(() => undefined);
         },
     });
 };

@@ -220,6 +220,7 @@ const useRunningWorkoutProvider = () => {
         scheduleRestTimerNotificationAt,
         scheduleWorkTimerNotificationAt,
         cancelNotification,
+        cancelAllNotifications,
         isAppInBackground,
     } = useNotifications();
 
@@ -977,6 +978,15 @@ const useRunningWorkoutProvider = () => {
 
         phoneHealthPermissionsGrantedRef.current = false;
 
+        // Cancel any stale scheduled timer notifications (rest/work) left over from
+        // the workout that just ended or was deleted. The reschedule effect stops
+        // producing new ones once runningWorkout is null, but previously scheduled
+        // notifications are not automatically removed — do it explicitly here.
+        runInBackground(
+            cancelAllNotifications,
+            'Failed to cancel notifications after workout ended:',
+        );
+
         const completedWorkoutId = lastRunningWorkoutIdRef.current;
         if (completedWorkoutId) {
             lastRunningWorkoutIdRef.current = undefined;
@@ -1007,7 +1017,7 @@ const useRunningWorkoutProvider = () => {
                 'Failed to end Live Activity:',
             );
         }
-    }, [data, runningWorkout]);
+    }, [cancelAllNotifications, data, runningWorkout]);
 
     // --- Watch: handle commands from Apple Watch ---
     const processWatchCommand = useCallback(
