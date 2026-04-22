@@ -86,7 +86,12 @@ const isHealthAuthorizationNotDeterminedError = (error: unknown) => {
 
     return (
         message.includes('authorization is not determined') ||
-        message.includes('authorization not determined')
+        message.includes('authorization not determined') ||
+        // HKErrorAuthorizationNotDetermined (Code=5) — HealthKit throws this when the
+        // user backgrounds the app while the permissions dialog is visible, or when
+        // authorization has never been requested. The NSError localizedDescription is
+        // "(null)", so no human-readable phrase is available; match on domain + code.
+        message.includes('com.apple.healthkit code=5')
     );
 };
 
