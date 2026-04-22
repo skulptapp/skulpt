@@ -101,7 +101,11 @@ const isHealthProtectedDataInaccessibleError = (error: unknown) => {
 const isHealthNotAuthorizedError = (error: unknown) => {
     const message = getErrorMessage(error);
 
-    return message.includes('not authorized') || message.includes('code=4');
+    return (
+        message.includes('not authorized') ||
+        message.includes('code=4') ||
+        message.includes('caller requires')
+    );
 };
 
 const isHealthServiceUnavailableError = (error: unknown) => {
