@@ -89,7 +89,10 @@ export const bootstrapAuth = async (userId: string): Promise<boolean> => {
         const isTransient =
             isAxiosError(error) &&
             !error.response &&
-            (error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK');
+            (error.code === 'ECONNABORTED' ||
+                error.code === 'ERR_NETWORK' ||
+                error.code === 'ERR_CANCELED' ||
+                error.message === 'Network Error');
         if (!isTransient) {
             reportError(error, '[auth] bootstrapAuth failed:', {
                 tags: { scope: 'auth' },
