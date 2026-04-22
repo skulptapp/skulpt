@@ -549,6 +549,15 @@ const useRunningWorkoutProvider = () => {
             return;
         }
 
+        // If a set is already active the rest transition was already handled
+        // (either by the user pressing "stop rest" or by a prior auto-start).
+        // Running checkAndStartAfterRest here would find the active set in fresh
+        // data, skip it with the old !startedAt filter, and try to start the
+        // next one — producing two concurrent active sets.
+        if (orderedSets.some((set) => set.startedAt && !set.completedAt)) {
+            return;
+        }
+
         const now = Date.now();
         if (now - restAutoTransitionLastRunMsRef.current < 1_000) {
             return;
@@ -574,7 +583,15 @@ const useRunningWorkoutProvider = () => {
                 restAutoTransitionInFlightRef.current = false;
             }
         }, 'Failed to auto-start next set after rest:');
-    }, [hasPendingAutoRest, nowMs, orderedExercises, updateSet, workoutDetails, workoutExerciseId]);
+    }, [
+        hasPendingAutoRest,
+        nowMs,
+        orderedExercises,
+        orderedSets,
+        updateSet,
+        workoutDetails,
+        workoutExerciseId,
+    ]);
 
     useEffect(() => {
         if (!data[0] || !data[0].startedAt) {
