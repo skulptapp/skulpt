@@ -52,7 +52,11 @@ type AxiosRequestFallback = {
 
 type RetryableConfig = InternalAxiosRequestConfig & { _retried?: boolean };
 
-const TRANSIENT_NETWORK_ERRORS = new Set(['NO_INTERNET', 'TIMEOUT']);
+// Errors that should NOT be reported to Sentry from handleError:
+//  - NO_INTERNET / TIMEOUT  → expected transient conditions, not actionable
+//  - DATABASE               → already captured by captureSyncFailure in the sync engine;
+//                             reporting here would be a duplicate
+const SUPPRESS_SENTRY_ERRORS = new Set(['NO_INTERNET', 'TIMEOUT', 'DATABASE']);
 const SYNC_SCHEMA_VERSION = '2';
 
 const createSyncClient = () => {
@@ -202,7 +206,7 @@ const handleError = (
         }
     }
 
-    if (!TRANSIENT_NETWORK_ERRORS.has(error)) {
+    if (!SUPPRESS_SENTRY_ERRORS.has(error)) {
         reportError(err, '[sync-api] Request failed:', {
             extras: {
                 requestType: context?.requestType,
