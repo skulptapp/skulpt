@@ -38,20 +38,25 @@ export const startNextSetOrExercise = async (
     const completedIdx = executionOrder.findIndex((eo) => eo.set.id === completedSet.id);
     if (completedIdx === -1) return;
 
-    // Find next pending set after the completed one
-    const nextEntry = executionOrder
-        .slice(completedIdx + 1)
-        .find((eo) => !eo.set.completedAt && !eo.set.startedAt);
+    // Find the next incomplete set after the completed one.
+    // We intentionally do NOT filter by !startedAt here: if the next set is
+    // already started (e.g. from a parallel auto-start), we must not skip over
+    // it and start the set after it — that would produce two concurrent active
+    // sets and trigger the "second active set" conflict.
+    const nextEntry = executionOrder.slice(completedIdx + 1).find((eo) => !eo.set.completedAt);
 
     if (nextEntry) {
-        await startSet(nextEntry.set.id, updateSet, startTime);
+        // Only start if not already started; otherwise just navigate to it.
+        if (!nextEntry.set.startedAt) {
+            await startSet(nextEntry.set.id, updateSet, startTime);
+        }
 
         // Navigate to the exercise containing the next set if different
         if (currentExerciseId !== nextEntry.exerciseId) {
             navigateToExercise(nextEntry.exerciseId);
         }
     }
-    // If no next set found, workout is completed
+    // If no next entry found, workout is completed
 };
 
 /**
