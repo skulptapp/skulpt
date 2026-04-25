@@ -59,11 +59,14 @@ export const ExerciseList: FC<ExerciseListProps> = ({
                 viewabilityConfig={{ itemVisiblePercentThreshold: 10 }}
                 contentContainerStyle={contentContainerStyle}
                 extraData={extraData}
-                keyExtractor={(item, index) => {
+                keyExtractor={(item) => {
                     if (item.type === 'exercise') {
                         return item.exercise.id;
                     }
-                    return `${item.type}-${item.name}-${index}`;
+                    // Headers: stable key without index — including index caused key
+                    // collisions when data shrank, contributing to FlashList layout
+                    // state corruption and "index out of bounds" crashes.
+                    return `${item.type}-${item.name}`;
                 }}
             />
         </Box>
