@@ -93,7 +93,7 @@ const App: FC = () => {
                         <Stack.Screen
                             name="editor"
                             options={{
-                                presentation: 'modal',
+                                presentation: 'card',
                                 animationTypeForReplace: 'pop',
                                 cardOverlayEnabled: false,
                                 animation: 'slide_from_bottom',
@@ -102,7 +102,7 @@ const App: FC = () => {
                         <Stack.Screen
                             name="select"
                             options={{
-                                presentation: 'modal',
+                                presentation: 'card',
                                 animationTypeForReplace: 'pop',
                                 cardOverlayEnabled: false,
                                 animation: 'slide_from_bottom',
@@ -111,7 +111,7 @@ const App: FC = () => {
                         <Stack.Screen
                             name="preview"
                             options={{
-                                presentation: 'modal',
+                                presentation: 'card',
                                 animationTypeForReplace: 'pop',
                                 cardOverlayEnabled: false,
                                 animation: 'slide_from_bottom',
@@ -120,7 +120,7 @@ const App: FC = () => {
                         <Stack.Screen
                             name="guide"
                             options={{
-                                presentation: 'modal',
+                                presentation: 'card',
                                 animationTypeForReplace: 'pop',
                                 cardOverlayEnabled: false,
                                 animation: 'slide_from_bottom',
@@ -129,7 +129,7 @@ const App: FC = () => {
                         <Stack.Screen
                             name="day"
                             options={{
-                                presentation: 'modal',
+                                presentation: 'card',
                                 animationTypeForReplace: 'pop',
                                 cardOverlayEnabled: false,
                                 animation: 'slide_from_bottom',
@@ -138,7 +138,7 @@ const App: FC = () => {
                         <Stack.Screen
                             name="filter"
                             options={{
-                                presentation: 'modal',
+                                presentation: 'card',
                                 animationTypeForReplace: 'pop',
                                 cardOverlayEnabled: false,
                                 animation: 'slide_from_bottom',

@@ -16,7 +16,7 @@ const useWorkoutExerciseScreen = () => {
         name: '[workoutId]/[workoutExerciseId]',
         options: {
             ...options,
-            presentation: 'modal' as const,
+            presentation: 'card' as const,
             animationTypeForReplace: 'pop' as const,
             cardOverlayEnabled: false,
             animation: 'slide_from_bottom' as const,
