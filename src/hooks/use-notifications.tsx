@@ -537,6 +537,13 @@ const useNotificationsProvider = () => {
             identifier: string,
             deepLinkUrl?: string,
         ): Promise<string | null> => {
+            // DATE triggers with a past date cause iOS to throw
+            // NSInternalInconsistencyException (UNNotificationTrigger.m:537).
+            // This happens during foreground reschedule when the rest timer expired
+            // while the app was backgrounded — skip silently, the user is back in
+            // the app and can see the timer state directly.
+            if (date.getTime() <= Date.now()) return null;
+
             return await scheduleWorkoutTimerNotification({
                 kind: 'rest-timer',
                 identifier,
@@ -581,6 +588,9 @@ const useNotificationsProvider = () => {
             identifier: string,
             deepLinkUrl?: string,
         ): Promise<string | null> => {
+            // Same past-date guard as scheduleRestTimerNotificationAt.
+            if (date.getTime() <= Date.now()) return null;
+
             return await scheduleWorkoutTimerNotification({
                 kind: 'work-timer',
                 identifier,
