@@ -214,7 +214,7 @@ export const buildRecoveryMetrics = ({
     return metrics;
 };
 
-const FORECAST_SET_DURATION_SECONDS = 30;
+const FORECAST_SET_DURATION_SECONDS = 50;
 
 export const buildWorkoutMetricsValues = ({
     workout,
