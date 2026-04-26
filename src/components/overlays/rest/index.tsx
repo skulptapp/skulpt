@@ -167,7 +167,7 @@ const RestInput: FC = () => {
         } else {
             bottomSheetModalRef.current?.close();
         }
-    }, [keyboardShown, opened]);
+    }, [opened]);
 
     const choices = useMemo(() => {
         const all = [
@@ -324,6 +324,7 @@ const RestInput: FC = () => {
             ref={bottomSheetModalRef}
             backdropComponent={Backdrop}
             handleComponent={Handle}
+            animateOnMount={false}
             enableHandlePanningGesture={false}
             enableContentPanningGesture={false}
             backgroundStyle={styles.background}
