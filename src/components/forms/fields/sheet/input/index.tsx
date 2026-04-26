@@ -94,7 +94,7 @@ const SheetInput: FC<SheetInputProps> = ({
         } else {
             bottomSheetModalRef.current?.close();
         }
-    }, [keyboardShown, visible]);
+    }, [visible]);
 
     const inputRef = useCallback((input: TextInput | null) => {
         if (input !== null) {
@@ -171,6 +171,7 @@ const SheetInput: FC<SheetInputProps> = ({
                 ref={bottomSheetModalRef}
                 backdropComponent={Backdrop}
                 handleComponent={Handle}
+                animateOnMount={false}
                 enableHandlePanningGesture={false}
                 enableContentPanningGesture={false}
                 stackBehavior="push"

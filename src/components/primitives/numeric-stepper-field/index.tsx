@@ -212,7 +212,7 @@ const NumericStepperField: FC<NumericStepperFieldProps> = ({
         } else {
             bottomSheetModalRef.current?.close();
         }
-    }, [keyboardShown, isModalVisible]);
+    }, [isModalVisible]);
 
     const displayText = useMemo(() => {
         const numericValue = parseNumericDraft(inputText) ?? 0;
@@ -329,6 +329,7 @@ const NumericStepperField: FC<NumericStepperFieldProps> = ({
                 ref={bottomSheetModalRef}
                 backdropComponent={Backdrop}
                 handleComponent={Handle}
+                animateOnMount={false}
                 enableHandlePanningGesture={false}
                 enableContentPanningGesture={false}
                 backgroundStyle={styles.background}
