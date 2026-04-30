@@ -244,12 +244,19 @@ const useNotificationsProvider = () => {
                         e instanceof Error &&
                         /expected an OK response, received: 5\d{2}/.test(e.message);
 
+                    // Network errors (no connectivity, timeout) are transient and
+                    // not actionable — don't report them to Sentry.
+                    const isNetworkError =
+                        e instanceof Error &&
+                        'code' in e &&
+                        (e as { code: string }).code === 'ERR_NOTIFICATIONS_NETWORK_ERROR';
+
                     if (isServerError && attempt < maxRetries) {
                         await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
                         continue;
                     }
 
-                    if (!isServerError) {
+                    if (!isServerError && !isNetworkError) {
                         reportError(e, 'Failed to register device push tokens:');
                     }
                     break;
