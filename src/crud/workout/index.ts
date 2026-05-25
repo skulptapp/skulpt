@@ -1048,10 +1048,13 @@ export const fetchWorkoutDaySummary = async (
 
     const [exerciseTotals] = await db
         .select({
-            exercisesCount: sql<number>`count(*)`,
+            exercisesCount: sql<number>`count(distinct ${workoutExercise.id})`,
         })
         .from(workoutExercise)
-        .where(inArray(workoutExercise.workoutId, workoutIds));
+        .innerJoin(exerciseSet, eq(exerciseSet.workoutExerciseId, workoutExercise.id))
+        .where(
+            and(inArray(workoutExercise.workoutId, workoutIds), isNotNull(exerciseSet.completedAt)),
+        );
 
     const [setTotals] = await db
         .select({
