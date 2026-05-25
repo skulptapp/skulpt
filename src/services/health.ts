@@ -109,7 +109,8 @@ const isHealthNotAuthorizedError = (error: unknown) => {
     return (
         message.includes('not authorized') ||
         message.includes('code=4') ||
-        message.includes('caller requires')
+        message.includes('caller requires') ||
+        message.includes("caller doesn't have")
     );
 };
 
@@ -182,6 +183,33 @@ const HEALTH_IMPORT_OVERLAP_MS = 24 * 60 * 60 * 1000;
 
 const getPermissionKey = (permission: { accessType: string; recordType: string }) =>
     `${permission.accessType}:${permission.recordType}`;
+
+const hasHealthPermission = (
+    grantedKeys: Set<string>,
+    permission: { accessType: string; recordType: string },
+) => grantedKeys.has(getPermissionKey(permission));
+
+const hasHealthReadPermission = (grantedKeys: Set<string>, recordType: string) =>
+    hasHealthPermission(grantedKeys, { accessType: 'read', recordType });
+
+const hasGrantedHealthPermission = async (
+    permission: { accessType: string; recordType: string },
+    scope: string,
+) => {
+    try {
+        const granted = await getGrantedPermissions();
+        return hasHealthPermission(new Set(granted.map(getPermissionKey)), permission);
+    } catch (error) {
+        logHealthError(`${scope}/getGrantedPermissions`, error);
+        return false;
+    }
+};
+
+const hasGrantedHealthReadPermission = async (recordType: string, scope: string) =>
+    hasGrantedHealthPermission({ accessType: 'read', recordType }, scope);
+
+const hasGrantedHealthWritePermission = async (recordType: string, scope: string) =>
+    hasGrantedHealthPermission({ accessType: 'write', recordType }, scope);
 
 const ensureHealthConnectReady = async (): Promise<boolean> => {
     if (Platform.OS !== 'android') return false;
@@ -431,8 +459,31 @@ export async function readHealthMeasurementSamples(
 
         const samples: HealthMeasurementSample[] = [];
         let permissionDenied = false;
+        let grantedKeys: Set<string>;
 
-        for (const config of configs) {
+        try {
+            const granted = await getGrantedPermissions();
+            grantedKeys = new Set(granted.map(getPermissionKey));
+        } catch (error) {
+            logHealthError('readHealthMeasurementSamples/getGrantedPermissions', error);
+            return {
+                permissionGranted: false,
+                samples: [],
+            };
+        }
+
+        const readableConfigs = configs.filter((config) =>
+            hasHealthReadPermission(grantedKeys, config.recordType),
+        );
+
+        if (!hasHealthReadPermission(grantedKeys, 'Weight') || readableConfigs.length === 0) {
+            return {
+                permissionGranted: false,
+                samples: [],
+            };
+        }
+
+        for (const config of readableConfigs) {
             const startDate = resolveImportStartDate(options.sinceByMetric, config.metric);
             const startTime = (startDate ?? new Date(0)).toISOString();
             let pageToken: string | undefined;
@@ -524,6 +575,11 @@ export async function saveWorkoutToHealth(params: {
             if (!(await requireHealthConnectReady('saveWorkoutToHealth'))) {
                 return;
             }
+            if (
+                !(await hasGrantedHealthWritePermission('ExerciseSession', 'saveWorkoutToHealth'))
+            ) {
+                return;
+            }
             await insertRecords([
                 {
                     recordType: 'ExerciseSession',
@@ -561,6 +617,9 @@ export async function readHeartRateSamples(
 
         if (Platform.OS === 'android') {
             if (!(await requireHealthConnectReady('readHeartRateSamples'))) {
+                return [];
+            }
+            if (!(await hasGrantedHealthReadPermission('HeartRate', 'readHeartRateSamples'))) {
                 return [];
             }
             const result = await readRecords('HeartRate', {
@@ -605,6 +664,14 @@ export async function readActiveCalories(startDate: Date, endDate: Date): Promis
             if (!(await requireHealthConnectReady('readActiveCalories'))) {
                 return null;
             }
+            if (
+                !(await hasGrantedHealthReadPermission(
+                    'ActiveCaloriesBurned',
+                    'readActiveCalories',
+                ))
+            ) {
+                return null;
+            }
             const result = await aggregateRecord({
                 recordType: 'ActiveCaloriesBurned',
                 timeRangeFilter: {
@@ -637,6 +704,11 @@ async function readBasalCalories(startDate: Date, endDate: Date): Promise<number
 
         if (Platform.OS === 'android') {
             if (!(await requireHealthConnectReady('readBasalCalories'))) {
+                return null;
+            }
+            if (
+                !(await hasGrantedHealthReadPermission('BasalMetabolicRate', 'readBasalCalories'))
+            ) {
                 return null;
             }
             const result = await aggregateRecord({
@@ -721,6 +793,9 @@ async function readDistanceMeters(startDate: Date, endDate: Date): Promise<numbe
             if (!(await requireHealthConnectReady('readDistanceMeters'))) {
                 return null;
             }
+            if (!(await hasGrantedHealthReadPermission('Distance', 'readDistanceMeters'))) {
+                return null;
+            }
             const result = await aggregateRecord({
                 recordType: 'Distance',
                 timeRangeFilter: {
@@ -754,6 +829,9 @@ async function readStepCount(startDate: Date, endDate: Date): Promise<number | n
 
         if (Platform.OS === 'android') {
             if (!(await requireHealthConnectReady('readStepCount'))) {
+                return null;
+            }
+            if (!(await hasGrantedHealthReadPermission('Steps', 'readStepCount'))) {
                 return null;
             }
             const result = await aggregateRecord({
