@@ -6,7 +6,7 @@ import { VStack } from '@/components/primitives/vstack';
 import { Box } from '@/components/primitives/box';
 import { Text } from '@/components/primitives/text';
 import { MetricGrid, type MetricGridItem } from '@/components/layout/metric-grid';
-import type { ExerciseSelect, ExerciseSetSelect } from '@/db/schema';
+import type { ExerciseSelect, ExerciseSetSelect, WorkoutSelect } from '@/db/schema';
 import { isWarmupSetType } from '@/helpers/set-type';
 import { convertWeight } from '@/helpers/units';
 import { waitForIdle } from '@/helpers/idle';
@@ -24,6 +24,7 @@ interface WorkoutExerciseStatsProps {
     sets: ExerciseSetSelect[];
     exercise: ExerciseSelect;
     workoutId: string;
+    workoutStatus?: WorkoutSelect['status'];
 }
 
 interface ComputedStats {
@@ -59,6 +60,7 @@ export const WorkoutExerciseStats: FC<WorkoutExerciseStatsProps> = ({
     sets,
     exercise,
     workoutId,
+    workoutStatus,
 }) => {
     const { t } = useTranslation(['common', 'screens']);
     const { user } = useUser();
@@ -75,8 +77,13 @@ export const WorkoutExerciseStats: FC<WorkoutExerciseStatsProps> = ({
         waitForIdle().then(() => {
             if (cancelled) return;
 
+            const statisticSets =
+                workoutStatus === 'completed'
+                    ? sets.filter((set) => set.completedAt != null)
+                    : sets;
+
             // Normalize working sets
-            const workingSets = sets
+            const workingSets = statisticSets
                 .filter((set) => {
                     if (isWarmupSetType(set.type)) return false;
                     if (set.weight == null || set.reps == null) return false;
@@ -194,7 +201,15 @@ export const WorkoutExerciseStats: FC<WorkoutExerciseStatsProps> = ({
         return () => {
             cancelled = true;
         };
-    }, [sets, exercise.weightUnits, history, workoutId, bodyWeightTimeline, displayWeightUnits]);
+    }, [
+        sets,
+        workoutStatus,
+        exercise.weightUnits,
+        history,
+        workoutId,
+        bodyWeightTimeline,
+        displayWeightUnits,
+    ]);
 
     if (!computed) return null;
 

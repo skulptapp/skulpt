@@ -132,6 +132,7 @@ const WorkoutExerciseScreen: FC = () => {
                                 sets={exerciseInfo.sets}
                                 exercise={exerciseInfo.exercise}
                                 workoutId={workoutId}
+                                workoutStatus={workoutDetails?.workout.status}
                             />
                         )}
                         <Sortable.Grid
