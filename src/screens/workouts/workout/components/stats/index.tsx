@@ -9,7 +9,11 @@ import { HStack } from '@/components/primitives/hstack';
 import { Box } from '@/components/primitives/box';
 import { Text } from '@/components/primitives/text';
 import { MetricGrid } from '@/components/layout/metric-grid';
-import { type WorkoutStatsDisplay, WorkoutMetricsGrid } from '@/components/layout/workout-metrics';
+import {
+    hasWorkoutMetrics,
+    type WorkoutStatsDisplay,
+    WorkoutMetricsGrid,
+} from '@/components/layout/workout-metrics';
 import type { ExerciseSelect, ExerciseSetSelect, WorkoutSelect } from '@/db/schema';
 import { stableOutlineWidth } from '@/helpers/styles';
 import { getZoneDefinitions } from '@/helpers/heart-rate-zones';
@@ -591,7 +595,7 @@ export const Stats: FC<StatsProps> = ({
         healthStats?.avgHeartRate != null ||
         healthStats?.minHeartRate != null ||
         healthStats?.maxHeartRate != null;
-    const hasOverviewSection = workoutStats != null;
+    const hasOverviewSection = workoutStats != null && hasWorkoutMetrics(workoutStats);
     const hasActivitySection = activityMetrics && activityMetrics.length > 0;
     const hasHeartRateSection = heartRateMetrics && heartRateMetrics.length > 0;
     const hasRecoverySection =
