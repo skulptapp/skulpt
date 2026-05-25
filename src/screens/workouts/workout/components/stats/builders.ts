@@ -230,10 +230,16 @@ export const buildWorkoutMetricsValues = ({
     let totalSetTimeSeconds = 0;
     let totalRestTimeSeconds = 0;
     let totalVolumeKg = 0;
+    let completedExercisesCount = 0;
 
     for (const item of exercises) {
+        let hasCompletedSet = false;
+
         for (const set of item.sets ?? []) {
             const isCompleted = !!set.completedAt;
+            if (isCompleted) {
+                hasCompletedSet = true;
+            }
 
             if (status === 'completed' && !isCompleted) continue;
 
@@ -294,6 +300,10 @@ export const buildWorkoutMetricsValues = ({
                 totalVolumeKg += weightInKg * multiplier * set.reps;
             }
         }
+
+        if (hasCompletedSet) {
+            completedExercisesCount += 1;
+        }
     }
 
     const workoutDurationSeconds = (() => {
@@ -322,7 +332,7 @@ export const buildWorkoutMetricsValues = ({
         totalSetTimeSeconds,
         totalRestTimeSeconds,
         volume: Math.round(totalVolume * 10) / 10,
-        exercisesCount: exercises.length,
+        exercisesCount: status === 'completed' ? completedExercisesCount : exercises.length,
         setsCount,
         repsCount,
     };
