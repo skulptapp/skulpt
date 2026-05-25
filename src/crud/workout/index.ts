@@ -1164,7 +1164,11 @@ export const fetchWorkoutDaySummary = async (
         })
         .from(workoutExercise)
         .innerJoin(exercise, eq(workoutExercise.exerciseId, exercise.id))
-        .where(inArray(workoutExercise.workoutId, workoutIds));
+        .innerJoin(exerciseSet, eq(exerciseSet.workoutExerciseId, workoutExercise.id))
+        .where(
+            and(inArray(workoutExercise.workoutId, workoutIds), isNotNull(exerciseSet.completedAt)),
+        )
+        .groupBy(workoutExercise.id);
 
     const totalWorkoutDurationSeconds = completedWorkouts.reduce((sum, item) => {
         return sum + (item.duration ?? 0);
