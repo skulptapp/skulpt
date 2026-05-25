@@ -1,5 +1,24 @@
+import Foundation
 import ExpoModulesCore
 import WatchConnectivity
+
+private final class OneShotContinuation<Value> {
+  private let lock = NSLock()
+  private var continuation: CheckedContinuation<Value, Never>?
+
+  init(_ continuation: CheckedContinuation<Value, Never>) {
+    self.continuation = continuation
+  }
+
+  func resume(returning value: Value) {
+    lock.lock()
+    let continuation = self.continuation
+    self.continuation = nil
+    lock.unlock()
+
+    continuation?.resume(returning: value)
+  }
+}
 
 public class WatchConnectivityModule: Module {
   private var sessionDelegate: SessionDelegate?
@@ -105,15 +124,16 @@ public class WatchConnectivityModule: Module {
 
       let cleaned = Self.sanitize(stateDict)
       return await withCheckedContinuation { continuation in
+        let oneShotContinuation = OneShotContinuation(continuation)
         session.sendMessage(
           ["workoutState": cleaned],
-          replyHandler: { _ in continuation.resume(returning: true) },
+          replyHandler: { _ in oneShotContinuation.resume(returning: true) },
           errorHandler: { error in
             reportNativeError(
               error,
               context: "WatchConnectivity.sendWatchMessage failed"
             )
-            continuation.resume(returning: false)
+            oneShotContinuation.resume(returning: false)
           }
         )
       }
