@@ -145,6 +145,16 @@ export const Actions: FC<ActionsProps> = ({
     const handleAddSet = useCallback(async () => {
         if (!workoutExerciseId) return;
 
+        const completedWorkoutSetDefaults =
+            workoutStatus === 'completed'
+                ? {
+                      startedAt: null,
+                      completedAt: workoutDetails?.workout.completedAt ?? new Date(),
+                      restCompletedAt: null,
+                      finalRestTime: null,
+                  }
+                : {};
+
         // Determine if current exercise is in a non-single group
         const currentWe = workoutDetails?.exercises.find(
             (e) => e.workoutExercise.id === workoutExerciseId,
@@ -182,6 +192,7 @@ export const Actions: FC<ActionsProps> = ({
                         time: prev?.time ?? null,
                         distance: prev?.distance ?? null,
                         restTime: prev?.restTime ?? null,
+                        ...completedWorkoutSetDefaults,
                         round: nextRound,
                     });
                 }),
@@ -201,10 +212,11 @@ export const Actions: FC<ActionsProps> = ({
                 time: prev?.time ?? null,
                 distance: prev?.distance ?? null,
                 restTime: prev?.restTime ?? null,
+                ...completedWorkoutSetDefaults,
                 round: prev?.round != null ? prev.round + 1 : sortedSets.length,
             });
         }
-    }, [workoutExerciseId, sortedSets, createSet, workoutDetails, orderedExercises]);
+    }, [workoutExerciseId, workoutStatus, sortedSets, createSet, workoutDetails, orderedExercises]);
 
     const handleRest = useCallback(() => {
         open({ workoutExerciseId, changeType: 'all_intervals' });
