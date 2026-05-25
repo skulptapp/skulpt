@@ -556,17 +556,46 @@ export const deleteExerciseSet = async (id: string): Promise<void> => {
 export const createExerciseSetWithAutoStart = async (
     data: Omit<ExerciseSetInsert, 'id'>,
 ): Promise<ExerciseSetSelect> => {
+    let setData = data;
+
+    if (setData.completedAt === null || setData.completedAt === undefined) {
+        try {
+            const parentWorkouts = await db
+                .select({
+                    status: workout.status,
+                    completedAt: workout.completedAt,
+                })
+                .from(workoutExercise)
+                .innerJoin(workout, eq(workoutExercise.workoutId, workout.id))
+                .where(eq(workoutExercise.id, setData.workoutExerciseId))
+                .limit(1);
+            const parentWorkout = parentWorkouts[0];
+
+            if (parentWorkout?.status === 'completed') {
+                setData = {
+                    ...setData,
+                    startedAt: null,
+                    completedAt: parentWorkout.completedAt ?? new Date(),
+                    restCompletedAt: null,
+                    finalRestTime: null,
+                };
+            }
+        } catch (error) {
+            reportError(error, 'Failed to apply completed workout defaults to exercise set:');
+        }
+    }
+
     // Guard against duplicate `order` values for the same workoutExerciseId.
     // Duplicate orders can cause progression logic to skip sets.
-    let safeOrder = data.order;
+    let safeOrder = setData.order;
     try {
         const existing = await db
             .select({ id: exerciseSet.id, order: exerciseSet.order })
             .from(exerciseSet)
-            .where(eq(exerciseSet.workoutExerciseId, data.workoutExerciseId))
+            .where(eq(exerciseSet.workoutExerciseId, setData.workoutExerciseId))
             .orderBy(exerciseSet.order, exerciseSet.createdAt);
 
-        const hasSameOrder = existing.some((s) => s.order === data.order);
+        const hasSameOrder = existing.some((s) => s.order === setData.order);
         if (hasSameOrder) {
             const maxOrder = existing.reduce((max, s) => (s.order > max ? s.order : max), -1);
             safeOrder = maxOrder + 1;
@@ -574,15 +603,15 @@ export const createExerciseSetWithAutoStart = async (
     } catch (error) {
         // best-effort; keep requested order if query fails
         reportError(error, 'Failed to validate exercise set order before create:');
-        safeOrder = data.order;
+        safeOrder = setData.order;
     }
 
     // Get units from the associated exercise
-    const exerciseUnits = await getExerciseUnits(data.workoutExerciseId);
+    const exerciseUnits = await getExerciseUnits(setData.workoutExerciseId);
 
     const newExerciseSet: ExerciseSetInsert = {
         id: nanoid(),
-        ...data,
+        ...setData,
         order: safeOrder,
         // Always set units from the exercise
         weightUnits: exerciseUnits.weightUnits,

@@ -238,6 +238,13 @@ export const useStartWorkout = () => {
     });
 };
 
+const invalidateWorkoutSetDerivedQueries = (queryClient: ReturnType<typeof useQueryClient>) => {
+    queryClient.invalidateQueries({ queryKey: ['workout-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['workout-day-summary'] });
+    queryClient.invalidateQueries({ queryKey: ['workouts-overview-meta'] });
+    queryClient.invalidateQueries({ queryKey: ['exercise-history'] });
+};
+
 export const useCompleteWorkout = () => {
     const queryClient = useQueryClient();
     const { track } = useAnalytics();
@@ -250,7 +257,7 @@ export const useCompleteWorkout = () => {
             queryClient.invalidateQueries({ queryKey: ['workout-details', data.id] });
             queryClient.invalidateQueries({ queryKey: ['exercise-sets'] });
             queryClient.invalidateQueries({ queryKey: ['active-workout'] });
-            queryClient.invalidateQueries({ queryKey: ['workout-stats'] });
+            invalidateWorkoutSetDerivedQueries(queryClient);
             track('workout:complete', {
                 workoutId: data.id,
                 duration: data.duration,
@@ -327,6 +334,7 @@ export const useDeleteWorkoutGroup = () => {
             });
             queryClient.invalidateQueries({ queryKey: ['workouts-overview-meta'] });
             queryClient.invalidateQueries({ queryKey: ['exercise-sets'] });
+            invalidateWorkoutSetDerivedQueries(queryClient);
         },
     });
 };
@@ -362,6 +370,7 @@ export const useDeleteWorkoutExercise = () => {
             queryClient.invalidateQueries({ queryKey: ['workout-details', variables.workoutId] });
             queryClient.invalidateQueries({ queryKey: ['exercise-sets'] });
             queryClient.invalidateQueries({ queryKey: ['workout-groups', variables.workoutId] });
+            invalidateWorkoutSetDerivedQueries(queryClient);
         },
     });
 };
@@ -383,6 +392,7 @@ export const useCreateExerciseSet = () => {
         onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: ['exercise-sets', data.workoutExerciseId] });
             queryClient.invalidateQueries({ queryKey: ['workout-details'] });
+            invalidateWorkoutSetDerivedQueries(queryClient);
             track('workout:exercise_set_add', {
                 workoutExerciseId: data.workoutExerciseId,
                 setType: data.type,
@@ -400,6 +410,7 @@ export const useUpdateExerciseSet = () => {
         onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: ['exercise-sets', data.workoutExerciseId] });
             queryClient.invalidateQueries({ queryKey: ['workout-details'] });
+            invalidateWorkoutSetDerivedQueries(queryClient);
         },
     });
 };
@@ -415,6 +426,7 @@ export const useDeleteExerciseSet = () => {
                 queryKey: ['exercise-sets', variables.workoutExerciseId],
             });
             queryClient.invalidateQueries({ queryKey: ['workout-details'] });
+            invalidateWorkoutSetDerivedQueries(queryClient);
             track('workout:exercise_set_remove', {
                 workoutExerciseId: variables.workoutExerciseId,
             });
