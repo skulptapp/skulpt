@@ -143,6 +143,19 @@ const RestInput: FC = () => {
 
     const { mutate: updateSet } = useUpdateExerciseSet();
 
+    const buildRestUpdate = useCallback(
+        (set: (typeof sortedSets)[number], restValue: number | null) => ({
+            restTime: restValue,
+            ...(set.completedAt && restValue != null
+                ? {
+                      finalRestTime: restValue,
+                      restCompletedAt: null,
+                  }
+                : {}),
+        }),
+        [],
+    );
+
     const activeDraftKey = `${workoutExerciseId ?? ''}:${setId ?? 'general'}`;
     const sourceValue = setId ? (currentSet?.restTime ?? null) : null;
     const value = draftKey === activeDraftKey ? draftValue : sourceValue;
@@ -239,22 +252,31 @@ const RestInput: FC = () => {
 
         if (changeType === 'after_set') {
             if (setId) {
-                updateSet({ id: setId, updates: { restTime: restValue } });
+                const targetSet = currentSet;
+                updateSet({
+                    id: setId,
+                    updates: targetSet
+                        ? buildRestUpdate(targetSet, restValue)
+                        : { restTime: restValue },
+                });
             }
         } else if (changeType === 'between_sets') {
             if (sortedSets.length > 0) {
                 for (let i = 0; i < sortedSets.length - 1; i++) {
-                    updateSet({ id: sortedSets[i].id, updates: { restTime: restValue } });
+                    updateSet({
+                        id: sortedSets[i].id,
+                        updates: buildRestUpdate(sortedSets[i], restValue),
+                    });
                 }
             }
         } else if (changeType === 'after_exercise') {
             if (sortedSets.length > 0) {
                 const last = sortedSets[sortedSets.length - 1];
-                updateSet({ id: last.id, updates: { restTime: restValue } });
+                updateSet({ id: last.id, updates: buildRestUpdate(last, restValue) });
             }
         } else if (changeType === 'all_intervals') {
             for (const s of sortedSets) {
-                updateSet({ id: s.id, updates: { restTime: restValue } });
+                updateSet({ id: s.id, updates: buildRestUpdate(s, restValue) });
             }
         }
         handleSheet();

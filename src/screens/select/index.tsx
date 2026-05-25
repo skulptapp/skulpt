@@ -15,6 +15,7 @@ import {
     useCreateExerciseSet,
     useWorkoutGroups,
     useCreateWorkoutGroup,
+    useWorkout,
 } from '@/hooks/use-workouts';
 import { getLastExerciseSetsByExerciseId } from '@/crud/exercise';
 import { ExerciseSetSelect } from '@/db/schema';
@@ -130,6 +131,7 @@ const SelectExercisesScreen: FC = () => {
 
     const { data: rawExercises, isLoading, isFetching, error } = useExercisesList(filters);
     const { data: existingGroups } = useWorkoutGroups(workoutId || '');
+    const { data: workout } = useWorkout(workoutId || '');
 
     const createWorkoutExercise = useCreateWorkoutExercise();
     const createWorkoutGroup = useCreateWorkoutGroup();
@@ -204,6 +206,15 @@ const SelectExercisesScreen: FC = () => {
             let nextGroupOrder = currentMaxGroupOrder + 1;
 
             const exerciseMap = new Map((rawExercises || []).map((e) => [e.id, e]));
+            const completedSetDefaults =
+                workout?.status === 'completed'
+                    ? {
+                          completedAt: workout.completedAt ?? new Date(),
+                          startedAt: null,
+                          restCompletedAt: null,
+                          finalRestTime: null,
+                      }
+                    : null;
 
             const uniqueExerciseIds = Array.from(new Set(selected));
             const prevSetsByExerciseId: Record<string, ExerciseSetSelect[]> = {};
@@ -248,6 +259,7 @@ const SelectExercisesScreen: FC = () => {
                                 rpe: s.rpe ?? null,
                                 restTime: s.restTime ?? null,
                                 round: orderIndex,
+                                ...completedSetDefaults,
                             }),
                         ),
                     );
@@ -265,6 +277,7 @@ const SelectExercisesScreen: FC = () => {
                         rpe: null,
                         restTime: null,
                         round: 0,
+                        ...completedSetDefaults,
                     });
                 }
             }
@@ -287,6 +300,7 @@ const SelectExercisesScreen: FC = () => {
         createExerciseSet,
         existingGroups,
         createWorkoutGroup,
+        workout,
         track,
     ]);
 
