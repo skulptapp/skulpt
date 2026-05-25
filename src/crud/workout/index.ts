@@ -760,6 +760,15 @@ export const duplicateWorkout = async (
         }
 
         const newWorkout = await createWorkout(newWorkoutData);
+        const completedSetDefaults =
+            mode === 'completed'
+                ? {
+                      startedAt: null,
+                      completedAt: newWorkout.completedAt ?? new Date(),
+                      restCompletedAt: null,
+                      finalRestTime: null,
+                  }
+                : null;
 
         const groupIdMap = new Map<string, string>();
         for (const groupData of originalWorkout.groups) {
@@ -801,10 +810,10 @@ export const duplicateWorkout = async (
                     distance: originalSet.distance,
                     rpe: originalSet.rpe,
                     restTime: originalSet.restTime,
-                    restCompletedAt: null,
-                    finalRestTime: null,
-                    startedAt: null,
-                    completedAt: null,
+                    restCompletedAt: completedSetDefaults?.restCompletedAt ?? null,
+                    finalRestTime: completedSetDefaults?.finalRestTime ?? null,
+                    startedAt: completedSetDefaults?.startedAt ?? null,
+                    completedAt: completedSetDefaults?.completedAt ?? null,
                 };
 
                 await createExerciseSet(newSetData);
