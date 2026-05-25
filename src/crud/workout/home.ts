@@ -1,8 +1,8 @@
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, exists, inArray, isNotNull, ne, or, sql } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { exercise, ExerciseSelect } from '@/db/schema/exercise';
-import { workoutExercise } from '@/db/schema/workout';
+import { exercise, exerciseSet, ExerciseSelect } from '@/db/schema/exercise';
+import { workout, workoutExercise } from '@/db/schema/workout';
 
 export interface WorkoutOverviewExerciseMetaRow {
     workoutId: string;
@@ -26,6 +26,25 @@ export const getWorkoutOverviewExerciseMetaRows = async (
             primaryMuscleGroups: exercise.primaryMuscleGroups,
         })
         .from(workoutExercise)
+        .innerJoin(workout, eq(workoutExercise.workoutId, workout.id))
         .innerJoin(exercise, eq(workoutExercise.exerciseId, exercise.id))
-        .where(inArray(workoutExercise.workoutId, uniqueWorkoutIds));
+        .where(
+            and(
+                inArray(workoutExercise.workoutId, uniqueWorkoutIds),
+                or(
+                    ne(workout.status, 'completed'),
+                    exists(
+                        db
+                            .select({ one: sql`1` })
+                            .from(exerciseSet)
+                            .where(
+                                and(
+                                    eq(exerciseSet.workoutExerciseId, workoutExercise.id),
+                                    isNotNull(exerciseSet.completedAt),
+                                ),
+                            ),
+                    ),
+                ),
+            ),
+        );
 };
