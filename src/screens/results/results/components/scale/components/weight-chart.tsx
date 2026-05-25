@@ -148,12 +148,11 @@ const WeightChart = ({ timeline, weightUnits, numberFormatter }: WeightChartProp
     const { theme } = useUnistyles();
     const [chartWidth, setChartWidth] = useState(0);
     const [selectedPointIndex, setSelectedPointIndex] = useState<number | null>(null);
-    const [currentPageIndex, setCurrentPageIndex] = useState(0);
+    const [currentPageState, setCurrentPageState] = useState({ index: 0, pageCount: 0 });
     const [isScrubbing, setIsScrubbing] = useState(false);
     const pagerRef = useRef<PagerView>(null);
     const lastHapticPointIndexRef = useRef<number | null>(null);
     const currentPageIndexRef = useRef(0);
-    const previousPageCountRef = useRef(0);
     const scrubActivationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const scrubTouchStartXRef = useRef<number | null>(null);
     const isScrubbingRef = useRef(false);
@@ -237,35 +236,25 @@ const WeightChart = ({ timeline, weightUnits, numberFormatter }: WeightChartProp
     }, [chartModel, lineChartViewportWidth, timeline]);
 
     const clampedCurrentPageIndex = useMemo(() => {
-        if (timelinePages.length === 0) return 0;
-        return Math.max(0, Math.min(currentPageIndex, timelinePages.length - 1));
-    }, [currentPageIndex, timelinePages.length]);
+        const pageCount = timelinePages.length;
+        if (pageCount === 0) return 0;
+
+        const maxIndex = pageCount - 1;
+        const wasOnLastPage =
+            currentPageState.pageCount === 0 ||
+            currentPageState.index >= currentPageState.pageCount - 1;
+
+        if (wasOnLastPage) return maxIndex;
+
+        return Math.max(0, Math.min(currentPageState.index, maxIndex));
+    }, [currentPageState.index, currentPageState.pageCount, timelinePages.length]);
 
     useEffect(() => {
-        const pageCount = timelinePages.length;
-        if (pageCount === 0) {
-            previousPageCountRef.current = 0;
+        if (timelinePages.length === 0) {
             currentPageIndexRef.current = 0;
-            setCurrentPageIndex(0);
             return;
         }
-
-        const previousPageCount = previousPageCountRef.current;
-        setCurrentPageIndex((previousIndex) => {
-            const maxIndex = pageCount - 1;
-            const wasOnLastPage = previousPageCount === 0 || previousIndex >= previousPageCount - 1;
-
-            if (wasOnLastPage) {
-                return maxIndex;
-            }
-
-            return Math.max(0, Math.min(previousIndex, maxIndex));
-        });
-        previousPageCountRef.current = pageCount;
-    }, [timelinePages.length]);
-
-    useEffect(() => {
-        if (!pagerRef.current || timelinePages.length === 0) return;
+        if (!pagerRef.current) return;
         if (currentPageIndexRef.current === clampedCurrentPageIndex) return;
 
         pagerRef.current.setPageWithoutAnimation(clampedCurrentPageIndex);
@@ -412,10 +401,14 @@ const WeightChart = ({ timeline, weightUnits, numberFormatter }: WeightChartProp
         (event: PagerViewOnPageSelectedEvent) => {
             const nextPageIndex = event.nativeEvent.position;
             currentPageIndexRef.current = nextPageIndex;
-            setCurrentPageIndex((prev) => (prev === nextPageIndex ? prev : nextPageIndex));
+            setCurrentPageState((prev) =>
+                prev.index === nextPageIndex && prev.pageCount === timelinePages.length
+                    ? prev
+                    : { index: nextPageIndex, pageCount: timelinePages.length },
+            );
             resetScrubbingState();
         },
-        [resetScrubbingState],
+        [resetScrubbingState, timelinePages.length],
     );
 
     useEffect(() => {

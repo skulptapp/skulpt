@@ -120,9 +120,7 @@ function Segmented<T extends FieldValues, TName extends FieldPath<T>>({
 
     const currentIndex = segments.findIndex((el) => el.value === value);
     const selected = useSharedValue(currentIndex >= 0 ? currentIndex : selectedIndex);
-    const [activeIndex, setActiveIndex] = useState(
-        currentIndex >= 0 ? currentIndex : selectedIndex,
-    );
+    const activeIndex = currentIndex >= 0 ? currentIndex : selectedIndex;
 
     const [segmentWidths, setSegmentWidths] = useState<number[]>(
         new Array(segments.length).fill(0),
@@ -134,9 +132,8 @@ function Segmented<T extends FieldValues, TName extends FieldPath<T>>({
 
     useEffect(() => {
         const newIndex = segments.findIndex((el) => el.value === value);
-        if (newIndex >= 0 && newIndex !== selected.value) {
-            selected.value = newIndex;
-            setActiveIndex(newIndex);
+        if (newIndex >= 0 && newIndex !== selected.get()) {
+            selected.set(newIndex);
         }
     }, [value, segments, selected]);
 
@@ -157,8 +154,9 @@ function Segmented<T extends FieldValues, TName extends FieldPath<T>>({
     const thumbAnimatedStyle = useAnimatedStyle(() => {
         if (!isInitialized || segmentWidths.length === 0) return { opacity: 0 };
 
-        const currentWidth = segmentWidths[selected.value] || 0;
-        const currentPosition = segmentPositions[selected.value] || 0;
+        const selectedIndex = selected.get();
+        const currentWidth = segmentWidths[selectedIndex] || 0;
+        const currentPosition = segmentPositions[selectedIndex] || 0;
 
         return {
             opacity: 1,
@@ -168,8 +166,7 @@ function Segmented<T extends FieldValues, TName extends FieldPath<T>>({
     });
 
     const handlePress = (index: number) => {
-        selected.value = withTiming(index, { duration });
-        setActiveIndex(index);
+        selected.set(withTiming(index, { duration }));
         onChange(segments[index].value);
     };
 

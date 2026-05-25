@@ -1,4 +1,4 @@
-import { FC, useCallback, useMemo, useRef, useState } from 'react';
+import { FC, useCallback, useMemo, useState } from 'react';
 import { StyleProp, ViewStyle } from 'react-native';
 import { ViewToken } from '@shopify/flash-list';
 import { router } from 'expo-router';
@@ -57,15 +57,6 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
     ...rest
 }) => {
     const [stickyHeaderState, setStickyHeaderState] = useState<StickyHeaderState>({});
-    const searchCacheRef = useRef<{
-        query: string;
-        source: ExerciseListItem[] | null;
-        result: ExerciseListItem[];
-    }>({
-        query: '',
-        source: null,
-        result: [],
-    });
 
     const deleteExercise = useDeleteExercise();
 
@@ -77,29 +68,10 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
     const data = useMemo<ExerciseListItem[]>(() => {
         const normalizedQuery = query.trim().toLowerCase();
         if (!normalizedQuery) {
-            searchCacheRef.current = {
-                query: '',
-                source: groupedData,
-                result: groupedData,
-            };
             return groupedData;
         }
 
-        const cache = searchCacheRef.current;
-        const canReusePrefixSearch =
-            cache.source === groupedData &&
-            cache.query.length > 0 &&
-            normalizedQuery.startsWith(cache.query);
-        const source = canReusePrefixSearch ? cache.result : groupedData;
-        const result = filterGroupedExercisesByName(source, normalizedQuery);
-
-        searchCacheRef.current = {
-            query: normalizedQuery,
-            source: groupedData,
-            result,
-        };
-
-        return result;
+        return filterGroupedExercisesByName(groupedData, normalizedQuery);
     }, [groupedData, query]);
 
     const stickyLookup = useMemo(() => {

@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { StyleSheet } from 'react-native-unistyles';
 
 import { Tabs } from './components';

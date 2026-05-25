@@ -67,11 +67,16 @@ const WorkoutExerciseScreen: FC = () => {
         return we;
     }, [workoutDetails, workoutExerciseId]);
 
-    const [localItems, setLocalItems] = useState<ExerciseSetSelect[]>(exerciseInfo?.sets || []);
-
-    useEffect(() => {
-        setLocalItems(exerciseInfo?.sets || []);
-    }, [exerciseInfo]);
+    const sourceItems = useMemo(() => exerciseInfo?.sets || [], [exerciseInfo?.sets]);
+    const sourceItemsKey = useMemo(
+        () => sourceItems.map((item) => `${item.id}:${item.order}`).join('|'),
+        [sourceItems],
+    );
+    const [localItemsState, setLocalItemsState] = useState({
+        key: sourceItemsKey,
+        items: sourceItems,
+    });
+    const localItems = localItemsState.key === sourceItemsKey ? localItemsState.items : sourceItems;
 
     useEffect(() => {
         if (Platform.OS === 'android') {
@@ -88,7 +93,7 @@ const WorkoutExerciseScreen: FC = () => {
         ({ data }: { data: ExerciseSetSelect[] }) => {
             const previousOrderMap = new Map(localItems.map((it) => [it.id, it.order]));
 
-            setLocalItems(data);
+            setLocalItemsState({ key: sourceItemsKey, items: data });
 
             for (let index = 0; index < data.length; index++) {
                 const item = data[index];
@@ -98,7 +103,7 @@ const WorkoutExerciseScreen: FC = () => {
                 }
             }
         },
-        [localItems, updateSet],
+        [localItems, sourceItemsKey, updateSet],
     );
 
     const handleDragStart = useCallback(() => {

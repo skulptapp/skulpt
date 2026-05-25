@@ -1,4 +1,4 @@
-import { FC, useEffect, useMemo, useRef, useState } from 'react';
+import { FC, useMemo, useRef, useState } from 'react';
 import { Platform, TextInput, TextStyle } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
@@ -76,17 +76,12 @@ export const RepsInput: FC<RepsInputProps> = ({
     const [text, setText] = useState<string>(fallbackText);
     const [selection, setSelection] = useState<Selection | undefined>(undefined);
 
-    useEffect(() => {
-        // Keep in sync while not editing
-        if (!focused) {
-            setText(fallbackText);
-        }
-    }, [focused, fallbackText]);
+    const editableText = focused ? text : fallbackText;
 
     const repsDigits = useMemo(() => {
-        const normalized = text.replace(/[^0-9]/g, '');
+        const normalized = editableText.replace(/[^0-9]/g, '');
         return normalized;
-    }, [text]);
+    }, [editableText]);
 
     const formatted = useMemo(() => formatReps(parseRepsInput(repsDigits)), [repsDigits]);
 

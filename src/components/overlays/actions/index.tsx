@@ -70,7 +70,7 @@ const ActionsSheet: FC = () => {
         }
     };
 
-    const Menu: FC = () => {
+    const renderMenu = () => {
         switch (type) {
             case 'workout__menu':
                 return <WorkoutMenu />;
@@ -106,9 +106,7 @@ const ActionsSheet: FC = () => {
             handleStyle={styles.sheetHandle}
             handleIndicatorStyle={styles.sheetHandleIndicator}
         >
-            <BottomSheetView style={styles.sheetContentContainer}>
-                <Menu />
-            </BottomSheetView>
+            <BottomSheetView style={styles.sheetContentContainer}>{renderMenu()}</BottomSheetView>
         </BottomSheetModal>
     );
 };

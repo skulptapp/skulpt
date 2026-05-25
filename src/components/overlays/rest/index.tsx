@@ -103,33 +103,15 @@ const styles = StyleSheet.create((theme, rt) => ({
 }));
 
 const RestInput: FC = () => {
-    const [value, setValue] = useState<number | null | undefined>();
-    const [userModified, setUserModified] = useState(false);
-    const [isFirstOpen, setIsFirstOpen] = useState(true);
+    const [draftValue, setDraftValue] = useState<number | null | undefined>();
+    const [draftKey, setDraftKey] = useState<string | null>(null);
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
     const { keyboardShown } = useKeyboard();
     const { t } = useTranslation(['common']);
 
-    const baseSeconds = Math.max(0, value ?? 0);
-    const fallbackDigits = useMemo(() => digitsFromSeconds(baseSeconds), [baseSeconds]);
-
     const [focused, setFocused] = useState(false);
-    const [digits, setDigits] = useState<string>(fallbackDigits);
+    const [digits, setDigits] = useState<string>('');
     const [selection, setSelection] = useState<Selection | undefined>(undefined);
-
-    useEffect(() => {
-        // Keep in sync while not editing
-        if (!focused) {
-            setDigits(fallbackDigits);
-        }
-    }, [focused, fallbackDigits]);
-
-    const timeDigits = useMemo(() => digits.replace(/\D/g, ''), [digits]);
-
-    const displayText = useMemo(
-        () => formatClockSecondsCompact(secondsFromDigits(timeDigits)),
-        [timeDigits],
-    );
 
     const { opened, customTitle, close, setId, workoutExerciseId, changeType, setChangeType } =
         useRestStore(
@@ -160,6 +142,19 @@ const RestInput: FC = () => {
     );
 
     const { mutate: updateSet } = useUpdateExerciseSet();
+
+    const activeDraftKey = `${workoutExerciseId ?? ''}:${setId ?? 'general'}`;
+    const sourceValue = setId ? (currentSet?.restTime ?? null) : null;
+    const value = draftKey === activeDraftKey ? draftValue : sourceValue;
+    const baseSeconds = Math.max(0, value ?? 0);
+    const fallbackDigits = useMemo(() => digitsFromSeconds(baseSeconds), [baseSeconds]);
+    const editableDigits = focused ? digits : fallbackDigits;
+    const timeDigits = useMemo(() => editableDigits.replace(/\D/g, ''), [editableDigits]);
+
+    const displayText = useMemo(
+        () => formatClockSecondsCompact(secondsFromDigits(timeDigits)),
+        [timeDigits],
+    );
 
     useEffect(() => {
         if (opened) {
@@ -201,52 +196,19 @@ const RestInput: FC = () => {
     }, []);
 
     useEffect(() => {
-        if (opened) {
-            if (setId) {
-                // Specific set modal - use the set's rest time only if not previously modified
-                if (!userModified) {
-                    setValue(currentSet?.restTime ?? null);
-                }
-                // Don't reset userModified for specific modal - preserve user's input
-            } else {
-                // General modal - reset to empty only on first open
-                if (isFirstOpen) {
-                    setValue(null);
-                    setIsFirstOpen(false);
-                }
-                // Don't reset userModified for general modal - preserve user's input
-            }
-
-            if (!setId && changeType === 'after_set') {
-                setChangeType('all_intervals');
-            }
-        } else {
-            // Modal closed - reset first open flag and user modified flag
-            setIsFirstOpen(true);
-            setUserModified(false);
+        if (opened && !setId && changeType === 'after_set') {
+            setChangeType('all_intervals');
         }
-    }, [
-        opened,
-        currentSet?.restTime,
-        setId,
-        sortedSets,
-        changeType,
-        setChangeType,
-        isFirstOpen,
-        userModified,
-    ]);
-
-    // Only for specific set modal: update value when user hasn't modified it
-    useEffect(() => {
-        if (opened && !userModified && setId) {
-            setValue(currentSet?.restTime ?? null);
-        }
-    }, [changeType, currentSet?.restTime, opened, userModified, setId]);
+    }, [changeType, opened, setChangeType, setId]);
 
     const handleSheet = () => {
         if (opened && keyboardShown) {
             Keyboard.dismiss();
         }
+        setDraftKey(null);
+        setDraftValue(undefined);
+        setFocused(false);
+        setSelection(undefined);
         close();
     };
 
@@ -312,11 +274,12 @@ const RestInput: FC = () => {
 
     const handleChangeText = (t: string) => {
         const d = t.replace(/\D/g, '');
+        const nextValue = secondsFromDigits(d) ?? null;
         setDigits(d);
         const end = d.length;
         setSelection({ start: end, end });
-        setValue(secondsFromDigits(d) ?? null);
-        setUserModified(true);
+        setDraftKey(activeDraftKey);
+        setDraftValue(nextValue);
     };
 
     return (

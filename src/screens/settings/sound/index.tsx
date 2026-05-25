@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import Slider from '@react-native-community/slider';
 import { Volume1, Volume2 } from 'lucide-react-native';
 
@@ -77,7 +77,6 @@ const SoundScreen = () => {
     const {
         control,
         handleSubmit,
-        watch,
         setValue,
         reset,
         formState: { errors },
@@ -89,8 +88,8 @@ const SoundScreen = () => {
         },
     });
 
-    const watchedPlaySounds = watch('playSounds');
-    const watchedSoundsVolume = watch('soundsVolume');
+    const watchedPlaySounds = useWatch({ control, name: 'playSounds' });
+    const watchedSoundsVolume = useWatch({ control, name: 'soundsVolume' });
     const isUserLoaded = user !== undefined;
     const userPlaySounds = user?.playSounds ?? true;
     const userSoundsVolume = user?.soundsVolume ?? 100;

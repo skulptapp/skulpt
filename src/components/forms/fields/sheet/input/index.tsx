@@ -135,7 +135,7 @@ const SheetInput: FC<SheetInputProps> = ({
         </>
     );
 
-    const Value: FC<{ children: ReactNode }> = ({ children }) => (
+    const renderValue = (children: ReactNode) => (
         <Text fontSize="lg" fontWeight="semibold" style={[styles.value(!!error), inputStyle]}>
             {children}
         </Text>
@@ -156,10 +156,10 @@ const SheetInput: FC<SheetInputProps> = ({
                                     prefix={prefix}
                                     suffix={suffix}
                                     displayType="text"
-                                    renderText={(value) => <Value>{value}</Value>}
+                                    renderText={renderValue}
                                 />
                             ) : (
-                                <Value>{value}</Value>
+                                renderValue(value)
                             )}
                         </>
                     )}

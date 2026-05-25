@@ -7,7 +7,7 @@ import { ScrollView } from '@/components/primitives/scrollview';
 import { Choices } from '@/components/forms/fields/choices';
 import { Datetime } from '@/components/forms/fields/datetime';
 import { Input } from '@/components/forms/fields/input';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { EditUserFormData, editUserSchema, useUser } from '@/hooks/use-user';
 import { VStack } from '@/components/primitives/vstack';
@@ -149,7 +149,6 @@ const HeartRateScreen = () => {
 
     const {
         control,
-        watch,
         setValue,
         trigger,
         reset,
@@ -165,11 +164,11 @@ const HeartRateScreen = () => {
         },
     });
 
-    const watchedFormula = watch('mhrFormula');
-    const watchedManualValue = watch('mhrManualValue');
-    const watchedBirthday = watch('birthday');
-    const watchedBiologicalSex = watch('biologicalSex');
-    const watchedActivityLevel = watch('activityLevel');
+    const watchedFormula = useWatch({ control, name: 'mhrFormula' });
+    const watchedManualValue = useWatch({ control, name: 'mhrManualValue' });
+    const watchedBirthday = useWatch({ control, name: 'birthday' });
+    const watchedBiologicalSex = useWatch({ control, name: 'biologicalSex' });
+    const watchedActivityLevel = useWatch({ control, name: 'activityLevel' });
     const isUserLoaded = user !== undefined;
     const userFormula = user?.mhrFormula ?? 'nes';
     const userManualValue = user?.mhrManualValue ?? null;

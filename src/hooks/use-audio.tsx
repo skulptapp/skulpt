@@ -51,7 +51,7 @@ const useAudioProvider = () => {
                 reportError(error, context);
             }
         },
-        [isSessionActivationError, user?.playSounds, user?.soundsVolume],
+        [isSessionActivationError, user],
     );
 
     useEffect(() => {

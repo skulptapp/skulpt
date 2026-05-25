@@ -43,12 +43,14 @@ export const Search: FC<SearchProps> = ({ value, onChange, placeholder, dismissT
 
     const animatedStyle = useAnimatedStyle(() => {
         const spacing = 8;
-        const distance = (btnW.value || 40) + spacing;
+        const distance = (btnW.get() || 40) + spacing;
+        const visibility = visible.get();
+
         return {
-            opacity: visible.value,
+            opacity: visibility,
             transform: [
                 {
-                    translateX: distance * (1 - visible.value),
+                    translateX: distance * (1 - visibility),
                 },
             ],
         };
@@ -56,16 +58,16 @@ export const Search: FC<SearchProps> = ({ value, onChange, placeholder, dismissT
 
     const inputAnimatedStyle = useAnimatedStyle(() => {
         const spacing = 8;
-        const distance = (btnW.value || 40) + spacing;
+        const distance = (btnW.get() || 40) + spacing;
         return {
-            paddingRight: distance * visible.value,
+            paddingRight: distance * visible.get(),
         };
     });
 
     const label = useMemo(() => dismissText || 'Готово', [dismissText]);
     useEffect(() => {
         const shouldShow = (isFocused || !!value) && !manualHide;
-        visible.value = withTiming(shouldShow ? 1 : 0, { duration: 180 });
+        visible.set(withTiming(shouldShow ? 1 : 0, { duration: 180 }));
     }, [isFocused, value, manualHide, visible]);
 
     const handleDismiss = () => {
@@ -83,12 +85,12 @@ export const Search: FC<SearchProps> = ({ value, onChange, placeholder, dismissT
     const handleFocus = () => {
         setIsFocused(true);
         setManualHide(false);
-        visible.value = withTiming(1, { duration: 180 });
+        visible.set(withTiming(1, { duration: 180 }));
     };
 
     const handleBlur = () => {
         setIsFocused(false);
-        visible.value = withTiming(0, { duration: 180 });
+        visible.set(withTiming(0, { duration: 180 }));
     };
 
     return (
@@ -116,7 +118,7 @@ export const Search: FC<SearchProps> = ({ value, onChange, placeholder, dismissT
                     },
                 ]}
                 onLayout={(e) => {
-                    btnW.value = e.nativeEvent.layout.width;
+                    btnW.set(e.nativeEvent.layout.width);
                 }}
             >
                 <Button type="link" title={label} onPress={handleDismiss} />

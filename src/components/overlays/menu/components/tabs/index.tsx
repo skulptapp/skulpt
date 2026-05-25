@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, type FC } from 'react';
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { useTranslation } from 'react-i18next';
 import { RelativePathString, router } from 'expo-router';
 import * as Haptics from 'expo-haptics';

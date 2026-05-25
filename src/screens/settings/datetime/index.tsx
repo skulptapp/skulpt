@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { Choices } from '@/components/forms/fields/choices';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { EditUserFormData, editUserSchema, useUser } from '@/hooks/use-user';
 import { VStack } from '@/components/primitives/vstack';
@@ -60,7 +60,6 @@ const DateTimeScreen = () => {
     const {
         control,
         handleSubmit,
-        watch,
         reset,
         formState: { errors },
     } = useForm<EditUserFormData>({
@@ -71,8 +70,8 @@ const DateTimeScreen = () => {
         },
     });
 
-    const watchedFirstWeekday = watch('firstWeekday');
-    const watchedTimeFormat = watch('timeFormat');
+    const watchedFirstWeekday = useWatch({ control, name: 'firstWeekday' });
+    const watchedTimeFormat = useWatch({ control, name: 'timeFormat' });
     const isUserLoaded = user !== undefined;
     const userFirstWeekday = user?.firstWeekday ?? 2;
     const userTimeFormat = user?.timeFormat ?? '24h';

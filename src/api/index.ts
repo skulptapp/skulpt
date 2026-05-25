@@ -1,4 +1,4 @@
-import axios, { isAxiosError, type InternalAxiosRequestConfig } from 'axios';
+import { create as createAxios, isAxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { reportError } from '@/services/error-reporting';
 import { bootstrapAuth, clearToken, getStoredToken, isTokenValid } from '@/services/auth';
 import { storage } from '@/storage';
@@ -60,7 +60,7 @@ const SUPPRESS_SENTRY_ERRORS = new Set(['NO_INTERNET', 'TIMEOUT', 'DATABASE']);
 const SYNC_SCHEMA_VERSION = '2';
 
 const createSyncClient = () => {
-    return axios.create({
+    return createAxios({
         baseURL: process.env.EXPO_PUBLIC_SYNC_HOST,
         timeout: 120000,
         headers: {

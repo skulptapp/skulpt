@@ -199,12 +199,7 @@ const NumericStepperField: FC<NumericStepperFieldProps> = ({
     const [focused, setFocused] = useState(false);
     const [inputText, setInputText] = useState<string>(fallbackInput);
     const [selection, setSelection] = useState<Selection | undefined>(undefined);
-
-    useEffect(() => {
-        if (!focused) {
-            setInputText(fallbackInput);
-        }
-    }, [focused, fallbackInput]);
+    const editableInputText = focused ? inputText : fallbackInput;
 
     useEffect(() => {
         if (isModalVisible) {
@@ -215,9 +210,9 @@ const NumericStepperField: FC<NumericStepperFieldProps> = ({
     }, [isModalVisible]);
 
     const displayText = useMemo(() => {
-        const numericValue = parseNumericDraft(inputText) ?? 0;
+        const numericValue = parseNumericDraft(editableInputText) ?? 0;
         return `${formatDisplayValue(numericValue, decimalPlaces)} ${unit}`;
-    }, [decimalPlaces, inputText, unit]);
+    }, [decimalPlaces, editableInputText, unit]);
 
     const canDecrement = safeValue > min;
     const canIncrement = max == null || safeValue < max;
@@ -237,11 +232,11 @@ const NumericStepperField: FC<NumericStepperFieldProps> = ({
     }, [isModalVisible, keyboardShown]);
 
     const handleDraftSave = useCallback(() => {
-        const parsed = parseNumericDraft(inputText);
+        const parsed = parseNumericDraft(editableInputText);
         const nextValue = normalizeValue(parsed ?? 0, min, max, decimalPlaces);
         onChange(nextValue);
         handleCloseModal();
-    }, [decimalPlaces, handleCloseModal, inputText, max, min, onChange]);
+    }, [decimalPlaces, editableInputText, handleCloseModal, max, min, onChange]);
 
     const handleInputRef = useCallback((input: TextInput | null | undefined) => {
         if (input == null) return;
@@ -352,7 +347,7 @@ const NumericStepperField: FC<NumericStepperFieldProps> = ({
                                     caretHidden={true}
                                     selectionColor="transparent"
                                     cursorColor="transparent"
-                                    value={inputText}
+                                    value={editableInputText}
                                     onFocus={handleFocus}
                                     onBlur={handleBlur}
                                     onChangeText={handleChangeText}

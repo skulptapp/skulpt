@@ -15,7 +15,13 @@ export interface AppStateCallbacks {
  * @returns Object containing current app state and helper functions
  */
 export const useAppState = (callbacks?: AppStateCallbacks) => {
-    const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
+    const [appStateSnapshot, setAppStateSnapshot] = useState<{
+        current: AppStateStatus;
+        previous: AppStateStatus;
+    }>({
+        current: AppState.currentState,
+        previous: AppState.currentState,
+    });
     const prevAppStateRef = useRef<AppStateStatus>(AppState.currentState);
 
     useEffect(() => {
@@ -26,7 +32,10 @@ export const useAppState = (callbacks?: AppStateCallbacks) => {
             prevAppStateRef.current = nextAppState;
 
             // Update state
-            setAppState(nextAppState);
+            setAppStateSnapshot({
+                current: nextAppState,
+                previous: prevState,
+            });
 
             // Trigger specific callbacks based on transition
             if (
@@ -73,6 +82,9 @@ export const useAppState = (callbacks?: AppStateCallbacks) => {
     /**
      * Check if the app is currently in the foreground
      */
+    const appState = appStateSnapshot.current;
+    const prevAppState = appStateSnapshot.previous;
+
     const isInForeground = appState === 'active';
 
     /**
@@ -83,14 +95,13 @@ export const useAppState = (callbacks?: AppStateCallbacks) => {
     /**
      * Check if the app just entered the foreground
      */
-    const didEnterForeground = prevAppStateRef.current !== 'active' && appState === 'active';
+    const didEnterForeground = prevAppState !== 'active' && appState === 'active';
 
     /**
      * Check if the app just entered the background
      */
     const didEnterBackground =
-        prevAppStateRef.current === 'active' &&
-        (appState === 'background' || appState === 'inactive');
+        prevAppState === 'active' && (appState === 'background' || appState === 'inactive');
 
     return {
         appState,
@@ -98,6 +109,6 @@ export const useAppState = (callbacks?: AppStateCallbacks) => {
         isInBackground,
         didEnterForeground,
         didEnterBackground,
-        prevAppState: prevAppStateRef.current,
+        prevAppState,
     };
 };

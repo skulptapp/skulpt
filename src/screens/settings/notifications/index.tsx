@@ -3,7 +3,7 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { Bell } from 'lucide-react-native';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { EditUserFormData, editUserSchema, useUser } from '@/hooks/use-user';
@@ -73,7 +73,6 @@ const NotificationsScreen = () => {
     const {
         control,
         handleSubmit,
-        watch,
         reset,
         formState: { errors },
     } = useForm<EditUserFormData>({
@@ -83,7 +82,7 @@ const NotificationsScreen = () => {
         },
     });
 
-    const watchedPushes = watch('pushes');
+    const watchedPushes = useWatch({ control, name: 'pushes' });
     const isUserLoaded = user !== undefined;
     const isSyncingFormRef = useRef(false);
     const isAutoSavingRef = useRef(false);

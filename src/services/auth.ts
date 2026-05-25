@@ -1,4 +1,4 @@
-import axios, { isAxiosError } from 'axios';
+import { create as createAxios, isAxiosError } from 'axios';
 
 import { nanoid } from '@/helpers/nanoid';
 import { reportError } from '@/services/error-reporting';
@@ -18,7 +18,7 @@ const STORAGE_KEYS = {
 /** Re-bootstrap when less than 5 minutes remain on the token. */
 const REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 
-const authApiClient = axios.create({
+const authApiClient = createAxios({
     baseURL: process.env.EXPO_PUBLIC_SYNC_HOST,
     timeout: 10_000,
     headers: { 'Content-Type': 'application/json' },

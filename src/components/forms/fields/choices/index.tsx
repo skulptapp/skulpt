@@ -408,7 +408,7 @@ const ExpandableChoices: FC<{
     const { t } = useTranslation(['common']);
 
     const animatedStyle = useAnimatedStyle(() => ({
-        height: animatedHeight.value,
+        height: animatedHeight.get(),
     }));
 
     const hasMoreChoices = choices.length > visibleChoices.length;
@@ -526,13 +526,17 @@ const ExpandableChoices: FC<{
                             if (newExpanded) {
                                 const targetHeight =
                                     contentHeight > 0 ? contentHeight : estimatedContentHeight;
-                                animatedHeight.value = withTiming(targetHeight, {
-                                    duration: 300,
-                                });
+                                animatedHeight.set(
+                                    withTiming(targetHeight, {
+                                        duration: 300,
+                                    }),
+                                );
                             } else {
-                                animatedHeight.value = withTiming(0, {
-                                    duration: 300,
-                                });
+                                animatedHeight.set(
+                                    withTiming(0, {
+                                        duration: 300,
+                                    }),
+                                );
                             }
                         }}
                     />

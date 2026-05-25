@@ -11,6 +11,7 @@ import { Title } from '@/components/typography/title';
 import { Button } from '@/components/buttons/base';
 import { HStack } from '@/components/primitives/hstack';
 import { useNotifications } from '@/hooks/use-notifications';
+import { useRestTicker } from '@/hooks/use-rest-ticker';
 import { useTranslation } from 'react-i18next';
 
 const styles = StyleSheet.create((theme, rt) => ({
@@ -54,6 +55,9 @@ export const Pushes = ({ wrapperStyle }: { wrapperStyle?: BoxProps['style'] }) =
     const { t } = useTranslation(['common']);
 
     const notifications = usePermissionsStore((state) => state.permissions.notifications);
+    const hasDelayedPushPrompt =
+        !!notifications && notifications !== RESULTS.GRANTED && !!user?.isDelayedDate;
+    const { nowMs } = useRestTicker(hasDelayedPushPrompt, 60_000);
 
     const showPushes = useMemo(() => {
         if (notifications && notifications !== RESULTS.GRANTED) {
@@ -63,12 +67,12 @@ export const Pushes = ({ wrapperStyle }: { wrapperStyle?: BoxProps['style'] }) =
                         ? user.isDelayedDate
                         : user.isDelayedDate.getTime();
 
-                if (delayTimestamp > Date.now()) return false;
+                if (delayTimestamp > nowMs) return false;
             }
             return true;
         }
         return false;
-    }, [notifications, user]);
+    }, [notifications, nowMs, user]);
 
     const handleTurnOn = useCallback(() => {
         requestPermissions();

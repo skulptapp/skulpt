@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { Plus } from 'lucide-react-native';
@@ -66,11 +66,7 @@ const Scale = () => {
     const { theme, rt } = useUnistyles();
     const weightTimeline = useMeasurementTimeline('body_weight');
     const latestByMetric = useLatestMeasurementsByMetric(['body_weight', 'body_fat_percentage']);
-    const [weightUnits, setWeightUnits] = useState<'kg' | 'lb'>(user?.bodyWeightUnits ?? 'kg');
-
-    useEffect(() => {
-        setWeightUnits(user?.bodyWeightUnits ?? 'kg');
-    }, [user?.bodyWeightUnits]);
+    const weightUnits = user?.bodyWeightUnits ?? 'kg';
 
     const latestWeight = latestByMetric['body_weight'];
 

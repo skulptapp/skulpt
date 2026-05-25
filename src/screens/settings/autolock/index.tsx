@@ -3,7 +3,7 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { Lock } from 'lucide-react-native';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { EditUserFormData, editUserSchema, useUser } from '@/hooks/use-user';
@@ -62,7 +62,6 @@ const AutoLockScreen = () => {
     const {
         control,
         handleSubmit,
-        watch,
         reset,
         formState: { errors },
     } = useForm<EditUserFormData>({
@@ -72,7 +71,7 @@ const AutoLockScreen = () => {
         },
     });
 
-    const watchedScreenAutoLock = watch('screenAutoLock');
+    const watchedScreenAutoLock = useWatch({ control, name: 'screenAutoLock' });
     const isUserLoaded = user !== undefined;
     const userScreenAutoLock = user?.screenAutoLock ?? true;
     const isSyncingFormRef = useRef(false);

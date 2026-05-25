@@ -69,7 +69,7 @@ const Switch: FC<SwitchType> = ({ value, title, description, onChange, container
 
     const trackAnimatedStyle = useAnimatedStyle(() => {
         const color = interpolateColor(
-            isOn.value,
+            isOn.get(),
             [0, 1],
             [!!error ? theme.colors.red[100] : theme.colors.foreground, theme.colors.typography],
         );
@@ -77,23 +77,24 @@ const Switch: FC<SwitchType> = ({ value, title, description, onChange, container
 
         return {
             backgroundColor: colorValue,
-            borderRadius: height.value / 2,
+            borderRadius: height.get() / 2,
         };
     });
 
     const thumbAnimatedStyle = useAnimatedStyle(() => {
-        const moveValue = interpolate(Number(isOn.value), [0, 1], [0, width.value - height.value]);
+        const moveValue = interpolate(Number(isOn.get()), [0, 1], [0, width.get() - height.get()]);
         const translateValue = withTiming(moveValue, { duration });
 
         return {
             transform: [{ translateX: translateValue }],
-            borderRadius: height.value / 2,
+            borderRadius: height.get() / 2,
         };
     });
 
     const handlePress = () => {
-        isOn.value = isOn.value ? 0 : 1;
-        onChange(!isOn.value);
+        const nextValue = isOn.get() ? 0 : 1;
+        isOn.set(nextValue);
+        onChange(Boolean(nextValue));
     };
 
     return (
@@ -112,8 +113,8 @@ const Switch: FC<SwitchType> = ({ value, title, description, onChange, container
                 <Pressable onPress={handlePress}>
                     <Animated.View
                         onLayout={(e) => {
-                            height.value = e.nativeEvent.layout.height;
-                            width.value = e.nativeEvent.layout.width;
+                            height.set(e.nativeEvent.layout.height);
+                            width.set(e.nativeEvent.layout.width);
                         }}
                         style={[styles.track, trackAnimatedStyle]}
                     >

@@ -173,7 +173,6 @@ const useRunningWorkoutTicker = () => {
 
 const useRunningWorkoutProvider = () => {
     const { user, updateUser } = useUser();
-    const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
     const [isTrackingOnWatch, setIsTrackingOnWatch] = useState(false);
     const [runtimeBirthday, setRuntimeBirthday] = useState<Date | null>(null);
     const { playWorkoutStart, playWorkoutStop } = useAudio();
@@ -213,6 +212,17 @@ const useRunningWorkoutProvider = () => {
     const complete = useCompleteWorkout();
 
     const { nowMs } = useRestTicker(!!data[0]?.id, 1000);
+
+    const elapsedSeconds = useMemo(() => {
+        if (!data[0] || !data[0].startedAt) return 0;
+
+        const startedMs =
+            data[0].startedAt instanceof Date
+                ? data[0].startedAt.getTime()
+                : new Date(data[0].startedAt as unknown as any).getTime();
+
+        return Math.max(0, Math.floor((nowMs - startedMs) / 1000));
+    }, [data, nowMs]);
 
     const { mutateAsync: updateSet } = useUpdateExerciseSet();
 
@@ -441,7 +451,7 @@ const useRunningWorkoutProvider = () => {
 
         const elapsedSec = Math.max(0, Math.floor((nowMs - startedAtMs) / 1000));
         return Math.max(0, plannedSec - elapsedSec);
-    }, [nowMs, runningWorkoutActiveSet, workoutDetails?.exercises]);
+    }, [nowMs, runningWorkoutActiveSet, workoutDetails]);
 
     const activeStopwatchElapsedSeconds = useMemo(() => {
         if (!workoutDetails?.exercises || !runningWorkoutActiveSet) return null;
@@ -466,7 +476,7 @@ const useRunningWorkoutProvider = () => {
         if (startedAtMs == null || Number.isNaN(startedAtMs)) return null;
 
         return Math.max(0, Math.floor((nowMs - startedAtMs) / 1000));
-    }, [nowMs, runningWorkoutActiveSet, workoutDetails?.exercises]);
+    }, [nowMs, runningWorkoutActiveSet, workoutDetails]);
 
     useEffect(() => {
         // Start playing timer end sound 4 seconds before completion (foreground only).
@@ -592,27 +602,6 @@ const useRunningWorkoutProvider = () => {
         workoutDetails,
         workoutExerciseId,
     ]);
-
-    useEffect(() => {
-        if (!data[0] || !data[0].startedAt) {
-            setElapsedSeconds(0);
-            return;
-        }
-
-        const compute = () => {
-            const startedMs =
-                data[0].startedAt instanceof Date
-                    ? data[0].startedAt.getTime()
-                    : new Date(data[0].startedAt as unknown as any).getTime();
-            const delta = Math.max(0, Math.floor((Date.now() - startedMs) / 1000));
-            setElapsedSeconds(delta);
-        };
-
-        compute();
-
-        const intervalId = setInterval(compute, 1000);
-        return () => clearInterval(intervalId);
-    }, [data]);
 
     useEffect(() => {
         const MAX_EVENTS = 50;
@@ -847,13 +836,7 @@ const useRunningWorkoutProvider = () => {
             permissionsGranted: false,
             hasResolvedMhr: false,
         };
-    }, [
-        hydrateHealthProfileFromPermissions,
-        runtimeBirthday,
-        user?.birthday,
-        user?.mhrFormula,
-        user?.mhrManualValue,
-    ]);
+    }, [hydrateHealthProfileFromPermissions, runtimeBirthday, user]);
 
     const syncCompletedWorkoutHealth = useCallback(
         async (

@@ -134,13 +134,15 @@ export const Header: FC<HeaderProps> = ({ exerciseInfo }) => {
         );
     }, [exerciseInfo?.exercise]);
 
+    const exerciseId = exerciseInfo?.exercise.id;
+
     const handleGuideOpen = useCallback(() => {
-        if (!exerciseInfo?.exercise.id) return;
+        if (!exerciseId) return;
         router.navigate({
             pathname: '/guide',
-            params: { exerciseId: exerciseInfo.exercise.id },
+            params: { exerciseId },
         });
-    }, [exerciseInfo?.exercise.id]);
+    }, [exerciseId]);
 
     const handlePreviewOpen = useCallback((name: string, gifFilename: string) => {
         router.navigate({

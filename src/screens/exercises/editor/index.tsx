@@ -1,7 +1,7 @@
 import { FC, Fragment, useEffect, useMemo } from 'react';
 import { router } from 'expo-router';
 import { StyleSheet } from 'react-native-unistyles';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
@@ -458,7 +458,6 @@ const EditorForm: FC<EditorFormProps> = ({ existingExercise }) => {
     const {
         control,
         handleSubmit,
-        watch,
         setValue,
         formState: { errors, isSubmitting },
     } = useForm<CreateExerciseFormData>({
@@ -570,7 +569,7 @@ const EditorForm: FC<EditorFormProps> = ({ existingExercise }) => {
 
     const handleClose = () => router.back();
 
-    const trackingValue = watch('tracking');
+    const trackingValue = useWatch({ control, name: 'tracking' });
 
     const selectedTracking = useMemo(() => trackingValue || [], [trackingValue]);
 

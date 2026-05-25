@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { Choices } from '@/components/forms/fields/choices';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { EditUserFormData, editUserSchema, themes, useUser } from '@/hooks/use-user';
 import { reportError } from '@/services/error-reporting';
@@ -28,7 +28,6 @@ const ThemeScreen = () => {
     const {
         control,
         handleSubmit,
-        watch,
         reset,
         formState: { errors },
     } = useForm<EditUserFormData>({
@@ -38,7 +37,7 @@ const ThemeScreen = () => {
         },
     });
 
-    const watchedTheme = watch('theme');
+    const watchedTheme = useWatch({ control, name: 'theme' });
     const isUserLoaded = user !== undefined;
     const userTheme = user?.theme ?? 'dark';
     const isSyncingFormRef = useRef(false);

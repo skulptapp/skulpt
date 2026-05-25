@@ -94,7 +94,7 @@ const HomeScreen: FC = () => {
         return null;
     }
 
-    const ButtonContent: FC = () => (
+    const buttonContent = (
         <VStack>
             <Text style={styles.buttonTitle}>
                 {t('home.empty.button.title', { ns: 'screens' })}
@@ -123,7 +123,7 @@ const HomeScreen: FC = () => {
                         </Box>
                     </VStack>
                     <Box style={styles.emptyButtonContainer}>
-                        <Button size="lg" onPress={handleCreateWorkout} title={<ButtonContent />} />
+                        <Button size="lg" onPress={handleCreateWorkout} title={buttonContent} />
                     </Box>
                 </VStack>
             </VStack>

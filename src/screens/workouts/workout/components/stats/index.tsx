@@ -368,18 +368,7 @@ export const Stats: FC<StatsProps> = ({
                         ? Math.round(healthStats.zone5Minutes * 60)
                         : 0),
             }) as const,
-        [
-            healthStats?.zone1Minutes,
-            healthStats?.zone1Seconds,
-            healthStats?.zone2Minutes,
-            healthStats?.zone2Seconds,
-            healthStats?.zone3Minutes,
-            healthStats?.zone3Seconds,
-            healthStats?.zone4Minutes,
-            healthStats?.zone4Seconds,
-            healthStats?.zone5Minutes,
-            healthStats?.zone5Seconds,
-        ],
+        [healthStats],
     );
 
     const totalZoneSeconds = useMemo(

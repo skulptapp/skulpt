@@ -1,4 +1,4 @@
-import { FC, useMemo, useCallback, useEffect, useState } from 'react';
+import { FC, useMemo, useCallback, useState } from 'react';
 import { StyleSheet } from 'react-native-unistyles';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -258,18 +258,18 @@ const WorkoutScreen: FC = () => {
     // Edit mode state
     const isEditMode = useSupersetEditStore((state) => state.workoutId === workoutId);
     const clearSupersetEdit = useSupersetEditStore((state) => state.clear);
-    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [selectedState, setSelectedState] = useState<{
+        workoutId: string | null;
+        ids: string[];
+    }>({ workoutId: null, ids: [] });
+    const selectedIds = useMemo(
+        () => (isEditMode && selectedState.workoutId === workoutId ? selectedState.ids : []),
+        [isEditMode, selectedState.ids, selectedState.workoutId, workoutId],
+    );
 
     const { createCircuit, removeCircuit, removeFromGroup } = useManageCircuitGroups({
         workoutId,
     });
-
-    // Reset selection when exiting edit mode
-    useEffect(() => {
-        if (!isEditMode) {
-            setSelectedIds([]);
-        }
-    }, [isEditMode]);
 
     const groupTypeMap = useMemo(() => {
         if (!groups) return new Map<string, string>();
@@ -307,11 +307,21 @@ const WorkoutScreen: FC = () => {
             .sort((a, b) => a.order - b.order);
     }, [workoutExercises, workoutDetails, groups, groupTypeMap]);
 
-    const [localItems, setLocalItems] = useState<WorkoutItem[]>(items);
-
-    useEffect(() => {
-        setLocalItems(items);
-    }, [items]);
+    const itemsKey = useMemo(
+        () =>
+            items
+                .map(
+                    (item) =>
+                        `${item.id}:${item.order}:${item.groupId ?? ''}:${item.groupType ?? ''}`,
+                )
+                .join('|'),
+        [items],
+    );
+    const [localItemsState, setLocalItemsState] = useState({
+        key: itemsKey,
+        items,
+    });
+    const localItems = localItemsState.key === itemsKey ? localItemsState.items : items;
 
     const workoutMetrics = useMemo(() => {
         if (!workoutDetails?.workout) {
@@ -350,7 +360,7 @@ const WorkoutScreen: FC = () => {
                 idToWE,
                 groupTypeMap,
             );
-            setLocalItems(coalesced);
+            setLocalItemsState({ key: itemsKey, items: coalesced });
 
             // Handle absorption: update groupId in DB
             if (absorption) {
@@ -436,6 +446,7 @@ const WorkoutScreen: FC = () => {
             deleteWorkoutGroup,
             workoutExercises,
             workoutId,
+            itemsKey,
         ],
     );
 
@@ -450,11 +461,18 @@ const WorkoutScreen: FC = () => {
         [workoutId],
     );
 
-    const handleToggleSelect = useCallback((id: string) => {
-        setSelectedIds((prev) =>
-            prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-        );
-    }, []);
+    const handleToggleSelect = useCallback(
+        (id: string) => {
+            setSelectedState((prev) => {
+                const ids = prev.workoutId === workoutId ? prev.ids : [];
+                return {
+                    workoutId,
+                    ids: ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id],
+                };
+            });
+        },
+        [workoutId],
+    );
 
     const handleCreateCircuit = useCallback(async () => {
         if (!workoutExercises || !groups) return;
@@ -463,9 +481,9 @@ const WorkoutScreen: FC = () => {
             .filter((it) => selectedIds.includes(it.id))
             .map((it) => it.id);
         await createCircuit(orderedSelected, workoutExercises, groups);
-        setSelectedIds([]);
+        setSelectedState({ workoutId, ids: [] });
         clearSupersetEdit();
-    }, [selectedIds, workoutExercises, groups, items, createCircuit, clearSupersetEdit]);
+    }, [selectedIds, workoutExercises, groups, items, createCircuit, clearSupersetEdit, workoutId]);
 
     const handleRemoveCircuit = useCallback(async () => {
         if (!workoutExercises || !groups) return;
@@ -474,9 +492,9 @@ const WorkoutScreen: FC = () => {
         const groupId = firstSelected?.groupId;
         if (!groupId) return;
         await removeCircuit(groupId, workoutExercises, groups);
-        setSelectedIds([]);
+        setSelectedState({ workoutId, ids: [] });
         clearSupersetEdit();
-    }, [selectedIds, items, workoutExercises, groups, removeCircuit, clearSupersetEdit]);
+    }, [selectedIds, items, workoutExercises, groups, removeCircuit, clearSupersetEdit, workoutId]);
 
     const handleRemoveFromGroup = useCallback(async () => {
         if (!workoutExercises || !groups) return;
@@ -484,9 +502,17 @@ const WorkoutScreen: FC = () => {
         const groupId = firstSelected?.groupId;
         if (!groupId) return;
         await removeFromGroup(selectedIds, groupId, workoutExercises, groups);
-        setSelectedIds([]);
+        setSelectedState({ workoutId, ids: [] });
         clearSupersetEdit();
-    }, [selectedIds, items, workoutExercises, groups, removeFromGroup, clearSupersetEdit]);
+    }, [
+        selectedIds,
+        items,
+        workoutExercises,
+        groups,
+        removeFromGroup,
+        clearSupersetEdit,
+        workoutId,
+    ]);
 
     return (
         <Box style={styles.container}>

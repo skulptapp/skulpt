@@ -1,4 +1,4 @@
-import { FC, useEffect, useMemo, useRef, useState } from 'react';
+import { FC, useMemo, useRef, useState } from 'react';
 import { Platform, TextInput, TextStyle } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
@@ -67,14 +67,9 @@ export const TimeDurationInput: FC<TimeDurationInputProps> = ({
     const [digits, setDigits] = useState<string>(fallbackDigits);
     const [selection, setSelection] = useState<Selection | undefined>(undefined);
 
-    useEffect(() => {
-        // Keep in sync while not editing
-        if (!focused) {
-            setDigits(fallbackDigits);
-        }
-    }, [focused, fallbackDigits]);
+    const editableDigits = focused ? digits : fallbackDigits;
 
-    const timeDigits = useMemo(() => digits.replace(/\D/g, ''), [digits]);
+    const timeDigits = useMemo(() => editableDigits.replace(/\D/g, ''), [editableDigits]);
     const formatted = useMemo(
         () => formatClockSecondsCompact(secondsFromDigits(timeDigits)),
         [timeDigits],

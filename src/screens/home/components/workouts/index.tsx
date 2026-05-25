@@ -1,4 +1,4 @@
-import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { FC, useCallback, useMemo, useState } from 'react';
 import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
@@ -117,12 +117,19 @@ export const Workouts: FC<WorkoutsProps> = ({
     const router = useRouter();
     const { runningWorkout } = useRunningWorkoutStatic();
     const { elapsedFormated } = useRunningWorkoutTicker();
-    const [visibleCompletedWeeksCount, setVisibleCompletedWeeksCount] =
-        useState(COMPLETED_WEEKS_PAGE_SIZE);
+    const completedGroupsKey = useMemo(
+        () => completedGroups.map((group) => `${group.id}:${group.workouts.length}`).join('|'),
+        [completedGroups],
+    );
+    const [visibleCompletedWeeksState, setVisibleCompletedWeeksState] = useState({
+        key: completedGroupsKey,
+        count: COMPLETED_WEEKS_PAGE_SIZE,
+    });
 
-    useEffect(() => {
-        setVisibleCompletedWeeksCount(COMPLETED_WEEKS_PAGE_SIZE);
-    }, [completedGroups]);
+    const visibleCompletedWeeksCount =
+        visibleCompletedWeeksState.key === completedGroupsKey
+            ? visibleCompletedWeeksState.count
+            : COMPLETED_WEEKS_PAGE_SIZE;
 
     const visibleCompletedGroups = useMemo(
         () => completedGroups.slice(0, visibleCompletedWeeksCount),
@@ -142,10 +149,15 @@ export const Workouts: FC<WorkoutsProps> = ({
             return;
         }
 
-        setVisibleCompletedWeeksCount((prev) =>
-            Math.min(prev + COMPLETED_WEEKS_PAGE_SIZE, completedGroups.length),
-        );
-    }, [completedGroups.length, hasMoreCompletedWeeks]);
+        setVisibleCompletedWeeksState((prev) => ({
+            key: completedGroupsKey,
+            count: Math.min(
+                (prev.key === completedGroupsKey ? prev.count : COMPLETED_WEEKS_PAGE_SIZE) +
+                    COMPLETED_WEEKS_PAGE_SIZE,
+                completedGroups.length,
+            ),
+        }));
+    }, [completedGroups.length, completedGroupsKey, hasMoreCompletedWeeks]);
 
     const listItems = useMemo<WorkoutsListItem[]>(() => {
         const items: WorkoutsListItem[] = [];
