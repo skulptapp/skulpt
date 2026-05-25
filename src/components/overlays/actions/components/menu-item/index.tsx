@@ -9,6 +9,7 @@ import { Text } from '@/components/primitives/text';
 type MenuItemProps = {
     title: string;
     last?: boolean;
+    disabled?: boolean;
     onPress: () => void;
 } & UnistylesVariants<typeof styles>;
 
@@ -16,6 +17,9 @@ const styles = StyleSheet.create((theme) => ({
     container: {
         paddingHorizontal: theme.space(5),
         paddingVertical: theme.space(4),
+    },
+    disabled: {
+        opacity: 0.5,
     },
     divider: {
         height: StyleSheet.hairlineWidth,
@@ -44,12 +48,12 @@ const styles = StyleSheet.create((theme) => ({
     },
 }));
 
-const MenuItem: FC<MenuItemProps> = ({ title, last, variant, onPress }) => {
+const MenuItem: FC<MenuItemProps> = ({ title, last, variant, disabled, onPress }) => {
     styles.useVariants({ variant });
 
     return (
-        <Pressable onPress={onPress}>
-            <Box>
+        <Pressable accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}>
+            <Box style={disabled && styles.disabled}>
                 <Box style={styles.container}>
                     <HStack style={styles.wrapper}>
                         <Box style={styles.titleContainer}>

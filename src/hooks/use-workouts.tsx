@@ -50,6 +50,8 @@ import { getPrimaryAnchorMuscleValue } from '@/constants/muscles';
 import { getWorkoutOverviewExerciseMetaRows } from '@/crud/workout/home';
 import { waitForIdle } from '@/helpers/idle';
 
+export const deleteWorkoutMutationKey = ['delete-workout'] as const;
+
 export const useWorkouts = () => {
     const { user } = useUser();
 
@@ -187,8 +189,18 @@ export const useDeleteWorkout = () => {
     const { track } = useAnalytics();
 
     return useMutation({
+        mutationKey: deleteWorkoutMutationKey,
         mutationFn: (workoutId: string) => deleteWorkout(workoutId),
-        onSuccess: () => {
+        onSuccess: (_, workoutId) => {
+            queryClient.removeQueries({ queryKey: ['workout', workoutId], exact: true });
+            queryClient.removeQueries({ queryKey: ['workout-details', workoutId], exact: true });
+            queryClient.removeQueries({ queryKey: ['workout-exercises', workoutId], exact: true });
+            queryClient.removeQueries({
+                queryKey: ['workout-exercises-with-exercise', workoutId],
+                exact: true,
+            });
+            queryClient.removeQueries({ queryKey: ['workout-groups', workoutId], exact: true });
+
             queryClient.invalidateQueries({ queryKey: ['workouts'] });
             queryClient.invalidateQueries({ queryKey: ['workouts-overview-meta'] });
             queryClient.invalidateQueries({ queryKey: ['workout-details'] });
