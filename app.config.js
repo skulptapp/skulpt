@@ -65,6 +65,7 @@ module.exports = {
         'expo-audio',
         'expo-asset',
         'expo-mail-composer',
+        'expo-image',
         '@bacons/apple-targets',
         [
             '@kingstinct/react-native-healthkit',

@@ -1,0 +1,43 @@
+diff --git a/build/api/PBXNativeTarget.js b/build/api/PBXNativeTarget.js
+index 04b5128b09fc90548db5af99ac33553d9dac005a..de5959ba06dc09c88fbdb3181c28a98ee43c9252 100644
+--- a/build/api/PBXNativeTarget.js
++++ b/build/api/PBXNativeTarget.js
+@@ -165,6 +165,7 @@ class PBXNativeTarget extends AbstractTarget_1.AbstractTarget {
+             // This handles cases where an existing phase has incorrect dstPath/dstSubfolderSpec,
+             // which can cause App Store validation failures (e.g., watch apps must be in Watch/ subdirectory).
+             phase.ensureDefaultsForTarget(target);
++            this.moveCopyBuildPhaseBeforePostEmbedScripts(phase);
+             return phase;
+         }
+         const phase = this.createBuildPhase(PBXSourcesBuildPhase_1.PBXCopyFilesBuildPhase, {
+@@ -172,8 +173,30 @@ class PBXNativeTarget extends AbstractTarget_1.AbstractTarget {
+             files: [],
+         });
+         phase.ensureDefaultsForTarget(target);
++        this.moveCopyBuildPhaseBeforePostEmbedScripts(phase);
+         return phase;
+     }
++    moveCopyBuildPhaseBeforePostEmbedScripts(phase) {
++        const phases = this.props.buildPhases;
++        const currentIndex = phases.indexOf(phase);
++        if (currentIndex === -1) {
++            return;
++        }
++        const postEmbedScriptIndex = phases.findIndex((candidate) => {
++            if (!PBXSourcesBuildPhase_1.PBXShellScriptBuildPhase.is(candidate)) {
++                return false;
++            }
++            return (candidate.props.name ===
++                "[Expo Dev Launcher] Strip Local Network Keys for Release" ||
++                candidate.props.name === "Upload Debug Symbols to Sentry" ||
++                candidate.props.name === "[CP] Embed Pods Frameworks");
++        });
++        if (postEmbedScriptIndex === -1 || postEmbedScriptIndex >= currentIndex) {
++            return;
++        }
++        phases.splice(currentIndex, 1);
++        phases.splice(postEmbedScriptIndex, 0, phase);
++    }
+     /**
+      * Returns true if this target is a watchOS application.
+      * This includes both legacy watchOS app types (watchapp, watchapp2) and

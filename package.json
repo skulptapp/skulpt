@@ -13,8 +13,7 @@
         "release:ios": "eas build --platform ios --auto-submit",
         "release:android": "eas build --platform android --auto-submit",
         "update:all": "eas update --channel production --environment production && npx sentry-expo-upload-sourcemaps dist",
-        "locale": "tsx ./scripts/translations.ts",
-        "postinstall": "patch-package"
+        "locale": "tsx ./scripts/translations.ts"
     },
     "jest": {
         "preset": "jest-expo",
@@ -72,6 +71,7 @@
         "expo-font": "^56.0.5",
         "expo-haptics": "^56.0.3",
         "expo-health-connect": "^0.1.1",
+        "expo-image": "~56.0.9",
         "expo-keep-awake": "^56.0.3",
         "expo-linear-gradient": "^56.0.4",
         "expo-linking": "^56.0.11",
@@ -96,9 +96,7 @@
         "lucide-react-native": "^1.16.0",
         "nanoid": "^5.1.11",
         "nanoid-dictionary": "^5.0.0",
-        "patch-package": "^8.0.1",
         "posthog-react-native": "^4.45.14",
-        "postinstall-postinstall": "^2.1.0",
         "qs": "^6.15.2",
         "react": "19.2.3",
         "react-dom": "19.2.3",
@@ -155,5 +153,8 @@
     },
     "trustedDependencies": [
         "@sentry/cli"
-    ]
+    ],
+    "patchedDependencies": {
+        "@bacons/xcode@1.0.0-alpha.32": "patches/@bacons%2Fxcode@1.0.0-alpha.32.patch"
+    }
 }
