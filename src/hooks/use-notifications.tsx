@@ -49,6 +49,8 @@ const NOTIFICATION_CHANNEL_CONFIG = {
     lightColor: '#84cc16',
 } as const;
 
+const WORKOUT_TIMER_DATE_TRIGGER_MIN_LEAD_MS = 1000;
+
 const isMissingFcmConfigurationError = (error: unknown): boolean => {
     if (!(error instanceof Error)) {
         return false;
@@ -544,12 +546,12 @@ const useNotificationsProvider = () => {
             identifier: string,
             deepLinkUrl?: string,
         ): Promise<string | null> => {
-            // DATE triggers with a past date cause iOS to throw
+            // DATE triggers with an invalid/past/immediate date cause iOS to throw
             // NSInternalInconsistencyException (UNNotificationTrigger.m:537).
-            // This happens during foreground reschedule when the rest timer expired
-            // while the app was backgrounded — skip silently, the user is back in
-            // the app and can see the timer state directly.
-            if (date.getTime() <= Date.now()) return null;
+            // Keep a small lead-time buffer because a date that is barely in the
+            // future in JS can be in the past by the time native scheduling runs.
+            const leadMs = getDateTriggerLeadMs(date);
+            if (leadMs == null || leadMs < WORKOUT_TIMER_DATE_TRIGGER_MIN_LEAD_MS) return null;
 
             return await scheduleWorkoutTimerNotification({
                 kind: 'rest-timer',
@@ -595,8 +597,9 @@ const useNotificationsProvider = () => {
             identifier: string,
             deepLinkUrl?: string,
         ): Promise<string | null> => {
-            // Same past-date guard as scheduleRestTimerNotificationAt.
-            if (date.getTime() <= Date.now()) return null;
+            // Same date guard as scheduleRestTimerNotificationAt.
+            const leadMs = getDateTriggerLeadMs(date);
+            if (leadMs == null || leadMs < WORKOUT_TIMER_DATE_TRIGGER_MIN_LEAD_MS) return null;
 
             return await scheduleWorkoutTimerNotification({
                 kind: 'work-timer',
@@ -639,4 +642,11 @@ const useNotificationsProvider = () => {
         isAppInBackground,
         requestPermissions,
     };
+};
+
+const getDateTriggerLeadMs = (date: Date): number | null => {
+    const fireAtMs = date.getTime();
+    if (!Number.isFinite(fireAtMs)) return null;
+
+    return fireAtMs - Date.now();
 };
