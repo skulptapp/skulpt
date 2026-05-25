@@ -608,49 +608,60 @@ export const completeWorkout = async (workoutId: string): Promise<WorkoutSelect>
 
     const completionTime = new Date();
 
-    // Complete all unfinished sets and finalize any pending rest periods
+    // Complete only the set that has actually been started and finalize pending rest periods.
+    // Unstarted sets remain incomplete so ending a workout midway doesn't pollute stats.
     const workoutExercises = await getWorkoutExercises(workoutId);
     const setsArrays = await Promise.all(workoutExercises.map((we) => getExerciseSets(we.id)));
 
     let allSets = setsArrays.flat();
 
-    // Complete unfinished sets
-    const unfinishedSets = allSets.filter((s) => !s.completedAt);
-    if (unfinishedSets.length > 0) {
+    const startedUnfinishedSets = allSets.filter((s) => s.startedAt && !s.completedAt);
+    if (startedUnfinishedSets.length > 0) {
         await Promise.all(
-            unfinishedSets.map((s) =>
+            startedUnfinishedSets.map((s) =>
                 updateExerciseSet(s.id, {
                     completedAt: completionTime,
-                    // If set wasn't started, start it now before completing
-                    ...(s.startedAt ? {} : { startedAt: completionTime }),
                 }),
             ),
         );
 
-        // Update allSets to reflect the completed sets
+        // Update allSets to reflect the completed started sets.
         allSets = allSets.map((s) =>
-            !s.completedAt
-                ? { ...s, completedAt: completionTime, startedAt: s.startedAt || completionTime }
-                : s,
+            s.startedAt && !s.completedAt ? { ...s, completedAt: completionTime } : s,
         );
     }
 
     // Finalize pending rest periods for completed sets
     const setsWithPendingRest = allSets.filter(
-        (s) => s.completedAt != null && s.restTime != null && s.restCompletedAt == null,
+        (s) =>
+            s.completedAt != null &&
+            s.restTime != null &&
+            s.restTime > 0 &&
+            s.restCompletedAt == null,
     );
     if (setsWithPendingRest.length > 0) {
         await Promise.all(
             setsWithPendingRest.map((s) => {
+                const completedAtMs =
+                    s.completedAt instanceof Date
+                        ? s.completedAt.getTime()
+                        : new Date(s.completedAt as unknown as any).getTime();
+                const restEndAt = new Date(
+                    Math.min(
+                        completionTime.getTime(),
+                        completedAtMs + Math.max(0, s.restTime ?? 0) * 1000,
+                    ),
+                );
+
                 return updateExerciseSet(s.id, {
-                    restCompletedAt: s.completedAt || completionTime,
+                    restCompletedAt: restEndAt,
                 });
             }),
         );
     }
 
     const duration = workout.startedAt
-        ? Math.floor((Date.now() - workout.startedAt.getTime()) / 1000)
+        ? Math.floor((completionTime.getTime() - workout.startedAt.getTime()) / 1000)
         : 0;
 
     return await updateWorkout(workoutId, {
