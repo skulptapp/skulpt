@@ -1513,12 +1513,13 @@ export const fetchWorkoutStats = async (weightUnits: 'kg' | 'lb' | null): Promis
 
     const [exerciseTotals] = await db
         .select({
-            exercisesCount: sql<number>`count(${workoutExercise.id})`,
+            exercisesCount: sql<number>`count(distinct ${workoutExercise.id})`,
         })
         .from(workoutExercise)
         .innerJoin(workout, eq(workoutExercise.workoutId, workout.id))
         .innerJoin(exercise, eq(workoutExercise.exerciseId, exercise.id))
-        .where(eq(workout.status, 'completed'));
+        .innerJoin(exerciseSet, eq(exerciseSet.workoutExerciseId, workoutExercise.id))
+        .where(and(eq(workout.status, 'completed'), isNotNull(exerciseSet.completedAt)));
 
     const [setTotals] = await db
         .select({
