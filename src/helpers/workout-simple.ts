@@ -1,6 +1,6 @@
 import { ExerciseSetSelect } from '@/db/schema';
 import { OrderedExercise } from './workouts';
-import { isRestActive } from '@/helpers/rest';
+import { isRestActive, isRestFinalized } from '@/helpers/rest';
 import { ExecutionOrderSet } from '@/helpers/execution-order';
 
 /**
@@ -38,7 +38,7 @@ export const getWorkoutState = (
     // 1. Find active rest first. In a desynced state this is safer than
     // letting a stray started set jump ahead while another set is still resting.
     const activeRestEntry = flatSets.find(({ set }) => {
-        if (!set.completedAt || !set.restTime || set.restTime <= 0 || set.restCompletedAt) {
+        if (!set.completedAt || !set.restTime || set.restTime <= 0 || isRestFinalized(set)) {
             return false;
         }
 
@@ -89,7 +89,7 @@ export const hasActiveRest = (exercises: OrderedExercise[]): boolean => {
                 set.completedAt &&
                 set.restTime &&
                 set.restTime > 0 &&
-                !set.restCompletedAt &&
+                !isRestFinalized(set) &&
                 isRestActive(set, now),
         ),
     );

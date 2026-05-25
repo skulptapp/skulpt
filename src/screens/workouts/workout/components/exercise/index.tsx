@@ -13,7 +13,9 @@ import { Separator } from '@/components/layout/separator';
 import { Pressable } from '@/components/primitives/pressable';
 import { Trash2 } from 'lucide-react-native';
 import { WorkoutItem } from '../../types';
+import { WorkoutSelect } from '@/db/schema';
 import { ExerciseSet } from '../exercise-set';
+import { isRestFinalized } from '@/helpers/rest';
 
 interface ExerciseProps {
     item: WorkoutItem;
@@ -27,6 +29,7 @@ interface ExerciseProps {
     isSelected?: boolean;
     onToggleSelect?: (id: string) => void;
     showGroupIndicator?: boolean;
+    workoutStatus?: WorkoutSelect['status'];
 }
 
 const styles = StyleSheet.create((theme, rt) => ({
@@ -214,6 +217,7 @@ const ExerciseComponent: FC<ExerciseProps> = ({
     isSelected,
     onToggleSelect,
     showGroupIndicator,
+    workoutStatus,
 }) => {
     const { gesture } = useItemContext();
 
@@ -224,16 +228,20 @@ const ExerciseComponent: FC<ExerciseProps> = ({
     const isExerciseCompleted = useMemo(() => {
         if (!item.sets || item.sets.length === 0) return false;
 
+        if (workoutStatus === 'completed') {
+            return item.sets.every((set) => !!set.completedAt);
+        }
+
         return item.sets.every((set) => {
             if (!set.completedAt) return false;
 
             if (set.restTime && set.restTime > 0) {
-                return !!set.restCompletedAt;
+                return isRestFinalized(set);
             }
 
             return true;
         });
-    }, [item.sets]);
+    }, [item.sets, workoutStatus]);
 
     if (isEditMode) {
         return (
@@ -301,6 +309,7 @@ export const Exercise = memo(ExerciseComponent, (prev, next) => {
         prev.restingSetId === next.restingSetId &&
         prev.isEditMode === next.isEditMode &&
         prev.isSelected === next.isSelected &&
-        prev.showGroupIndicator === next.showGroupIndicator
+        prev.showGroupIndicator === next.showGroupIndicator &&
+        prev.workoutStatus === next.workoutStatus
     );
 });

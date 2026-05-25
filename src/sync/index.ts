@@ -220,7 +220,7 @@ export const normalizeOutgoingExerciseSyncRecord = (
     return normalized;
 };
 
-const normalizeOutgoingExerciseSetSyncRecord = (
+export const normalizeOutgoingExerciseSetSyncRecord = (
     record: Record<string, unknown>,
 ): Record<string, unknown> => {
     const normalized = { ...record };
@@ -256,7 +256,7 @@ export const normalizeIncomingExerciseSyncRecord = (
     return normalized;
 };
 
-const normalizeIncomingExerciseSetSyncRecord = (
+export const normalizeIncomingExerciseSetSyncRecord = (
     record: Record<string, unknown>,
 ): Record<string, unknown> => {
     const normalized = { ...record };

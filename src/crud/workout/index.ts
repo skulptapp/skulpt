@@ -18,11 +18,61 @@ import { reportError } from '@/services/error-reporting';
 import { computeWorkoutStats } from '@/services/workout-health-stats';
 import { HealthStats } from '@/types/health-stats';
 import { getTopLevelMuscleValues } from '@/constants/muscles';
+import { isRestFinalized } from '@/helpers/rest';
 
 import { queueSyncOperation } from '../sync';
 import { getExerciseSets, updateExerciseSet, createExerciseSet } from '../exercise';
 import { convertWeight } from '@/helpers/units';
 import { getCurrentUser } from '../user';
+
+const getDateMs = (value: Date | null | undefined) => {
+    if (!value) return null;
+    return value instanceof Date ? value.getTime() : new Date(value as unknown as string).getTime();
+};
+
+const syncManualCompletedSetsToWorkoutCompletedAt = async (
+    workoutId: string,
+    completedAt: Date,
+): Promise<void> => {
+    const workoutExercises = await getWorkoutExercises(workoutId);
+
+    for (const workoutExercise of workoutExercises) {
+        const sets = await getExerciseSets(workoutExercise.id);
+        const manualCompletedSets = sets.filter(
+            (set) =>
+                (set.startedAt === null || set.startedAt === undefined) && set.completedAt != null,
+        );
+
+        for (const set of manualCompletedSets) {
+            if (getDateMs(set.completedAt) === completedAt.getTime()) {
+                continue;
+            }
+
+            await db.update(exerciseSet).set({ completedAt }).where(eq(exerciseSet.id, set.id));
+
+            const updatedSet = await db
+                .select()
+                .from(exerciseSet)
+                .where(eq(exerciseSet.id, set.id))
+                .limit(1);
+
+            if (updatedSet.length === 0) {
+                continue;
+            }
+
+            await queueSyncOperation({
+                tableName: 'exercise_set',
+                recordId: set.id,
+                operation: 'update',
+                timestamp: updatedSet[0].updatedAt,
+                data: {
+                    completedAt,
+                    updatedAt: updatedSet[0].updatedAt,
+                },
+            });
+        }
+    }
+};
 
 export const getWorkouts = async (): Promise<WorkoutSelect[]> => {
     const user = await getCurrentUser();
@@ -113,6 +163,11 @@ export const updateWorkout = async (
         const shouldRecompute =
             Object.prototype.hasOwnProperty.call(updates, 'startedAt') ||
             Object.prototype.hasOwnProperty.call(updates, 'completedAt');
+        const shouldSyncManualSetCompletedAt =
+            current.status === 'completed' &&
+            Object.prototype.hasOwnProperty.call(updates, 'completedAt') &&
+            mergedCompletedAt != null &&
+            getDateMs(current.completedAt) !== mergedCompletedAt.getTime();
 
         const updatedData: Partial<WorkoutSelect> = { ...updates } as any;
         if (shouldRecompute) {
@@ -140,6 +195,10 @@ export const updateWorkout = async (
                 updatedAt: updatedWorkout[0].updatedAt,
             },
         });
+
+        if (shouldSyncManualSetCompletedAt) {
+            await syncManualCompletedSetsToWorkoutCompletedAt(id, mergedCompletedAt);
+        }
 
         return updatedWorkout[0];
     } catch (error) {
@@ -633,11 +692,7 @@ export const completeWorkout = async (workoutId: string): Promise<WorkoutSelect>
 
     // Finalize pending rest periods for completed sets
     const setsWithPendingRest = allSets.filter(
-        (s) =>
-            s.completedAt != null &&
-            s.restTime != null &&
-            s.restTime > 0 &&
-            s.restCompletedAt == null,
+        (s) => s.completedAt != null && s.restTime != null && s.restTime > 0 && !isRestFinalized(s),
     );
     if (setsWithPendingRest.length > 0) {
         await Promise.all(

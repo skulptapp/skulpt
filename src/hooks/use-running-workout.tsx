@@ -19,7 +19,7 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 
 import { db } from '@/db';
 import { workout, ExerciseSetSelect, WorkoutSelect } from '@/db/schema';
-import { getRemainingRestSeconds, isRestActive } from '@/helpers/rest';
+import { getRemainingRestSeconds, isRestActive, isRestFinalized } from '@/helpers/rest';
 import { resolveMhrFromProfile } from '@/helpers/heart-rate-zones';
 import { normalizeSetType } from '@/helpers/set-type';
 import { WorkoutItem } from '@/screens/workouts/workout/types';
@@ -280,7 +280,10 @@ const useRunningWorkoutProvider = () => {
         () =>
             orderedSets.some(
                 (set) =>
-                    !!set.completedAt && !!set.restTime && set.restTime > 0 && !set.restCompletedAt,
+                    !!set.completedAt &&
+                    !!set.restTime &&
+                    set.restTime > 0 &&
+                    !isRestFinalized(set),
             ),
         [orderedSets],
     );
@@ -326,7 +329,12 @@ const useRunningWorkoutProvider = () => {
             runningWorkoutRestingSet: ExerciseSetSelect | null;
         }>(() => {
             const activeRestEntry = executionOrderSets.find(({ set }) => {
-                if (!set.completedAt || !set.restTime || set.restTime <= 0 || set.restCompletedAt) {
+                if (
+                    !set.completedAt ||
+                    !set.restTime ||
+                    set.restTime <= 0 ||
+                    isRestFinalized(set)
+                ) {
                     return false;
                 }
 
@@ -364,7 +372,7 @@ const useRunningWorkoutProvider = () => {
                 if (!set.completedAt) return false;
 
                 if (set.restTime && set.restTime > 0) {
-                    return !!set.restCompletedAt;
+                    return isRestFinalized(set);
                 }
 
                 return true;

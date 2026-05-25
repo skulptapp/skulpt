@@ -47,6 +47,66 @@ const normalizeExerciseSetRecord = (row: ExerciseSetSelect): ExerciseSetSelect =
     type: normalizeSetType(row.type) as ExerciseSetSelect['type'],
 });
 
+const getParentWorkoutForWorkoutExercise = async (
+    workoutExerciseId: string,
+): Promise<Pick<WorkoutSelect, 'status' | 'completedAt'> | null> => {
+    const rows = await db
+        .select({
+            status: workout.status,
+            completedAt: workout.completedAt,
+        })
+        .from(workoutExercise)
+        .innerJoin(workout, eq(workoutExercise.workoutId, workout.id))
+        .where(eq(workoutExercise.id, workoutExerciseId))
+        .limit(1);
+
+    return rows[0] ?? null;
+};
+
+const normalizeCompletedWorkoutSetRestFields = (
+    data: Omit<ExerciseSetInsert, 'id'>,
+): Omit<ExerciseSetInsert, 'id'> => {
+    if (data.restTime === null || data.restTime === undefined || data.restTime <= 0) {
+        return {
+            ...data,
+            restTime: null,
+            restCompletedAt: null,
+            finalRestTime: null,
+        };
+    }
+
+    return {
+        ...data,
+        restCompletedAt: data.restCompletedAt ?? null,
+        finalRestTime:
+            data.finalRestTime === null || data.finalRestTime === undefined
+                ? Math.max(0, data.restTime)
+                : Math.max(0, data.finalRestTime),
+    };
+};
+
+const normalizeCompletedWorkoutRestUpdates = (
+    updates: Partial<ExerciseSetSelect>,
+): Partial<ExerciseSetSelect> => {
+    if (updates.restTime === null || updates.restTime === undefined || updates.restTime <= 0) {
+        return {
+            ...updates,
+            restTime: null,
+            restCompletedAt: null,
+            finalRestTime: null,
+        };
+    }
+
+    return {
+        ...updates,
+        restCompletedAt: updates.restCompletedAt ?? null,
+        finalRestTime:
+            updates.finalRestTime === null || updates.finalRestTime === undefined
+                ? Math.max(0, updates.restTime)
+                : Math.max(0, updates.finalRestTime),
+    };
+};
+
 export const isSkulptExercise = (row: Pick<ExerciseSelect, 'userId'> | null | undefined): boolean =>
     isSkulptExerciseUserId(row?.userId);
 
@@ -558,20 +618,11 @@ export const createExerciseSetWithAutoStart = async (
 ): Promise<ExerciseSetSelect> => {
     let setData = data;
 
-    if (setData.completedAt === null || setData.completedAt === undefined) {
-        try {
-            const parentWorkouts = await db
-                .select({
-                    status: workout.status,
-                    completedAt: workout.completedAt,
-                })
-                .from(workoutExercise)
-                .innerJoin(workout, eq(workoutExercise.workoutId, workout.id))
-                .where(eq(workoutExercise.id, setData.workoutExerciseId))
-                .limit(1);
-            const parentWorkout = parentWorkouts[0];
+    try {
+        const parentWorkout = await getParentWorkoutForWorkoutExercise(setData.workoutExerciseId);
 
-            if (parentWorkout?.status === 'completed') {
+        if (parentWorkout?.status === 'completed') {
+            if (setData.completedAt === null || setData.completedAt === undefined) {
                 setData = {
                     ...setData,
                     startedAt: null,
@@ -580,9 +631,11 @@ export const createExerciseSetWithAutoStart = async (
                     finalRestTime: null,
                 };
             }
-        } catch (error) {
-            reportError(error, 'Failed to apply completed workout defaults to exercise set:');
+
+            setData = normalizeCompletedWorkoutSetRestFields(setData);
         }
+    } catch (error) {
+        reportError(error, 'Failed to apply completed workout defaults to exercise set:');
     }
 
     // Guard against duplicate `order` values for the same workoutExerciseId.
@@ -755,9 +808,35 @@ export const updateExerciseSetWithRestCalculation = async (
 ): Promise<ExerciseSetSelect> => {
     const rows = await db.select().from(exerciseSet).where(eq(exerciseSet.id, id)).limit(1);
     const existingSet = rows[0];
+    let updatedData = { ...updates };
+    let normalizedCompletedWorkoutRestUpdate = false;
+
+    if (existingSet?.completedAt) {
+        delete updatedData.startedAt;
+        delete updatedData.completedAt;
+
+        if (Object.keys(updatedData).length === 0) {
+            return normalizeExerciseSetRecord(existingSet);
+        }
+    }
+
+    if (existingSet?.completedAt && Object.prototype.hasOwnProperty.call(updatedData, 'restTime')) {
+        try {
+            const parentWorkout = await getParentWorkoutForWorkoutExercise(
+                existingSet.workoutExerciseId,
+            );
+
+            if (parentWorkout?.status === 'completed') {
+                updatedData = normalizeCompletedWorkoutRestUpdates(updatedData);
+                normalizedCompletedWorkoutRestUpdate = true;
+            }
+        } catch (error) {
+            reportError(error, 'Failed to apply completed workout rest defaults to exercise set:');
+        }
+    }
 
     // Prevent starting already started sets
-    if (updates.startedAt) {
+    if (updatedData.startedAt) {
         if (existingSet?.startedAt) {
             // Set is already started, skip the update
             return normalizeExerciseSetRecord(existingSet);
@@ -800,10 +879,12 @@ export const updateExerciseSetWithRestCalculation = async (
         }
     }
 
-    let updatedData = { ...updates };
-
     // Auto-calculate rest time if needed
-    if (updatedData.restCompletedAt && updatedData.finalRestTime == null) {
+    if (
+        !normalizedCompletedWorkoutRestUpdate &&
+        updatedData.restCompletedAt &&
+        updatedData.finalRestTime == null
+    ) {
         const baseSet = existingSet;
 
         if (baseSet?.completedAt) {
@@ -820,7 +901,11 @@ export const updateExerciseSetWithRestCalculation = async (
 
     // Handle case when restCompletedAt is not provided but restTime exists
     // Only auto-finalize if restTime is being set to 0 or null (cancelling rest)
-    if (!updatedData.restCompletedAt && updatedData.finalRestTime == null) {
+    if (
+        !normalizedCompletedWorkoutRestUpdate &&
+        !updatedData.restCompletedAt &&
+        updatedData.finalRestTime == null
+    ) {
         const baseSet = existingSet;
 
         if (baseSet?.completedAt && baseSet.restTime != null) {

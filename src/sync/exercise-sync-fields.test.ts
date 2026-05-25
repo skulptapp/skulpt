@@ -19,7 +19,8 @@ jest.mock('@sentry/react-native', () => ({
     captureException: jest.fn(),
 }));
 jest.mock('@/helpers/set-type', () => ({
-    normalizeSetType: (value: unknown) => value,
+    normalizeSetType: (value: unknown) =>
+        typeof value === 'string' && value.toLowerCase() === 'warmup' ? 'warmup' : 'working',
 }));
 
 const loadSyncModule = () => {
@@ -97,5 +98,54 @@ describe('exercise sync record normalization', () => {
             }),
         );
         expect(incoming).not.toHaveProperty('unknownField');
+    });
+});
+
+describe('exercise set sync record normalization', () => {
+    const exerciseSetPayload = {
+        id: 'set_1',
+        workoutExerciseId: 'workout_exercise_1',
+        reps: 10,
+        weight: 80,
+        type: 'Warmup',
+        startedAt: '2026-05-24T08:00:00.000Z',
+        completedAt: '2026-05-24T08:01:00.000Z',
+        restTime: 90,
+        finalRestTime: 90,
+        restCompletedAt: null,
+    };
+
+    test('keeps completion and rest fields in outgoing payload', () => {
+        const { normalizeOutgoingExerciseSetSyncRecord } = loadSyncModule();
+
+        const outgoing = normalizeOutgoingExerciseSetSyncRecord(exerciseSetPayload);
+
+        expect(outgoing).toEqual(
+            expect.objectContaining({
+                type: 'warmup',
+                startedAt: '2026-05-24T08:00:00.000Z',
+                completedAt: '2026-05-24T08:01:00.000Z',
+                restTime: 90,
+                finalRestTime: 90,
+                restCompletedAt: null,
+            }),
+        );
+    });
+
+    test('keeps completion and rest fields in incoming payload', () => {
+        const { normalizeIncomingExerciseSetSyncRecord } = loadSyncModule();
+
+        const incoming = normalizeIncomingExerciseSetSyncRecord(exerciseSetPayload);
+
+        expect(incoming).toEqual(
+            expect.objectContaining({
+                type: 'warmup',
+                startedAt: '2026-05-24T08:00:00.000Z',
+                completedAt: '2026-05-24T08:01:00.000Z',
+                restTime: 90,
+                finalRestTime: 90,
+                restCompletedAt: null,
+            }),
+        );
     });
 });

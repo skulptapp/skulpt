@@ -19,26 +19,32 @@ export const getCompletedAtMs = (set: Pick<ExerciseSetSelect, 'completedAt'>) =>
 export const getRestSecondsPlanned = (set: Pick<ExerciseSetSelect, 'restTime'>) =>
     Math.max(0, set.restTime ?? 0);
 
-export const isRestFinalized = (set: Pick<ExerciseSetSelect, 'restCompletedAt'>) =>
-    Boolean(set.restCompletedAt);
+export const isRestFinalized = (
+    set: Pick<ExerciseSetSelect, 'restCompletedAt' | 'finalRestTime'>,
+) =>
+    Boolean(set.restCompletedAt) || (set.finalRestTime !== null && set.finalRestTime !== undefined);
 
 export const getRestEndMs = (
-    set: Pick<ExerciseSetSelect, 'completedAt' | 'restTime' | 'restCompletedAt'>,
+    set: Pick<ExerciseSetSelect, 'completedAt' | 'restTime' | 'restCompletedAt' | 'finalRestTime'>,
 ) => {
     const planned = getRestSecondsPlanned(set);
     const completedAtMs = getCompletedAtMs(set);
     if (planned <= 0 || completedAtMs == null) return null;
     const finalizedMs = toMs(set.restCompletedAt);
-    return finalizedMs ?? completedAtMs + planned * 1000;
+    if (finalizedMs != null) return finalizedMs;
+    if (set.finalRestTime !== null && set.finalRestTime !== undefined) {
+        return completedAtMs + Math.max(0, set.finalRestTime) * 1000;
+    }
+    return completedAtMs + planned * 1000;
 };
 
 export const getRemainingRestSeconds = (
-    set: Pick<ExerciseSetSelect, 'completedAt' | 'restTime' | 'restCompletedAt'>,
+    set: Pick<ExerciseSetSelect, 'completedAt' | 'restTime' | 'restCompletedAt' | 'finalRestTime'>,
     nowMs: number,
 ) => {
+    if (isRestFinalized(set)) return null;
     const endMs = getRestEndMs(set);
     if (endMs == null) return null;
-    if (isRestFinalized(set)) return null;
 
     // Calculate remaining milliseconds
     const remainingMs = endMs - nowMs;
@@ -52,7 +58,7 @@ export const getRemainingRestSeconds = (
 };
 
 export const isRestActive = (
-    set: Pick<ExerciseSetSelect, 'completedAt' | 'restTime' | 'restCompletedAt'>,
+    set: Pick<ExerciseSetSelect, 'completedAt' | 'restTime' | 'restCompletedAt' | 'finalRestTime'>,
     nowMs: number,
 ) => {
     if (isRestFinalized(set)) return false;
@@ -69,7 +75,7 @@ export const isRestActive = (
 };
 
 export const needsAutoFinalize = (
-    set: Pick<ExerciseSetSelect, 'completedAt' | 'restTime' | 'restCompletedAt'>,
+    set: Pick<ExerciseSetSelect, 'completedAt' | 'restTime' | 'restCompletedAt' | 'finalRestTime'>,
     nowMs: number,
 ) => {
     if (isRestFinalized(set)) return false;
@@ -121,7 +127,7 @@ export const formatRestTime = (
     let seconds = remainingSeconds ?? initialSeconds;
 
     // Only show final/initial value when rest is actually completed
-    if (set.restCompletedAt != null) {
+    if (isRestFinalized(set)) {
         seconds = set.finalRestTime ?? initialSeconds;
     }
 

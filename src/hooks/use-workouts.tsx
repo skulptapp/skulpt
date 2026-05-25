@@ -169,6 +169,13 @@ export const useCreateWorkout = () => {
     });
 };
 
+const invalidateWorkoutSetDerivedQueries = (queryClient: ReturnType<typeof useQueryClient>) => {
+    queryClient.invalidateQueries({ queryKey: ['workout-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['workout-day-summary'] });
+    queryClient.invalidateQueries({ queryKey: ['workouts-overview-meta'] });
+    queryClient.invalidateQueries({ queryKey: ['exercise-history'] });
+};
+
 export const useUpdateWorkout = () => {
     const queryClient = useQueryClient();
 
@@ -180,6 +187,8 @@ export const useUpdateWorkout = () => {
             queryClient.invalidateQueries({ queryKey: ['workout', data.id] });
             queryClient.invalidateQueries({ queryKey: ['workout-details', data.id] });
             queryClient.invalidateQueries({ queryKey: ['active-workout'] });
+            queryClient.invalidateQueries({ queryKey: ['exercise-sets'] });
+            invalidateWorkoutSetDerivedQueries(queryClient);
         },
     });
 };
@@ -236,13 +245,6 @@ export const useStartWorkout = () => {
             });
         },
     });
-};
-
-const invalidateWorkoutSetDerivedQueries = (queryClient: ReturnType<typeof useQueryClient>) => {
-    queryClient.invalidateQueries({ queryKey: ['workout-stats'] });
-    queryClient.invalidateQueries({ queryKey: ['workout-day-summary'] });
-    queryClient.invalidateQueries({ queryKey: ['workouts-overview-meta'] });
-    queryClient.invalidateQueries({ queryKey: ['exercise-history'] });
 };
 
 export const useCompleteWorkout = () => {

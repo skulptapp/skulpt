@@ -567,6 +567,7 @@ const WorkoutScreen: FC = () => {
                                     isSelected={selectedIds.includes(item.id)}
                                     onToggleSelect={handleToggleSelect}
                                     showGroupIndicator={showGroupIndicator}
+                                    workoutStatus={workoutDetails?.workout.status}
                                 />
                             );
                         }}

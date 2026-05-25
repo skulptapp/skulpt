@@ -1,7 +1,7 @@
 import { ExerciseSelect, ExerciseSetSelect, WorkoutSelect } from '@/db/schema';
 import { WorkoutExerciseSelect, WorkoutGroupSelect } from '@/db/schema/workout';
 import { OrderedExercise } from '@/helpers/workouts';
-import { isRestActive } from '@/helpers/rest';
+import { isRestActive, isRestFinalized } from '@/helpers/rest';
 import { toMs } from '@/helpers/times';
 import { getExecutionOrderSets } from '@/helpers/execution-order';
 
@@ -75,7 +75,7 @@ const findActiveRest = (orderedExercises: OrderedExercise[], nowMs: number) => {
         for (const set of ex.sets) {
             if (!set.completedAt) continue;
             if (!set.restTime || set.restTime <= 0) continue;
-            if (set.restCompletedAt) continue;
+            if (isRestFinalized(set)) continue;
             if (isRestActive(set, nowMs)) return set;
         }
     }
