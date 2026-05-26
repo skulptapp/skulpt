@@ -32,6 +32,7 @@ import { normalizeSetType } from '@/helpers/set-type';
 import { SKULPT_EXERCISES_USER_ID } from '@/constants/skulpt';
 
 const TRANSIENT_SYNC_ERRORS = new Set(['NO_INTERNET', 'TIMEOUT']);
+const TRANSIENT_SYNC_STATUSES = new Set([408, 429, 502, 503, 504]);
 
 const summarizeBatchData = (batchData: SyncBatchRequest) =>
     Object.fromEntries(
@@ -55,8 +56,9 @@ const summarizeBatchData = (batchData: SyncBatchRequest) =>
         ]),
     );
 
-const isTransientSyncError = (result: { error?: string }) =>
-    typeof result.error === 'string' && TRANSIENT_SYNC_ERRORS.has(result.error);
+const isTransientSyncError = (result: { error?: string; status?: number }) =>
+    (typeof result.error === 'string' && TRANSIENT_SYNC_ERRORS.has(result.error)) ||
+    (typeof result.status === 'number' && TRANSIENT_SYNC_STATUSES.has(result.status));
 
 const captureSyncFailure = (
     scopeName: string,

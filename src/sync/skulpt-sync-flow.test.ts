@@ -1,5 +1,6 @@
 // @ts-nocheck
 const mockGetServerChanges = jest.fn();
+const mockSendChangesToServer = jest.fn();
 const mockGetLastSyncTimestamp = jest.fn();
 const mockGetSkulptLastSyncTimestamp = jest.fn();
 const mockGetPendingSyncOperations = jest.fn();
@@ -48,7 +49,11 @@ jest.mock('drizzle-orm', () => ({
 
 jest.mock('@/api', () => ({
     getServerChanges: (...args: unknown[]) => mockGetServerChanges(...args),
-    sendChangesToServer: jest.fn(),
+    sendChangesToServer: (...args: unknown[]) => mockSendChangesToServer(...args),
+}));
+
+jest.mock('./backfill', () => ({
+    backfillSyncQueue: jest.fn(async () => undefined),
 }));
 
 jest.mock('@/crud/sync', () => ({
@@ -135,6 +140,7 @@ const loadSyncModule = () => {
 describe('dataset sync flow', () => {
     beforeEach(() => {
         mockGetServerChanges.mockReset();
+        mockSendChangesToServer.mockReset();
         mockGetLastSyncTimestamp.mockReset();
         mockGetSkulptLastSyncTimestamp.mockReset();
         mockGetPendingSyncOperations.mockReset();
@@ -148,6 +154,8 @@ describe('dataset sync flow', () => {
         mockTx.insert.mockClear();
         mockTx.update.mockClear();
         mockTx.delete.mockClear();
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        require('@sentry/react-native').withScope.mockClear();
 
         mockGetCurrentUser.mockResolvedValue({
             id: 'user_1',
@@ -260,5 +268,155 @@ describe('dataset sync flow', () => {
         expect(mockUpdateSkulptLastSyncTimestamp).toHaveBeenCalledTimes(1);
         expect(mockUpdateSkulptLastSyncTimestamp).toHaveBeenCalledWith('hi-IN', expect.any(Date));
         expect(mockUpdateSkulptLastSyncTimestamp.mock.calls[0][1].getTime()).toBe(900);
+    });
+
+    test('treats retryable user pull HTTP failures as transient sync failures', async () => {
+        const { pullServerChanges } = loadSyncModule();
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const Sentry = require('@sentry/react-native');
+
+        mockGetLastSyncTimestamp.mockResolvedValue(new Date(500));
+        mockGetServerChanges.mockResolvedValue({
+            success: false,
+            error: 'SERVER_ERROR',
+            status: 504,
+        });
+
+        const result = await pullServerChanges();
+
+        expect(result).toEqual({ success: false, isRetryableNetworkFailure: true });
+        expect(mockGetServerChanges).toHaveBeenCalledTimes(1);
+        expect(mockUpdateLastSyncTimestamp).not.toHaveBeenCalled();
+        expect(mockUpdateSkulptLastSyncTimestamp).not.toHaveBeenCalled();
+        expect(Sentry.withScope).not.toHaveBeenCalled();
+    });
+
+    test('treats retryable skulpt pull HTTP failures as transient sync failures', async () => {
+        const { pullServerChanges } = loadSyncModule();
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const Sentry = require('@sentry/react-native');
+
+        mockGetCurrentUser.mockResolvedValue({
+            id: 'user_1',
+            lng: 'ru',
+        });
+        mockGetLastSyncTimestamp.mockResolvedValue(new Date(500));
+        mockGetSkulptLastSyncTimestamp.mockResolvedValue(new Date(700));
+        mockGetServerChanges
+            .mockResolvedValueOnce({
+                success: true,
+                data: {},
+            })
+            .mockResolvedValueOnce({
+                success: false,
+                error: 'SERVER_ERROR',
+                status: 504,
+            });
+
+        const result = await pullServerChanges();
+
+        expect(result).toEqual({ success: false, isRetryableNetworkFailure: true });
+        expect(mockUpdateLastSyncTimestamp).toHaveBeenCalledWith(expect.any(Date));
+        expect(mockUpdateSkulptLastSyncTimestamp).not.toHaveBeenCalled();
+        expect(Sentry.withScope).not.toHaveBeenCalled();
+    });
+
+    test('does not report performSync stop after retryable pull failure', async () => {
+        const { performSync } = loadSyncModule();
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const Sentry = require('@sentry/react-native');
+
+        mockGetCurrentUser.mockResolvedValue({
+            id: 'user_1',
+            lng: 'en',
+        });
+        mockGetPendingSyncOperations.mockResolvedValue([]);
+        mockGetLastSyncTimestamp.mockResolvedValue(new Date(500));
+        mockGetSkulptLastSyncTimestamp.mockResolvedValue(new Date(700));
+        mockGetServerChanges
+            .mockResolvedValueOnce({
+                success: true,
+                data: {},
+            })
+            .mockResolvedValueOnce({
+                success: false,
+                error: 'SERVER_ERROR',
+                status: 504,
+            });
+
+        const result = await performSync();
+
+        expect(result).toBe(false);
+        expect(mockCleanupSyncedOperations).not.toHaveBeenCalled();
+        expect(Sentry.withScope).not.toHaveBeenCalled();
+    });
+
+    test('treats retryable push HTTP failures as transient sync failures', async () => {
+        const { pushLocalChanges } = loadSyncModule();
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const Sentry = require('@sentry/react-native');
+        const pendingOperation = {
+            id: 'sync_1',
+            tableName: 'user',
+            recordId: 'user_1',
+            operation: 'create',
+            timestamp: new Date(1000),
+            synced: 0,
+            data: {
+                id: 'user_1',
+                lng: 'en',
+                createdAt: new Date(1000),
+                updatedAt: new Date(1000),
+            },
+        };
+
+        mockGetPendingSyncOperations.mockResolvedValue([pendingOperation]);
+        mockSendChangesToServer.mockResolvedValue({
+            success: false,
+            error: 'SERVER_ERROR',
+            status: 504,
+        });
+
+        const result = await pushLocalChanges();
+
+        expect(result).toEqual({ success: false, isRetryableNetworkFailure: true });
+        expect(mockSendChangesToServer).toHaveBeenCalledTimes(1);
+        expect(mockMarkSyncOperationAsDone).not.toHaveBeenCalled();
+        expect(Sentry.withScope).not.toHaveBeenCalled();
+    });
+
+    test('does not report performSync stop after retryable push failure', async () => {
+        const { performSync } = loadSyncModule();
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const Sentry = require('@sentry/react-native');
+
+        mockGetPendingSyncOperations.mockResolvedValue([
+            {
+                id: 'sync_1',
+                tableName: 'user',
+                recordId: 'user_1',
+                operation: 'create',
+                timestamp: new Date(1000),
+                synced: 0,
+                data: {
+                    id: 'user_1',
+                    lng: 'en',
+                    createdAt: new Date(1000),
+                    updatedAt: new Date(1000),
+                },
+            },
+        ]);
+        mockSendChangesToServer.mockResolvedValue({
+            success: false,
+            error: 'SERVER_ERROR',
+            status: 504,
+        });
+
+        const result = await performSync();
+
+        expect(result).toBe(false);
+        expect(mockGetServerChanges).not.toHaveBeenCalled();
+        expect(mockCleanupSyncedOperations).not.toHaveBeenCalled();
+        expect(Sentry.withScope).not.toHaveBeenCalled();
     });
 });

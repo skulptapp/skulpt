@@ -7,6 +7,7 @@ interface ApiResponse<T> {
     success: boolean;
     data?: T | null;
     error?: string;
+    status?: number;
 }
 
 interface SendChangesApiResponse {
@@ -51,6 +52,9 @@ type AxiosRequestFallback = {
 };
 
 type RetryableConfig = InternalAxiosRequestConfig & { _retried?: boolean };
+
+// HTTP statuses that are expected to recover on a later sync attempt.
+const RETRYABLE_HTTP_STATUSES = new Set([408, 429, 502, 503, 504]);
 
 // Errors that should NOT be reported to Sentry from handleError:
 //  - NO_INTERNET / TIMEOUT  → expected transient conditions, not actionable
@@ -206,7 +210,11 @@ const handleError = (
         }
     }
 
-    if (!SUPPRESS_SENTRY_ERRORS.has(error)) {
+    const shouldSuppressSentry =
+        SUPPRESS_SENTRY_ERRORS.has(error) ||
+        (typeof status === 'number' && RETRYABLE_HTTP_STATUSES.has(status));
+
+    if (!shouldSuppressSentry) {
         reportError(err, '[sync-api] Request failed:', {
             extras: {
                 requestType: context?.requestType,
