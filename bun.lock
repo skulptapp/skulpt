@@ -118,6 +118,7 @@
   ],
   "patchedDependencies": {
     "@bacons/xcode@1.0.0-alpha.32": "patches/@bacons%2Fxcode@1.0.0-alpha.32.patch",
+    "expo-router@56.2.6": "patches/expo-router@56.2.6.patch",
   },
   "overrides": {
     "zod-validation-error": "4.0.2",

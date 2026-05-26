@@ -24,6 +24,7 @@ import { useRunningWorkoutTicker } from '@/hooks/use-running-workout';
 import { useAnalytics } from '@/hooks/use-analytics';
 import { useWorkoutHealthStats } from '@/hooks/use-workout-health-stats';
 import { useUser } from '@/hooks/use-user';
+import { type ExerciseSetSelect } from '@/db/schema';
 import { WorkoutExerciseSelect } from '@/db/schema/workout';
 import { useSupersetEditStore } from '@/stores/superset-edit';
 import { useManageCircuitGroups } from './hooks/use-manage-circuit-groups';
@@ -52,6 +53,38 @@ type AbsorptionInfo = {
     targetGroupId: string;
     oldGroupId: string | null;
 } | null;
+
+const getDateSnapshotValue = (value: ExerciseSetSelect[keyof ExerciseSetSelect]) => {
+    if (value instanceof Date) return value.getTime();
+    return value ?? '';
+};
+
+const getSetSnapshotKey = (set: ExerciseSetSelect) =>
+    [
+        set.id,
+        set.order,
+        set.type ?? '',
+        set.weight ?? '',
+        set.reps ?? '',
+        set.time ?? '',
+        set.distance ?? '',
+        set.restTime ?? '',
+        set.finalRestTime ?? '',
+        getDateSnapshotValue(set.startedAt),
+        getDateSnapshotValue(set.completedAt),
+        getDateSnapshotValue(set.restCompletedAt),
+    ].join(':');
+
+const getWorkoutItemSnapshotKey = (item: WorkoutItem) =>
+    [
+        item.id,
+        item.name,
+        item.order,
+        item.groupId ?? '',
+        item.groupType ?? '',
+        item.tracking?.join(',') ?? '',
+        item.sets?.map(getSetSnapshotKey).join(',') ?? '',
+    ].join(':');
 
 /**
  * Check if the dragged item landed between two members of a circuit group.
@@ -307,16 +340,7 @@ const WorkoutScreen: FC = () => {
             .sort((a, b) => a.order - b.order);
     }, [workoutExercises, workoutDetails, groups, groupTypeMap]);
 
-    const itemsKey = useMemo(
-        () =>
-            items
-                .map(
-                    (item) =>
-                        `${item.id}:${item.order}:${item.groupId ?? ''}:${item.groupType ?? ''}`,
-                )
-                .join('|'),
-        [items],
-    );
+    const itemsKey = useMemo(() => items.map(getWorkoutItemSnapshotKey).join('|'), [items]);
     const [localItemsState, setLocalItemsState] = useState({
         key: itemsKey,
         items,
