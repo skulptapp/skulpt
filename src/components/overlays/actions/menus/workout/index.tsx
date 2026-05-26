@@ -12,6 +12,7 @@ import { useEditor } from '@/hooks/use-editor';
 import { deleteWorkoutMutationKey, useDeleteWorkout } from '@/hooks/use-workouts';
 
 import { MenuItem } from '../../components/menu-item';
+import { WorkoutDuplicateItems } from '../workout-duplicate-items';
 
 const WorkoutMenu: FC = () => {
     const { t } = useTranslation(['common', 'screens']);
@@ -80,6 +81,7 @@ const WorkoutMenu: FC = () => {
                             startSupersetEdit(payload.workoutId);
                         }}
                     />
+                    <WorkoutDuplicateItems labels="copy" />
                     <MenuItem
                         title={t('delete', { ns: 'common' })}
                         variant="destructive"

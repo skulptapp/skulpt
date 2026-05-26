@@ -237,6 +237,11 @@
             "plan": "Planificar",
             "completed": "Agregar como completado"
         },
+        "copy": {
+            "now": "Copiar como iniciado",
+            "plan": "Copiar como planificado",
+            "completed": "Copiar como completado"
+        },
         "empty": {
             "title": {
                 "planned": "Programar entrenamiento",

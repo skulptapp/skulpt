@@ -235,6 +235,11 @@
             "plan": "计划",
             "completed": "添加为已完成"
         },
+        "copy": {
+            "now": "复制为进行中",
+            "plan": "复制为已计划",
+            "completed": "复制为已完成"
+        },
         "empty": {
             "title": {
                 "planned": "安排训练",

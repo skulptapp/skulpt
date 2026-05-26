@@ -237,6 +237,11 @@
             "plan": "Plan",
             "completed": "Add Complete"
         },
+        "copy": {
+            "now": "Copy as In Progress",
+            "plan": "Copy as Planned",
+            "completed": "Copy as Completed"
+        },
         "empty": {
             "title": {
                 "planned": "Plan Workout",
