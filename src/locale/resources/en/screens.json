@@ -286,6 +286,28 @@
             "cadence": "Cadence"
         }
     },
+    "workoutExercise": {
+        "delete": "Delete Exercise",
+        "deleteAlert": "Delete this exercise from the workout?",
+        "addSet": {
+            "warmup": {
+                "title": "Add Warm-up Set",
+                "description": "A lower-intensity set to prepare for training."
+            },
+            "dropset": {
+                "title": "Add Drop Set",
+                "description": "Train to failure, reduce the weight, then continue."
+            },
+            "failure": {
+                "title": "Add Failure Set",
+                "description": "A set taken until you can no longer keep proper form."
+            },
+            "working": {
+                "title": "Add Working Set",
+                "description": "A standard set with consistent weight and reps."
+            }
+        }
+    },
     "settings": {
         "title": "Settings",
         "version": "Version",

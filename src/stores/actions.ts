@@ -28,6 +28,16 @@ type ExerciseMenu = {
     };
 };
 
+type WorkoutExerciseMenu = {
+    type: 'workout_exercise__menu';
+    title?: string;
+    showCloseButton?: boolean;
+    payload: {
+        workoutId: string;
+        workoutExerciseId: string;
+    };
+};
+
 type SetMenu = {
     type: 'set__menu';
     title?: string;
@@ -49,9 +59,10 @@ type State =
     | WorkoutMenu
     | Workoutrepeat
     | ExerciseMenu
+    | WorkoutExerciseMenu
     | SetMenu;
 
-type OpenPropsType = WorkoutMenu | Workoutrepeat | ExerciseMenu | SetMenu;
+type OpenPropsType = WorkoutMenu | Workoutrepeat | ExerciseMenu | WorkoutExerciseMenu | SetMenu;
 
 type Actions = {
     open: (props: OpenPropsType) => void;

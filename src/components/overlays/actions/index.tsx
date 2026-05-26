@@ -11,6 +11,7 @@ import { Handle } from '../handle';
 import { WorkoutMenu } from './menus/workout';
 import { WorkoutRepeat } from './menus/workout-repeat';
 import { ExerciseMenu } from './menus/exercise';
+import { WorkoutExerciseMenu } from './menus/workout-exercise';
 import { SetMenu } from './menus/set';
 
 const styles = StyleSheet.create((theme, rt) => ({
@@ -78,6 +79,8 @@ const ActionsSheet: FC = () => {
                 return <WorkoutRepeat />;
             case 'exercise__menu':
                 return <ExerciseMenu />;
+            case 'workout_exercise__menu':
+                return <WorkoutExerciseMenu />;
             case 'set__menu':
                 return <SetMenu />;
             default:
@@ -88,7 +91,7 @@ const ActionsSheet: FC = () => {
     return (
         <BottomSheetModal
             ref={bottomSheetRef}
-            backdropComponent={Backdrop}
+            backdropComponent={(props) => <Backdrop {...props} pressBehavior="close" />}
             handleComponent={(props) => (
                 <Handle
                     handleClose={close}

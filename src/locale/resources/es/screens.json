@@ -286,6 +286,28 @@
             "cadence": "Cadencia"
         }
     },
+    "workoutExercise": {
+        "delete": "Eliminar ejercicio",
+        "deleteAlert": "¿Eliminar este ejercicio del entrenamiento?",
+        "addSet": {
+            "warmup": {
+                "title": "Agregar serie de calentamiento",
+                "description": "Serie de baja intensidad para prepararte."
+            },
+            "dropset": {
+                "title": "Agregar drop set",
+                "description": "Llega al fallo, reduce el peso y continúa."
+            },
+            "failure": {
+                "title": "Agregar serie al fallo",
+                "description": "Serie hasta que ya no mantienes buena técnica."
+            },
+            "working": {
+                "title": "Agregar serie de trabajo",
+                "description": "Serie estándar con peso y repeticiones constantes."
+            }
+        }
+    },
     "settings": {
         "title": "Configuración",
         "version": "Versión",

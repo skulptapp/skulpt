@@ -4,6 +4,7 @@ import { BottomSheetBackdrop, BottomSheetBackdropProps } from '@gorhom/bottom-sh
 interface IBackdrop extends BottomSheetBackdropProps {
     appearsOnIndex?: number;
     disappearsOnIndex?: number;
+    pressBehavior?: 'none' | 'close' | 'collapse' | number;
 }
 
 const Backdrop: FC<IBackdrop> = (props) => (

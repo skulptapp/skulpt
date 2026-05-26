@@ -30,6 +30,7 @@ import { getExecutionOrderSets } from '@/helpers/execution-order';
 import { startNextSetOrExercise } from '@/services/set-transitions';
 import { useAnalytics } from '@/hooks/use-analytics';
 import { useRunningWorkoutStatic } from '@/hooks/use-running-workout';
+import { addWorkoutExerciseSet } from '../../helpers/add-set';
 
 interface ActionsProps {
     workoutDetails: ReturnType<typeof useWorkoutWithDetails>['data'];
@@ -120,10 +121,6 @@ export const Actions: FC<ActionsProps> = ({
         [workoutDetails],
     );
 
-    const sortedSets = useMemo(() => {
-        return (sets || []).slice().sort((a, b) => a.order - b.order);
-    }, [sets]);
-
     const currentIndex = useMemo(
         () => orderedExercises.findIndex((x) => x.id === workoutExerciseId),
         [orderedExercises, workoutExerciseId],
@@ -143,80 +140,13 @@ export const Actions: FC<ActionsProps> = ({
     }, [workoutDetails?.exercises, workoutExerciseId]);
 
     const handleAddSet = useCallback(async () => {
-        if (!workoutExerciseId) return;
-
-        const completedWorkoutSetDefaults =
-            workoutStatus === 'completed'
-                ? {
-                      startedAt: null,
-                      completedAt: workoutDetails?.workout.completedAt ?? new Date(),
-                      restCompletedAt: null,
-                      finalRestTime: null,
-                  }
-                : {};
-
-        // Determine if current exercise is in a non-single group
-        const currentWe = workoutDetails?.exercises.find(
-            (e) => e.workoutExercise.id === workoutExerciseId,
-        );
-        const groupId = currentWe?.workoutExercise.groupId;
-        const group = workoutDetails?.groups.find((g) => g.group.id === groupId);
-        const groupType = group?.group.type ?? 'single';
-
-        if (groupType !== 'single' && groupId) {
-            // Superset/triset/circuit: add one set to ALL exercises in the group
-            const groupExercises = orderedExercises.filter((ex) => ex.groupId === groupId);
-
-            // Find the max round across all exercises in the group
-            let maxRound = -1;
-            for (const gex of groupExercises) {
-                for (const s of gex.sets) {
-                    const r = s.round ?? gex.sets.indexOf(s);
-                    if (r > maxRound) maxRound = r;
-                }
-            }
-            const nextRound = maxRound + 1;
-
-            await Promise.all(
-                groupExercises.map((gex) => {
-                    const exSets = gex.sets.slice().sort((a, b) => a.order - b.order);
-                    const nextOrder = exSets.length > 0 ? exSets[exSets.length - 1].order + 1 : 0;
-                    const prev = exSets[exSets.length - 1];
-
-                    return createSet({
-                        workoutExerciseId: gex.id,
-                        order: nextOrder,
-                        type: prev?.type ?? 'working',
-                        weight: prev?.weight ?? null,
-                        reps: prev?.reps ?? null,
-                        time: prev?.time ?? null,
-                        distance: prev?.distance ?? null,
-                        restTime: prev?.restTime ?? null,
-                        ...completedWorkoutSetDefaults,
-                        round: nextRound,
-                    });
-                }),
-            );
-        } else {
-            // Single group: add set only to current exercise
-            const nextOrder =
-                sortedSets.length > 0 ? sortedSets[sortedSets.length - 1].order + 1 : 0;
-            const prev = sortedSets[sortedSets.length - 1];
-
-            await createSet({
-                workoutExerciseId,
-                order: nextOrder,
-                type: prev?.type ?? 'working',
-                weight: prev?.weight ?? null,
-                reps: prev?.reps ?? null,
-                time: prev?.time ?? null,
-                distance: prev?.distance ?? null,
-                restTime: prev?.restTime ?? null,
-                ...completedWorkoutSetDefaults,
-                round: prev?.round != null ? prev.round + 1 : sortedSets.length,
-            });
-        }
-    }, [workoutExerciseId, workoutStatus, sortedSets, createSet, workoutDetails, orderedExercises]);
+        await addWorkoutExerciseSet({
+            workoutDetails,
+            workoutExerciseId,
+            sets,
+            createSet,
+        });
+    }, [createSet, sets, workoutDetails, workoutExerciseId]);
 
     const handleRest = useCallback(() => {
         open({ workoutExerciseId, changeType: 'all_intervals' });

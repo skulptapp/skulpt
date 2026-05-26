@@ -284,6 +284,28 @@
             "cadence": "步频"
         }
     },
+    "workoutExercise": {
+        "delete": "删除练习",
+        "deleteAlert": "要从训练中删除这个练习吗？",
+        "addSet": {
+            "warmup": {
+                "title": "添加热身组",
+                "description": "低强度准备组。"
+            },
+            "dropset": {
+                "title": "添加递减组",
+                "description": "做到力竭后降低重量继续。"
+            },
+            "failure": {
+                "title": "添加力竭组",
+                "description": "做到无法保持正确动作为止。"
+            },
+            "working": {
+                "title": "添加工作组",
+                "description": "使用稳定重量和次数的标准组。"
+            }
+        }
+    },
     "settings": {
         "title": "设置",
         "version": "版本",

@@ -8,6 +8,7 @@ import { Text } from '@/components/primitives/text';
 
 type MenuItemProps = {
     title: string;
+    description?: string;
     last?: boolean;
     disabled?: boolean;
     onPress: () => void;
@@ -31,6 +32,7 @@ const styles = StyleSheet.create((theme) => ({
     },
     titleContainer: {
         flex: 1,
+        gap: theme.space(1),
     },
     title: {
         fontSize: theme.fontSize.default.fontSize,
@@ -46,9 +48,14 @@ const styles = StyleSheet.create((theme) => ({
             },
         },
     },
+    description: {
+        ...theme.fontSize.sm,
+        color: theme.colors.typography,
+        opacity: 0.55,
+    },
 }));
 
-const MenuItem: FC<MenuItemProps> = ({ title, last, variant, disabled, onPress }) => {
+const MenuItem: FC<MenuItemProps> = ({ title, description, last, variant, disabled, onPress }) => {
     styles.useVariants({ variant });
 
     return (
@@ -58,6 +65,7 @@ const MenuItem: FC<MenuItemProps> = ({ title, last, variant, disabled, onPress }
                     <HStack style={styles.wrapper}>
                         <Box style={styles.titleContainer}>
                             <Text style={styles.title}>{title}</Text>
+                            {description && <Text style={styles.description}>{description}</Text>}
                         </Box>
                     </HStack>
                 </Box>
