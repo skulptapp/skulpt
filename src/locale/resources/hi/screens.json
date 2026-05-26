@@ -48,10 +48,12 @@
         "scale": {
             "title": "वज़न",
             "metrics": {
-                "currentWeight": "वर्तमान वजन"
+                "currentWeight": "वर्तमान वजन",
+                "currentBodyFatPercentage": "वर्तमान बॉडी फैट"
             },
             "chart": {
-                "empty": "अभी तक कोई वज़न लॉग नहीं है"
+                "empty": "अभी तक कोई वज़न लॉग नहीं है",
+                "bodyFatPercentageEmpty": "अभी तक कोई बॉडी फैट लॉग नहीं है"
             },
             "modal": {
                 "date": "तारीख",

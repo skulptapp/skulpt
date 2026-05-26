@@ -48,10 +48,12 @@
         "scale": {
             "title": "Scale",
             "metrics": {
-                "currentWeight": "Current weight"
+                "currentWeight": "Current weight",
+                "currentBodyFatPercentage": "Current body fat"
             },
             "chart": {
-                "empty": "No weight logs yet"
+                "empty": "No weight logs yet",
+                "bodyFatPercentageEmpty": "No body fat logs yet"
             },
             "modal": {
                 "date": "Date",

@@ -47,10 +47,12 @@
         "scale": {
             "title": "体重",
             "metrics": {
-                "currentWeight": "当前体重"
+                "currentWeight": "当前体重",
+                "currentBodyFatPercentage": "当前体脂率"
             },
             "chart": {
-                "empty": "暂无体重记录"
+                "empty": "暂无体重记录",
+                "bodyFatPercentageEmpty": "暂无体脂率记录"
             },
             "modal": {
                 "date": "日期",

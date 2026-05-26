@@ -51,10 +51,12 @@
         "scale": {
             "title": "Вес",
             "metrics": {
-                "currentWeight": "Текущий вес"
+                "currentWeight": "Текущий вес",
+                "currentBodyFatPercentage": "Текущий процент жира"
             },
             "chart": {
-                "empty": "Пока нет записей веса"
+                "empty": "Пока нет записей веса",
+                "bodyFatPercentageEmpty": "Пока нет записей процента жира"
             },
             "modal": {
                 "date": "Дата",

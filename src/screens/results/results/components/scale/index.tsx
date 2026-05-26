@@ -65,7 +65,8 @@ const Scale = () => {
     const { user } = useUser();
     const { theme, rt } = useUnistyles();
     const weightTimeline = useMeasurementTimeline('body_weight');
-    const latestByMetric = useLatestMeasurementsByMetric(['body_weight', 'body_fat_percentage']);
+    const bodyFatTimeline = useMeasurementTimeline('body_fat_percentage');
+    const latestByMetric = useLatestMeasurementsByMetric(['body_weight']);
     const weightUnits = user?.bodyWeightUnits ?? 'kg';
 
     const latestWeight = latestByMetric['body_weight'];
@@ -79,6 +80,11 @@ const Scale = () => {
         [i18n.language],
     );
 
+    const formatWeightValue = useCallback(
+        (value: number) => `${numberFormatter.format(value)} ${weightUnits}`,
+        [numberFormatter, weightUnits],
+    );
+
     const latestWeightDisplay = useMemo(() => {
         if (!latestWeight) return '-';
         const converted = convertToDisplayWeight(
@@ -87,8 +93,13 @@ const Scale = () => {
             weightUnits,
         );
         if (converted == null) return '-';
-        return `${numberFormatter.format(converted)} ${weightUnits}`;
-    }, [latestWeight, numberFormatter, weightUnits]);
+        return formatWeightValue(converted);
+    }, [formatWeightValue, latestWeight, weightUnits]);
+
+    const formatBodyFatValue = useCallback(
+        (value: number) => `${numberFormatter.format(value)}%`,
+        [numberFormatter],
+    );
 
     const timelineWithDisplayValues = useMemo(() => {
         return weightTimeline
@@ -105,6 +116,28 @@ const Scale = () => {
                     entry !== null && Number.isFinite(entry.displayValue),
             );
     }, [weightTimeline, weightUnits]);
+
+    const bodyFatTimelineWithDisplayValues = useMemo(() => {
+        return bodyFatTimeline
+            .map((entry) => {
+                if (!Number.isFinite(entry.value)) return null;
+                return {
+                    ...entry,
+                    displayValue: entry.value,
+                };
+            })
+            .filter(
+                (entry): entry is MeasurementWithDisplayValue =>
+                    entry !== null && Number.isFinite(entry.displayValue),
+            );
+    }, [bodyFatTimeline]);
+
+    const latestBodyFatDisplay = useMemo(() => {
+        const latestBodyFat =
+            bodyFatTimelineWithDisplayValues[bodyFatTimelineWithDisplayValues.length - 1];
+        if (!latestBodyFat) return '-';
+        return formatBodyFatValue(latestBodyFat.displayValue);
+    }, [bodyFatTimelineWithDisplayValues, formatBodyFatValue]);
 
     const handleOpenMeasurementEditor = useCallback(() => {
         navigate({
@@ -142,10 +175,33 @@ const Scale = () => {
                 </HStack>
                 <WeightChart
                     timeline={timelineWithDisplayValues}
-                    weightUnits={weightUnits}
                     numberFormatter={numberFormatter}
+                    formatValue={formatWeightValue}
+                    emptyText={t('results.scale.chart.empty', { ns: 'screens' })}
                 />
             </VStack>
+            {bodyFatTimelineWithDisplayValues.length > 0 && (
+                <VStack style={styles.card}>
+                    <HStack style={styles.summaryRow}>
+                        <VStack style={styles.summaryColumn}>
+                            <Text style={styles.metricValue}>{latestBodyFatDisplay}</Text>
+                            <Text style={styles.metricTitle}>
+                                {t('results.scale.metrics.currentBodyFatPercentage', {
+                                    ns: 'screens',
+                                })}
+                            </Text>
+                        </VStack>
+                    </HStack>
+                    <WeightChart
+                        timeline={bodyFatTimelineWithDisplayValues}
+                        numberFormatter={numberFormatter}
+                        formatValue={formatBodyFatValue}
+                        emptyText={t('results.scale.chart.bodyFatPercentageEmpty', {
+                            ns: 'screens',
+                        })}
+                    />
+                </VStack>
+            )}
         </VStack>
     );
 };

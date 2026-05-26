@@ -48,10 +48,12 @@
         "scale": {
             "title": "Báscula",
             "metrics": {
-                "currentWeight": "Peso actual"
+                "currentWeight": "Peso actual",
+                "currentBodyFatPercentage": "Grasa corporal actual"
             },
             "chart": {
-                "empty": "Aún no hay registros de peso"
+                "empty": "Aún no hay registros de peso",
+                "bodyFatPercentageEmpty": "Aún no hay registros de grasa corporal"
             },
             "modal": {
                 "date": "Fecha",

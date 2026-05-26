@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import * as Haptics from 'expo-haptics';
-import { useTranslation } from 'react-i18next';
 import { LineChart, yAxisSides } from 'react-native-gifted-charts';
 import PagerView, { type PagerViewOnPageSelectedEvent } from 'react-native-pager-view';
 import { type GestureResponderEvent, View } from 'react-native';
@@ -139,12 +138,12 @@ const styles = StyleSheet.create((theme) => ({
 
 type WeightChartProps = {
     timeline: MeasurementWithDisplayValue[];
-    weightUnits: 'kg' | 'lb';
     numberFormatter: Intl.NumberFormat;
+    formatValue: (value: number) => string;
+    emptyText: string;
 };
 
-const WeightChart = ({ timeline, weightUnits, numberFormatter }: WeightChartProps) => {
-    const { t } = useTranslation(['screens']);
+const WeightChart = ({ timeline, numberFormatter, formatValue, emptyText }: WeightChartProps) => {
     const { theme } = useUnistyles();
     const [chartWidth, setChartWidth] = useState(0);
     const [selectedPointIndex, setSelectedPointIndex] = useState<number | null>(null);
@@ -594,7 +593,7 @@ const WeightChart = ({ timeline, weightUnits, numberFormatter }: WeightChartProp
                                                 ]}
                                             >
                                                 <Text style={styles.pointerValue}>
-                                                    {`${numberFormatter.format(selectedPoint.displayValue)} ${weightUnits}`}
+                                                    {formatValue(selectedPoint.displayValue)}
                                                 </Text>
                                                 <Text style={styles.pointerDate}>
                                                     {dayjs(selectedPoint.recordedAt).format(
@@ -692,9 +691,7 @@ const WeightChart = ({ timeline, weightUnits, numberFormatter }: WeightChartProp
                 </VStack>
             ) : (
                 <Box style={styles.emptyChart}>
-                    <Text style={styles.emptyChartText}>
-                        {t('results.scale.chart.empty', { ns: 'screens' })}
-                    </Text>
+                    <Text style={styles.emptyChartText}>{emptyText}</Text>
                 </Box>
             )}
         </VStack>
