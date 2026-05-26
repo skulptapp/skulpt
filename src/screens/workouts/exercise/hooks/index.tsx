@@ -3,7 +3,7 @@ import { useUnistyles } from 'react-native-unistyles';
 import { useShallow } from 'zustand/react/shallow';
 
 import { ActionsButton } from '@/components/buttons/actions';
-import { CollapseButton } from '@/components/buttons/collapse';
+import { BackButton } from '@/components/buttons/back';
 import { useScreen } from '@/hooks/use-screen';
 import { useActionsStore } from '@/stores/actions';
 
@@ -37,10 +37,6 @@ const useWorkoutExerciseScreen = () => {
         name: '[workoutId]/[workoutExerciseId]',
         options: {
             ...options,
-            presentation: 'card' as const,
-            animationTypeForReplace: 'pop' as const,
-            cardOverlayEnabled: false,
-            animation: 'slide_from_bottom' as const,
             headerShown: true,
             headerTitle: () => null,
             headerTransparent: true,
@@ -48,7 +44,13 @@ const useWorkoutExerciseScreen = () => {
                 ...options.headerStyle,
                 backgroundColor: 'transparent',
             },
-            headerLeft: () => <CollapseButton onPressHandler={handleBack} />,
+            headerLeft: () => (
+                <BackButton
+                    onPressHandler={handleBack}
+                    backgroundColor={theme.colors.lime[500]}
+                    iconColor={theme.colors.neutral[950]}
+                />
+            ),
             headerRight: () => (
                 <ActionsButton
                     onPressHandler={handleActions}
