@@ -39,6 +39,27 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
 }));
 
+const getDateSnapshotValue = (value: ExerciseSetSelect[keyof ExerciseSetSelect]) => {
+    if (value instanceof Date) return value.getTime();
+    return value ?? '';
+};
+
+const getSetSnapshotKey = (item: ExerciseSetSelect) =>
+    [
+        item.id,
+        item.order,
+        item.type ?? '',
+        item.weight ?? '',
+        item.reps ?? '',
+        item.time ?? '',
+        item.distance ?? '',
+        item.restTime ?? '',
+        item.finalRestTime ?? '',
+        getDateSnapshotValue(item.startedAt),
+        getDateSnapshotValue(item.completedAt),
+        getDateSnapshotValue(item.restCompletedAt),
+    ].join(':');
+
 const WorkoutExerciseScreen: FC = () => {
     const [actionsHeight, setActionsHeight] = useState(0);
     const { theme } = useUnistyles();
@@ -69,7 +90,7 @@ const WorkoutExerciseScreen: FC = () => {
 
     const sourceItems = useMemo(() => exerciseInfo?.sets || [], [exerciseInfo?.sets]);
     const sourceItemsKey = useMemo(
-        () => sourceItems.map((item) => `${item.id}:${item.order}`).join('|'),
+        () => sourceItems.map(getSetSnapshotKey).join('|'),
         [sourceItems],
     );
     const [localItemsState, setLocalItemsState] = useState({
