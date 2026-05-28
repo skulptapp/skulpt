@@ -291,6 +291,13 @@
             "heartRateRange": "Heart Rate Range",
             "afterOneMinute": "After 1 min",
             "afterTwoMinutes": "After 2 min",
+            "recoveryScale": {
+                "poor": "Poor",
+                "fair": "Fair",
+                "good": "Good",
+                "excellent": "Excellent",
+                "superior": "Superior"
+            },
             "mhrUsed": "MHR",
             "activeScore": "Active Score",
             "avgMets": "Avg METs",

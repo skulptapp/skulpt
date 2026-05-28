@@ -3,6 +3,7 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { LineChart, type lineDataItem } from 'react-native-gifted-charts';
 import { type StyleProp, type ViewStyle } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { VStack } from '@/components/primitives/vstack';
 import { HStack } from '@/components/primitives/hstack';
@@ -16,7 +17,7 @@ import {
 } from '@/components/layout/workout-metrics';
 import type { ExerciseSelect, ExerciseSetSelect, WorkoutSelect } from '@/db/schema';
 import { stableOutlineWidth } from '@/helpers/styles';
-import { getZoneDefinitions } from '@/helpers/heart-rate-zones';
+import { calculateAge, getZoneDefinitions } from '@/helpers/heart-rate-zones';
 import { useUser } from '@/hooks/use-user';
 import { reportError } from '@/services/error-reporting';
 import { type HealthStatsDisplay } from '@/types/health-stats';
@@ -81,9 +82,73 @@ type RecoveryLineDataItem = lineDataItem & {
     bpm: number;
 };
 
+type RecoveryRatingKey = 'poor' | 'fair' | 'good' | 'excellent' | 'superior';
+
+type RecoveryScaleSegment = {
+    key: RecoveryRatingKey;
+    min: number;
+    max: number | null;
+    width: number;
+    labelColor: string;
+};
+
+type RecoveryScaleModel = {
+    markerPercent: number;
+    markerColor: string;
+    segments: RecoveryScaleSegment[];
+};
+
+type RecoveryScaleStarts = readonly [number, number, number, number, number];
+type RgbColor = {
+    r: number;
+    g: number;
+    b: number;
+};
+
 const CHART_HEIGHT = 120;
 const CHART_EDGE_INSET = 3;
 const CHART_ASPECT_RATIO = CHART_HEIGHT / 250;
+const FALLBACK_RECOVERY_CHART_COLOR = '#ef4444';
+
+const RECOVERY_SCALE_COLORS: Record<RecoveryRatingKey, { labelColor: string }> = {
+    poor: {
+        labelColor: '#F8D749',
+    },
+    fair: {
+        labelColor: '#F3C058',
+    },
+    good: {
+        labelColor: '#F1A97F',
+    },
+    excellent: {
+        labelColor: '#E772A6',
+    },
+    superior: {
+        labelColor: '#CCC3FA',
+    },
+};
+
+const RECOVERY_SCALE_GRADIENT_COLORS = [
+    '#F8D749',
+    '#F4C844',
+    '#F2AC7D',
+    '#E770A0',
+    '#D8AADD',
+    '#CCC3FA',
+] as const;
+
+const RECOVERY_SCALE_BOUNDS_BY_AGE: readonly {
+    minAge: number;
+    maxAge: number;
+    starts: RecoveryScaleStarts;
+}[] = [
+    { minAge: 18, maxAge: 29, starts: [0, 14, 31, 40, 49] },
+    { minAge: 30, maxAge: 39, starts: [0, 14, 30, 39, 47] },
+    { minAge: 40, maxAge: 49, starts: [0, 14, 29, 38, 46] },
+    { minAge: 50, maxAge: 59, starts: [0, 14, 28, 36, 44] },
+    { minAge: 60, maxAge: 69, starts: [0, 14, 25, 32, 40] },
+    { minAge: 70, maxAge: Number.POSITIVE_INFINITY, starts: [0, 14, 21, 29, 36] },
+] as const;
 
 const styles = StyleSheet.create((theme) => ({
     container: {
@@ -184,6 +249,79 @@ const styles = StyleSheet.create((theme) => ({
         fontSize: theme.fontSize.xs.fontSize,
         fontWeight: theme.fontWeight.medium.fontWeight,
     },
+    recoveryScale: {
+        gap: theme.space(1.5),
+        marginTop: theme.space(3.5),
+    },
+    recoveryScaleLabels: {
+        width: '100%',
+        alignItems: 'center',
+    },
+    recoveryScaleLabelSlot: {
+        minWidth: 0,
+        paddingRight: theme.space(0.5),
+    },
+    recoveryScaleLabel: {
+        fontSize: theme.fontSize.xs.fontSize,
+        fontWeight: theme.fontWeight.bold.fontWeight,
+    },
+    recoveryScaleBarWrap: {
+        height: theme.space(1),
+        justifyContent: 'center',
+    },
+    recoveryScaleTrack: {
+        height: theme.space(2.5),
+        borderRadius: theme.radius.full,
+        overflow: 'hidden',
+        backgroundColor: theme.colors.background,
+    },
+    recoveryScaleGradient: {
+        flex: 1,
+    },
+    recoveryScaleDivider: {
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        width: theme.space(0.5),
+        marginLeft: -theme.space(0.25),
+        backgroundColor: theme.colors.background,
+    },
+    recoveryScaleDivider1: {
+        left: '20%',
+    },
+    recoveryScaleDivider2: {
+        left: '40%',
+    },
+    recoveryScaleDivider3: {
+        left: '60%',
+    },
+    recoveryScaleDivider4: {
+        left: '80%',
+    },
+    recoveryScaleMarker: {
+        position: 'absolute',
+        width: theme.space(2.5),
+        height: theme.space(2.5),
+        marginLeft: -theme.space(2.25),
+        borderRadius: theme.radius.full,
+        borderWidth: theme.space(0.55),
+        borderColor: '#34343C',
+        backgroundColor: 'transparent',
+    },
+    recoveryScaleTicks: {
+        width: '100%',
+        alignItems: 'center',
+    },
+    recoveryScaleTickSlot: {
+        minWidth: 0,
+        paddingRight: theme.space(0.5),
+    },
+    recoveryScaleTick: {
+        color: theme.colors.typography,
+        opacity: 0.55,
+        fontSize: theme.fontSize.xs.fontSize,
+        fontWeight: theme.fontWeight.medium.fontWeight,
+    },
     recoveryPointerLabel: {
         minWidth: theme.space(10),
         paddingHorizontal: theme.space(1),
@@ -206,6 +344,20 @@ const styles = StyleSheet.create((theme) => ({
         fontSize: theme.fontSize['2xs'].fontSize,
         fontWeight: theme.fontWeight.medium.fontWeight,
         textAlign: 'center',
+    },
+    recoveryPointerComponent: {
+        width: theme.space(2),
+        alignItems: 'center',
+    },
+    recoveryPointerCustomStrip: {
+        position: 'absolute',
+        top: theme.space(1),
+        width: theme.space(0.5),
+    },
+    recoveryPointerCustomDot: {
+        width: theme.space(2),
+        height: theme.space(2),
+        borderRadius: theme.radius.full,
     },
 }));
 
@@ -303,6 +455,131 @@ const getInterpolatedRecoveryBpm = (
     return lastPoint.bpm;
 };
 
+const parseHexColor = (color: string): RgbColor => {
+    const normalized = color.replace('#', '');
+    const value = Number.parseInt(normalized, 16);
+
+    return {
+        r: (value >> 16) & 255,
+        g: (value >> 8) & 255,
+        b: value & 255,
+    };
+};
+
+const toHexChannel = (value: number): string =>
+    Math.round(value).toString(16).padStart(2, '0').toUpperCase();
+
+const rgbToHex = ({ r, g, b }: RgbColor): string =>
+    `#${toHexChannel(r)}${toHexChannel(g)}${toHexChannel(b)}`;
+
+const withAlpha = (color: string, alpha: number): string => {
+    const { r, g, b } = parseHexColor(color);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+const getRecoveryScaleColor = (markerPercent: number): string => {
+    const colors = RECOVERY_SCALE_GRADIENT_COLORS;
+    const boundedPercent = Math.max(0, Math.min(100, markerPercent));
+    const scaledPosition = (boundedPercent / 100) * (colors.length - 1);
+    const leftIndex = Math.min(Math.floor(scaledPosition), colors.length - 2);
+    const rightIndex = leftIndex + 1;
+    const progress = scaledPosition - leftIndex;
+    const left = parseHexColor(colors[leftIndex]!);
+    const right = parseHexColor(colors[rightIndex]!);
+
+    return rgbToHex({
+        r: left.r + (right.r - left.r) * progress,
+        g: left.g + (right.g - left.g) * progress,
+        b: left.b + (right.b - left.b) * progress,
+    });
+};
+
+const getRecoveryScaleStarts = (age: number | null | undefined): RecoveryScaleStarts => {
+    const safeAge = age == null || !Number.isFinite(age) ? 30 : Math.max(18, Math.floor(age));
+    const bounds =
+        RECOVERY_SCALE_BOUNDS_BY_AGE.find(
+            (item) => safeAge >= item.minAge && safeAge <= item.maxAge,
+        ) ?? RECOVERY_SCALE_BOUNDS_BY_AGE[1]!;
+
+    return bounds.starts;
+};
+
+const getRecoveryScaleMarkerPercent = (value: number, starts: RecoveryScaleStarts): number => {
+    const segmentCount = starts.length;
+
+    for (let index = 0; index < starts.length - 1; index += 1) {
+        const min = starts[index]!;
+        const max = starts[index + 1]!;
+
+        if (value < max) {
+            const progress = Math.max(0, Math.min(1, (value - min) / Math.max(max - min, 1)));
+            return ((index + progress) / segmentCount) * 100;
+        }
+    }
+
+    const superiorStart = starts[starts.length - 1]!;
+    const superiorSpan = Math.max(starts[1]! - starts[0]!, 1);
+    const superiorProgress = Math.max(0, Math.min(1, (value - superiorStart) / superiorSpan));
+
+    return ((segmentCount - 1 + superiorProgress) / segmentCount) * 100;
+};
+
+const buildRecoveryScaleModel = (
+    recovery: number | null | undefined,
+    age: number | null | undefined,
+): RecoveryScaleModel | null => {
+    if (recovery == null) return null;
+
+    const starts = getRecoveryScaleStarts(age);
+    const [poorStart, fairStart, goodStart, excellentStart, superiorStart] = starts;
+    const value = Math.max(0, Math.round(recovery));
+
+    const segments: RecoveryScaleSegment[] = [
+        {
+            key: 'poor',
+            min: poorStart,
+            max: fairStart - 1,
+            width: 1,
+            labelColor: RECOVERY_SCALE_COLORS.poor.labelColor,
+        },
+        {
+            key: 'fair',
+            min: fairStart,
+            max: goodStart - 1,
+            width: 1,
+            labelColor: RECOVERY_SCALE_COLORS.fair.labelColor,
+        },
+        {
+            key: 'good',
+            min: goodStart,
+            max: excellentStart - 1,
+            width: 1,
+            labelColor: RECOVERY_SCALE_COLORS.good.labelColor,
+        },
+        {
+            key: 'excellent',
+            min: excellentStart,
+            max: superiorStart - 1,
+            width: 1,
+            labelColor: RECOVERY_SCALE_COLORS.excellent.labelColor,
+        },
+        {
+            key: 'superior',
+            min: superiorStart,
+            max: null,
+            width: 1,
+            labelColor: RECOVERY_SCALE_COLORS.superior.labelColor,
+        },
+    ];
+    const markerPercent = getRecoveryScaleMarkerPercent(value, starts);
+
+    return {
+        markerPercent,
+        markerColor: getRecoveryScaleColor(markerPercent),
+        segments,
+    };
+};
+
 export const Stats: FC<StatsProps> = ({
     workout,
     exercises = [],
@@ -331,6 +608,14 @@ export const Stats: FC<StatsProps> = ({
     );
 
     const distanceUnits = user?.distanceUnits ?? 'km';
+    const userBirthday = user?.birthday ?? null;
+    const twoMinuteRecovery = healthStats?.heartRateRecoveryTwoMinutes ?? null;
+    const recoveryScaleModel = useMemo(() => {
+        const age = userBirthday ? calculateAge(userBirthday) : null;
+        return buildRecoveryScaleModel(twoMinuteRecovery, age);
+    }, [twoMinuteRecovery, userBirthday]);
+    const recoveryChartColor = recoveryScaleModel?.markerColor ?? FALLBACK_RECOVERY_CHART_COLOR;
+    const recoveryChartPointerStripColor = withAlpha(recoveryChartColor, 0.35);
 
     const zoneColors = useMemo(
         () => ({
@@ -559,12 +844,58 @@ export const Stats: FC<StatsProps> = ({
 
     const recoveryPointerConfig = useMemo(
         () => ({
-            pointerColor: '#ef4444',
+            pointerColor: recoveryChartColor,
             radius: 4,
-            showPointerStrip: true,
-            pointerStripColor: 'rgba(203, 63, 97, 0.35)',
+            showPointerStrip: false,
+            pointerStripColor: recoveryChartPointerStripColor,
             pointerStripWidth: 4,
             pointerStripUptoDataPoint: true,
+            stripOverPointer: true,
+            pointerComponent: (item?: RecoveryLineDataItem | RecoveryLineDataItem[]) => {
+                const pointerItem = Array.isArray(item) ? item[0] : item;
+                const bpm =
+                    typeof pointerItem?.bpm === 'number'
+                        ? pointerItem.bpm
+                        : typeof pointerItem?.value === 'number'
+                          ? pointerItem.value
+                          : null;
+                const valueRange = recoveryChartModel
+                    ? Math.max(1, recoveryChartModel.maxBpm - recoveryChartModel.minBpm)
+                    : 1;
+                const pointerY =
+                    bpm != null && recoveryChartModel
+                        ? Math.max(
+                              0,
+                              Math.min(
+                                  recoveryChartHeight,
+                                  recoveryChartHeight -
+                                      ((bpm - recoveryChartModel.minBpm) / valueRange) *
+                                          recoveryChartHeight,
+                              ),
+                          )
+                        : 0;
+                const stripHeight = Math.max(0, recoveryChartHeight - pointerY);
+
+                return (
+                    <Box style={styles.recoveryPointerComponent}>
+                        <Box
+                            style={[
+                                styles.recoveryPointerCustomStrip,
+                                {
+                                    height: stripHeight,
+                                    backgroundColor: recoveryChartPointerStripColor,
+                                },
+                            ]}
+                        />
+                        <Box
+                            style={[
+                                styles.recoveryPointerCustomDot,
+                                { backgroundColor: recoveryChartColor },
+                            ]}
+                        />
+                    </Box>
+                );
+            },
             activatePointersInstantlyOnTouch: true,
             resetPointerIndexOnRelease: true,
             autoAdjustPointerLabelPosition: true,
@@ -587,7 +918,13 @@ export const Stats: FC<StatsProps> = ({
                 );
             },
         }),
-        [theme],
+        [
+            recoveryChartColor,
+            recoveryChartHeight,
+            recoveryChartModel,
+            recoveryChartPointerStripColor,
+            theme,
+        ],
     );
 
     const hasZoneSection =
@@ -736,12 +1073,13 @@ export const Stats: FC<StatsProps> = ({
                                                     recoveryChartModel.minBpm,
                                             )}
                                             noOfSections={3}
-                                            thickness={1.5}
-                                            color="#ef4444"
-                                            startFillColor="#ef4444"
-                                            endFillColor="#ef4444"
+                                            thickness={2}
+                                            color={recoveryChartColor}
+                                            startFillColor={recoveryChartColor}
+                                            endFillColor={recoveryChartColor}
                                             startOpacity={1}
-                                            endOpacity={0.4}
+                                            startOpacity1={0.2}
+                                            endOpacity={0}
                                             hideYAxisText
                                             yAxisLabelWidth={0}
                                             yAxisThickness={0}
@@ -753,9 +1091,7 @@ export const Stats: FC<StatsProps> = ({
                                             hideRules={false}
                                             rulesColor={theme.colors.border}
                                             rulesThickness={1}
-                                            hideDataPoints={false}
-                                            dataPointsRadius={3}
-                                            dataPointsColor="#ef4444"
+                                            hideDataPoints={true}
                                         />
                                     )}
                                     <HStack style={styles.recoveryChartMetaRow}>
@@ -765,6 +1101,100 @@ export const Stats: FC<StatsProps> = ({
                                             {recoveryChartModel.maxMinute === 2 ? '2m' : '1m'}
                                         </Text>
                                     </HStack>
+                                    {recoveryScaleModel && (
+                                        <VStack style={styles.recoveryScale}>
+                                            <HStack style={styles.recoveryScaleLabels}>
+                                                {recoveryScaleModel.segments.map((segment) => (
+                                                    <Box
+                                                        key={segment.key}
+                                                        style={[
+                                                            styles.recoveryScaleLabelSlot,
+                                                            { flex: segment.width },
+                                                        ]}
+                                                    >
+                                                        <Text
+                                                            adjustsFontSizeToFit
+                                                            minimumFontScale={0.75}
+                                                            numberOfLines={1}
+                                                            style={[
+                                                                styles.recoveryScaleLabel,
+                                                                { color: segment.labelColor },
+                                                            ]}
+                                                        >
+                                                            {t(
+                                                                `workout.stats.recoveryScale.${segment.key}`,
+                                                                { ns: 'screens' },
+                                                            )}
+                                                        </Text>
+                                                    </Box>
+                                                ))}
+                                            </HStack>
+                                            <Box style={styles.recoveryScaleBarWrap}>
+                                                <Box style={styles.recoveryScaleTrack}>
+                                                    <LinearGradient
+                                                        colors={RECOVERY_SCALE_GRADIENT_COLORS}
+                                                        start={{ x: 0, y: 0.5 }}
+                                                        end={{ x: 1, y: 0.5 }}
+                                                        style={styles.recoveryScaleGradient}
+                                                    />
+                                                    <Box
+                                                        style={[
+                                                            styles.recoveryScaleDivider,
+                                                            styles.recoveryScaleDivider1,
+                                                        ]}
+                                                    />
+                                                    <Box
+                                                        style={[
+                                                            styles.recoveryScaleDivider,
+                                                            styles.recoveryScaleDivider2,
+                                                        ]}
+                                                    />
+                                                    <Box
+                                                        style={[
+                                                            styles.recoveryScaleDivider,
+                                                            styles.recoveryScaleDivider3,
+                                                        ]}
+                                                    />
+                                                    <Box
+                                                        style={[
+                                                            styles.recoveryScaleDivider,
+                                                            styles.recoveryScaleDivider4,
+                                                        ]}
+                                                    />
+                                                </Box>
+                                                <Box
+                                                    style={[
+                                                        styles.recoveryScaleMarker,
+                                                        {
+                                                            left: `${recoveryScaleModel.markerPercent}%`,
+                                                        },
+                                                    ]}
+                                                />
+                                            </Box>
+                                            <HStack style={styles.recoveryScaleTicks}>
+                                                {recoveryScaleModel.segments.map((segment) => (
+                                                    <Box
+                                                        key={segment.key}
+                                                        style={[
+                                                            styles.recoveryScaleTickSlot,
+                                                            { flex: segment.width },
+                                                        ]}
+                                                    >
+                                                        <Text
+                                                            adjustsFontSizeToFit
+                                                            minimumFontScale={0.75}
+                                                            numberOfLines={1}
+                                                            style={styles.recoveryScaleTick}
+                                                        >
+                                                            {segment.max == null
+                                                                ? `${segment.min}+`
+                                                                : segment.min}
+                                                        </Text>
+                                                    </Box>
+                                                ))}
+                                            </HStack>
+                                        </VStack>
+                                    )}
                                 </VStack>
                             )}
                         </VStack>

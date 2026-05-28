@@ -291,6 +291,13 @@
             "heartRateRange": "Rango de frecuencia cardiaca",
             "afterOneMinute": "Después de 1 min",
             "afterTwoMinutes": "Después de 2 min",
+            "recoveryScale": {
+                "poor": "Bajo",
+                "fair": "Regular",
+                "good": "Bueno",
+                "excellent": "Excelente",
+                "superior": "Sup."
+            },
             "mhrUsed": "FCM",
             "activeScore": "Puntuación activa",
             "avgMets": "METs medios",

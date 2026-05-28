@@ -289,6 +289,13 @@
             "heartRateRange": "心率范围",
             "afterOneMinute": "1 分钟后",
             "afterTwoMinutes": "2 分钟后",
+            "recoveryScale": {
+                "poor": "差",
+                "fair": "一般",
+                "good": "良好",
+                "excellent": "优秀",
+                "superior": "卓越"
+            },
             "mhrUsed": "最大心率",
             "activeScore": "活动得分",
             "avgMets": "平均 METs",

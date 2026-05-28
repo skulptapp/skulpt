@@ -296,8 +296,15 @@
             "heartRateRange": "Диапазон пульса",
             "afterOneMinute": "Через 1 мин",
             "afterTwoMinutes": "Через 2 мин",
+            "recoveryScale": {
+                "poor": "Плохо",
+                "fair": "Норм",
+                "good": "Хорошо",
+                "excellent": "Отлично",
+                "superior": "Супер"
+            },
             "mhrUsed": "МЧП",
-            "activeScore": "Active Score",
+            "activeScore": "Оценка активности",
             "avgMets": "Средние METs",
             "distance": "Дистанция",
             "pace": "Темп",
