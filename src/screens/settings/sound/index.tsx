@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import Slider from '@react-native-community/slider';
 import { Volume1, Volume2 } from 'lucide-react-native';
 
@@ -78,6 +78,7 @@ const SoundScreen = () => {
         control,
         handleSubmit,
         setValue,
+        watch,
         reset,
         formState: { errors },
     } = useForm<EditUserFormData>({
@@ -88,8 +89,10 @@ const SoundScreen = () => {
         },
     });
 
-    const watchedPlaySounds = useWatch({ control, name: 'playSounds' });
-    const watchedSoundsVolume = useWatch({ control, name: 'soundsVolume' });
+    /* eslint-disable react-hooks/incompatible-library -- RHF hook watcher is stale with controlled settings fields. */
+    const watchedPlaySounds = watch('playSounds');
+    const watchedSoundsVolume = watch('soundsVolume');
+    /* eslint-enable react-hooks/incompatible-library */
     const isUserLoaded = user !== undefined;
     const userPlaySounds = user?.playSounds ?? true;
     const userSoundsVolume = user?.soundsVolume ?? 100;

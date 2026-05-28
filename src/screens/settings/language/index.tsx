@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native-unistyles';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { Choices } from '@/components/forms/fields/choices';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { localeNames, supportedLanguages } from '@/locale/constants';
 import { EditUserFormData, editUserSchema, useUser } from '@/hooks/use-user';
@@ -29,6 +29,7 @@ const LanguageScreen = () => {
     const {
         control,
         handleSubmit,
+        watch,
         reset,
         formState: { errors },
     } = useForm<EditUserFormData>({
@@ -38,7 +39,9 @@ const LanguageScreen = () => {
         },
     });
 
-    const watchedLng = useWatch({ control, name: 'lng' });
+    /* eslint-disable react-hooks/incompatible-library -- RHF hook watcher is stale with controlled settings fields. */
+    const watchedLng = watch('lng');
+    /* eslint-enable react-hooks/incompatible-library */
     const isUserLoaded = user !== undefined;
     const userLng = user?.lng ?? 'en';
     const isSyncingFormRef = useRef(false);

@@ -3,7 +3,7 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { Bell } from 'lucide-react-native';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { EditUserFormData, editUserSchema, useUser } from '@/hooks/use-user';
@@ -73,6 +73,7 @@ const NotificationsScreen = () => {
     const {
         control,
         handleSubmit,
+        watch,
         reset,
         formState: { errors },
     } = useForm<EditUserFormData>({
@@ -82,7 +83,9 @@ const NotificationsScreen = () => {
         },
     });
 
-    const watchedPushes = useWatch({ control, name: 'pushes' });
+    /* eslint-disable react-hooks/incompatible-library -- RHF hook watcher is stale with controlled settings fields. */
+    const watchedPushes = watch('pushes');
+    /* eslint-enable react-hooks/incompatible-library */
     const isUserLoaded = user !== undefined;
     const isSyncingFormRef = useRef(false);
     const isAutoSavingRef = useRef(false);

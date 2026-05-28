@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { Choices } from '@/components/forms/fields/choices';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { EditUserFormData, editUserSchema, themes, useUser } from '@/hooks/use-user';
 import { reportError } from '@/services/error-reporting';
@@ -28,6 +28,7 @@ const ThemeScreen = () => {
     const {
         control,
         handleSubmit,
+        watch,
         reset,
         formState: { errors },
     } = useForm<EditUserFormData>({
@@ -37,7 +38,9 @@ const ThemeScreen = () => {
         },
     });
 
-    const watchedTheme = useWatch({ control, name: 'theme' });
+    /* eslint-disable react-hooks/incompatible-library -- RHF hook watcher is stale with these controlled Choices fields. */
+    const watchedTheme = watch('theme');
+    /* eslint-enable react-hooks/incompatible-library */
     const isUserLoaded = user !== undefined;
     const userTheme = user?.theme ?? 'dark';
     const isSyncingFormRef = useRef(false);

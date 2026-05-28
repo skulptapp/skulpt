@@ -1,6 +1,6 @@
 import { FC, useEffect, useMemo, useRef } from 'react';
 import { router } from 'expo-router';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet } from 'react-native-unistyles';
 
@@ -46,14 +46,17 @@ const MeasurementEditor: FC = () => {
     const initialWeightAppliedRef = useRef(false);
     const displayWeightUnit = user?.bodyWeightUnits ?? 'kg';
 
-    const { control, formState, setValue, handleSubmit } = useForm<MeasurementEditorFormData>({
-        defaultValues: {
-            weight: 0,
-            recordedAt: new Date(),
-        },
-    });
+    const { control, formState, setValue, handleSubmit, watch } =
+        useForm<MeasurementEditorFormData>({
+            defaultValues: {
+                weight: 0,
+                recordedAt: new Date(),
+            },
+        });
 
-    const watchedWeight = useWatch({ control, name: 'weight' }) ?? 0;
+    /* eslint-disable react-hooks/incompatible-library -- Render-time watch keeps RHF controlled fields updating reliably. */
+    const watchedWeight = watch('weight') ?? 0;
+    /* eslint-enable react-hooks/incompatible-library */
     const latestWeightMeasurement = latestByMetric['body_weight'];
 
     useEffect(() => {

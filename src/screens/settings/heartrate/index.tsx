@@ -7,7 +7,7 @@ import { ScrollView } from '@/components/primitives/scrollview';
 import { Choices } from '@/components/forms/fields/choices';
 import { Datetime } from '@/components/forms/fields/datetime';
 import { Input } from '@/components/forms/fields/input';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { EditUserFormData, editUserSchema, useUser } from '@/hooks/use-user';
 import { VStack } from '@/components/primitives/vstack';
@@ -151,6 +151,7 @@ const HeartRateScreen = () => {
         control,
         setValue,
         trigger,
+        watch,
         reset,
         formState: { errors },
     } = useForm<EditUserFormData>({
@@ -164,11 +165,13 @@ const HeartRateScreen = () => {
         },
     });
 
-    const watchedFormula = useWatch({ control, name: 'mhrFormula' });
-    const watchedManualValue = useWatch({ control, name: 'mhrManualValue' });
-    const watchedBirthday = useWatch({ control, name: 'birthday' });
-    const watchedBiologicalSex = useWatch({ control, name: 'biologicalSex' });
-    const watchedActivityLevel = useWatch({ control, name: 'activityLevel' });
+    /* eslint-disable react-hooks/incompatible-library -- RHF hook watcher is stale with controlled settings fields. */
+    const watchedFormula = watch('mhrFormula');
+    const watchedManualValue = watch('mhrManualValue');
+    const watchedBirthday = watch('birthday');
+    const watchedBiologicalSex = watch('biologicalSex');
+    const watchedActivityLevel = watch('activityLevel');
+    /* eslint-enable react-hooks/incompatible-library */
     const isUserLoaded = user !== undefined;
     const userFormula = user?.mhrFormula ?? 'nes';
     const userManualValue = user?.mhrManualValue ?? null;

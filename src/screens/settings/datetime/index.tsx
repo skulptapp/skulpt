@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { Choices } from '@/components/forms/fields/choices';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { EditUserFormData, editUserSchema, useUser } from '@/hooks/use-user';
 import { VStack } from '@/components/primitives/vstack';
@@ -60,6 +60,7 @@ const DateTimeScreen = () => {
     const {
         control,
         handleSubmit,
+        watch,
         reset,
         formState: { errors },
     } = useForm<EditUserFormData>({
@@ -70,8 +71,10 @@ const DateTimeScreen = () => {
         },
     });
 
-    const watchedFirstWeekday = useWatch({ control, name: 'firstWeekday' });
-    const watchedTimeFormat = useWatch({ control, name: 'timeFormat' });
+    /* eslint-disable react-hooks/incompatible-library -- RHF hook watcher is stale with these controlled Choices fields. */
+    const watchedFirstWeekday = watch('firstWeekday');
+    const watchedTimeFormat = watch('timeFormat');
+    /* eslint-enable react-hooks/incompatible-library */
     const isUserLoaded = user !== undefined;
     const userFirstWeekday = user?.firstWeekday ?? 2;
     const userTimeFormat = user?.timeFormat ?? '24h';

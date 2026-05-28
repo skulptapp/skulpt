@@ -2,7 +2,7 @@ import { FC, useEffect, useRef, useState } from 'react';
 import { StyleSheet } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
@@ -122,6 +122,7 @@ const EditorForm: FC<EditorFormProps> = ({ existingWorkout }) => {
         control,
         handleSubmit,
         setValue,
+        watch,
         formState: { errors, isSubmitting },
     } = useForm<CreateWorkoutFormData>({
         resolver: zodResolver(createWorkoutSchema),
@@ -135,10 +136,12 @@ const EditorForm: FC<EditorFormProps> = ({ existingWorkout }) => {
         },
     });
 
-    const selectedStatus = useWatch({ control, name: 'status' });
-    const watchedStartedAt = useWatch({ control, name: 'startedAt' });
-    const watchedCompletedAt = useWatch({ control, name: 'completedAt' });
-    const watchedStartAt = useWatch({ control, name: 'startAt' });
+    /* eslint-disable react-hooks/incompatible-library -- Render-time watch keeps RHF controlled fields updating reliably. */
+    const selectedStatus = watch('status');
+    const watchedStartedAt = watch('startedAt');
+    const watchedCompletedAt = watch('completedAt');
+    const watchedStartAt = watch('startAt');
+    /* eslint-enable react-hooks/incompatible-library */
 
     // Skip the first run in edit mode — defaultValues already have the correct data
     const isFirstRun = useRef(isEdit);

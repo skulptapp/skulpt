@@ -5,7 +5,7 @@ import { Languages } from 'lucide-react-native';
 
 import { ScrollView } from '@/components/primitives/scrollview';
 import { Choices } from '@/components/forms/fields/choices';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { EditUserFormData, editUserSchema, useUser } from '@/hooks/use-user';
 import { VStack } from '@/components/primitives/vstack';
@@ -102,6 +102,7 @@ const UnitsScreen = () => {
     const {
         control,
         handleSubmit,
+        watch,
         reset,
         formState: { errors },
     } = useForm<EditUserFormData>({
@@ -114,10 +115,12 @@ const UnitsScreen = () => {
         },
     });
 
-    const watchedBodyWeightUnits = useWatch({ control, name: 'bodyWeightUnits' });
-    const watchedMeasurementUnits = useWatch({ control, name: 'measurementUnits' });
-    const watchedWeightUnits = useWatch({ control, name: 'weightUnits' });
-    const watchedDistanceUnits = useWatch({ control, name: 'distanceUnits' });
+    /* eslint-disable react-hooks/incompatible-library -- RHF hook watcher is stale with these controlled Choices fields. */
+    const watchedBodyWeightUnits = watch('bodyWeightUnits');
+    const watchedMeasurementUnits = watch('measurementUnits');
+    const watchedWeightUnits = watch('weightUnits');
+    const watchedDistanceUnits = watch('distanceUnits');
+    /* eslint-enable react-hooks/incompatible-library */
     const isUserLoaded = user !== undefined;
     const userBodyWeightUnits = user?.bodyWeightUnits ?? 'kg';
     const userMeasurementUnits = user?.measurementUnits ?? 'cm';
