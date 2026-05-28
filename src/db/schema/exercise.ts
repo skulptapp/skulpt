@@ -1,7 +1,5 @@
-import { sql, relations } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import { index, integer, sqliteTable, text, real } from 'drizzle-orm/sqlite-core';
-import { user } from './user';
-import { workoutExercise } from './workout';
 
 export type ExerciseSelect = typeof exercise.$inferSelect;
 export type ExerciseInsert = typeof exercise.$inferInsert;
@@ -59,14 +57,6 @@ export const exercise = sqliteTable('exercise', {
         .$onUpdate(() => new Date()),
 });
 
-export const exerciseRelations = relations(exercise, ({ one, many }) => ({
-    user: one(user, {
-        fields: [exercise.userId],
-        references: [user.id],
-    }),
-    workoutExercises: many(workoutExercise),
-}));
-
 export const exerciseSet = sqliteTable(
     'exercise_set',
     {
@@ -107,10 +97,3 @@ export const exerciseSet = sqliteTable(
         ),
     ],
 );
-
-export const exerciseSetRelations = relations(exerciseSet, ({ one }) => ({
-    workoutExercise: one(workoutExercise, {
-        fields: [exerciseSet.workoutExerciseId],
-        references: [workoutExercise.id],
-    }),
-}));

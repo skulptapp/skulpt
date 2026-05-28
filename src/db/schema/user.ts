@@ -1,7 +1,5 @@
-import { sql, relations } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
-import { exercise } from './exercise';
-import { workout } from './workout';
 
 export type UserSelect = typeof user.$inferSelect;
 export type UserInsert = typeof user.$inferInsert;
@@ -68,8 +66,3 @@ export const user = sqliteTable('user', {
         .default(sql`(strftime('%s','now') * 1000)`)
         .$onUpdate(() => new Date()),
 });
-
-export const userRelations = relations(user, ({ many }) => ({
-    exercises: many(exercise),
-    workouts: many(workout),
-}));

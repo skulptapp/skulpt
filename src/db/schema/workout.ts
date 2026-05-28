@@ -1,7 +1,5 @@
-import { sql, relations } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
-import { user } from './user';
-import { exercise, exerciseSet } from './exercise';
 
 export type WorkoutSelect = typeof workout.$inferSelect;
 export type WorkoutInsert = typeof workout.$inferInsert;
@@ -80,36 +78,3 @@ export const workoutExercise = sqliteTable(
     },
     (table) => [index('workout_exercise_workout_idx').on(table.workoutId)],
 );
-
-export const workoutRelations = relations(workout, ({ one, many }) => ({
-    user: one(user, {
-        fields: [workout.userId],
-        references: [user.id],
-    }),
-    workoutExercises: many(workoutExercise),
-    groups: many(workoutGroup),
-}));
-
-export const workoutExerciseRelations = relations(workoutExercise, ({ one, many }) => ({
-    workout: one(workout, {
-        fields: [workoutExercise.workoutId],
-        references: [workout.id],
-    }),
-    exercise: one(exercise, {
-        fields: [workoutExercise.exerciseId],
-        references: [exercise.id],
-    }),
-    group: one(workoutGroup, {
-        fields: [workoutExercise.groupId],
-        references: [workoutGroup.id],
-    }),
-    sets: many(exerciseSet),
-}));
-
-export const workoutGroupRelations = relations(workoutGroup, ({ one, many }) => ({
-    workout: one(workout, {
-        fields: [workoutGroup.workoutId],
-        references: [workout.id],
-    }),
-    exercises: many(workoutExercise),
-}));
