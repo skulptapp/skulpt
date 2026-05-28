@@ -43,8 +43,6 @@ interface WatchConnectivityNativeModule {
     isWatchReachable(): boolean;
     updateWatchContext(state: WatchWorkoutState): Promise<boolean>;
     sendWatchMessage(state: WatchWorkoutState): Promise<boolean>;
-    drainPendingWatchCommands(): Promise<WatchCommandPayload[]>;
-    ackPendingWatchCommand(commandId: string): Promise<boolean>;
     getCurrentWatchCommand(): WatchCommandPayload | null;
     clearPendingWatchContext(): boolean;
     clearStoredWatchLifecycleCommand(): boolean;
@@ -83,16 +81,6 @@ export async function updateWatchContext(state: WatchWorkoutState): Promise<bool
 export async function sendWatchMessage(state: WatchWorkoutState): Promise<boolean> {
     if (!isIOS || !WatchConnectivityNative) return false;
     return WatchConnectivityNative.sendWatchMessage(state);
-}
-
-export async function drainPendingWatchCommands(): Promise<WatchCommandPayload[]> {
-    if (!isIOS || !WatchConnectivityNative) return [];
-    return WatchConnectivityNative.drainPendingWatchCommands();
-}
-
-export async function ackPendingWatchCommand(commandId: string): Promise<boolean> {
-    if (!isIOS || !WatchConnectivityNative) return false;
-    return WatchConnectivityNative.ackPendingWatchCommand(commandId);
 }
 
 export function getCurrentWatchCommand(): WatchCommandPayload | null {

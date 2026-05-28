@@ -16,12 +16,17 @@ export interface LiveActivityState {
     workoutStartDate: number; // Unix ms
     nextExerciseName?: string;
     nextSetNumber?: number;
+    nextTotalSets?: number;
+    nextSetType?: string;
     nextWeight?: number;
     nextWeightUnits?: string;
     nextReps?: number;
     completedExercises: number;
     totalExercises: number;
     workoutExerciseId?: string;
+    currentSetId?: string;
+    restSetId?: string;
+    nextSetId?: string;
 }
 
 const isIOS = Platform.OS === 'ios';

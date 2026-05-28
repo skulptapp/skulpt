@@ -1,4 +1,5 @@
 import ActivityKit
+import AppIntents
 import SwiftUI
 import WidgetKit
 
@@ -7,7 +8,7 @@ struct WorkoutLiveActivity: Widget {
     ActivityConfiguration(for: WorkoutAttributes.self) { context in
       LockScreenView(context: context)
         .activityBackgroundTint(brandLime)
-        .widgetURL(buildDeepLink(context: context))
+        .widgetURL(workoutDeepLink(context: context))
     } dynamicIsland: { context in
       DynamicIsland {
         DynamicIslandExpandedRegion(.leading) {
@@ -30,20 +31,20 @@ struct WorkoutLiveActivity: Widget {
         MinimalView(context: context)
       }
       .keylineTint(brandLime)
-      .widgetURL(buildDeepLink(context: context))
+      .widgetURL(workoutDeepLink(context: context))
     }
-  }
-
-  private func buildDeepLink(context: ActivityViewContext<WorkoutAttributes>) -> URL? {
-    let workoutId = context.attributes.workoutId
-    let exerciseId = context.state.workoutExerciseId ?? ""
-    return URL(string: "skulpt://workout/\(workoutId)/\(exerciseId)")
   }
 }
 
 // MARK: - Brand Colors
 
 private let brandLime = Color(red: 163 / 255, green: 230 / 255, blue: 53 / 255)
+
+private func workoutDeepLink(context: ActivityViewContext<WorkoutAttributes>) -> URL? {
+  let workoutId = context.attributes.workoutId
+  let exerciseId = context.state.workoutExerciseId ?? ""
+  return URL(string: "skulpt://workout/\(workoutId)/\(exerciseId)")
+}
 
 // MARK: - State Helpers
 
@@ -147,12 +148,21 @@ private struct LockScreenView: View {
     let displayWeightUnits =
       showNextData ? (state.nextWeightUnits ?? state.weightUnits) : state.weightUnits
     let displayReps = showNextData ? (state.nextReps ?? state.reps) : state.reps
+    let displaySetNumber = showNextData ? (state.nextSetNumber ?? state.setNumber) : state.setNumber
+    let displayTotalSets = showNextData ? (state.nextTotalSets ?? state.totalSets) : state.totalSets
+    let displaySetType = showNextData ? (state.nextSetType ?? state.setType) : state.setType
     let displayExerciseCounter = min(state.completedExercises + 1, state.totalExercises)
 
-    VStack(spacing: 10) {
+    VStack(spacing: 30) {
       // Row 1: mode pill + timer pills
       HStack(alignment: .center) {
-        BlackPill(text: topLeftLabel)
+        HStack(spacing: 12) {
+          BlackPill(text: topLeftLabel)
+          Text("E\(displayExerciseCounter)/\(state.totalExercises)")
+            .font(.system(.subheadline))
+            .fontWeight(.semibold)
+            .foregroundColor(.black)
+        }
         Spacer(minLength: 0)
 
         if resting {
@@ -179,41 +189,131 @@ private struct LockScreenView: View {
         }
       }
 
-      // Row 2: current/next exercise title
-      HStack {
-        Text(displayExerciseName)
-          .font(.system(.headline))
-          .fontWeight(.bold)
-          .foregroundColor(.black)
-          .lineLimit(1)
-        Spacer()
-      }
+      HStack(alignment: .bottom, spacing: 12) {
+        VStack(alignment: .leading, spacing: 6) {
+          // Row 2: current/next exercise title
+          Text(displayExerciseName)
+            .font(.system(.headline))
+            .fontWeight(.bold)
+            .foregroundColor(.black)
+            .lineLimit(2)
 
-      // Row 3: set + weight/reps + exercise progress
-      HStack(spacing: 8) {
-        Text("Set \(state.setNumber)/\(state.totalSets)")
-          .font(.system(.subheadline))
-          .fontWeight(.medium)
-          .foregroundColor(.black)
-        Text(setTypeShort(state.setType))
-          .font(.system(.subheadline))
-          .fontWeight(.semibold)
-          .foregroundColor(.black.opacity(0.8))
-        SetInfoValueText(
-          weight: displayWeight,
-          weightUnits: displayWeightUnits,
-          reps: displayReps
-        )
-        Spacer()
-        Text("E\(displayExerciseCounter)/\(state.totalExercises)")
-          .font(.system(.subheadline))
-          .fontWeight(.medium)
-          .foregroundColor(.black)
+          // Row 3: set + weight/reps + exercise progress
+          HStack(spacing: 8) {
+            Text("Set \(displaySetNumber)/\(displayTotalSets)")
+              .font(.system(.subheadline))
+              .fontWeight(.medium)
+              .foregroundColor(.black)
+            Text(setTypeShort(displaySetType))
+              .font(.system(.subheadline))
+              .fontWeight(.semibold)
+              .foregroundColor(.black.opacity(0.8))
+            Text("•")
+              .font(.system(.subheadline))
+              .fontWeight(.semibold)
+              .foregroundColor(.black.opacity(0.8))
+            SetInfoValueText(
+              weight: displayWeight,
+              weightUnits: displayWeightUnits,
+              reps: displayReps
+            )
+          }
+          .lineLimit(1)
+          .minimumScaleFactor(0.8)
+        }
+        .layoutPriority(1)
+
+        Spacer(minLength: 0)
+
+        LiveActivityActionButton(context: context)
       }
     }
     .padding(16)
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(brandLime)
+  }
+}
+
+private struct LiveActivityActionButton: View {
+  let context: ActivityViewContext<WorkoutAttributes>
+
+  private var resting: Bool {
+    isResting(context.state.state)
+  }
+
+  private var title: String {
+    if resting {
+      return "Skip Rest"
+    }
+    if context.state.state == "ready" {
+      return "Start Set"
+    }
+    return "Log Set"
+  }
+
+  private var systemImageName: String {
+    if resting {
+      return "stop.fill"
+    }
+    if context.state.state == "ready" {
+      return "play.fill"
+    }
+    return "checkmark"
+  }
+
+  private var command: String? {
+    if resting {
+      return "skipRest"
+    }
+    if context.state.state == "ready" {
+      return "startSet"
+    }
+    if context.state.state == "performing" {
+      return "completeSet"
+    }
+    return nil
+  }
+
+  private var setId: String? {
+    if resting {
+      return context.state.restSetId
+    }
+    if context.state.state == "ready" {
+      return context.state.nextSetId
+    }
+    if context.state.state == "performing" {
+      return context.state.currentSetId
+    }
+    return nil
+  }
+
+  private var intent: WorkoutLiveActivityActionIntent? {
+    guard let command else {
+      return nil
+    }
+
+    return WorkoutLiveActivityActionIntent(
+      command: command,
+      workoutId: context.attributes.workoutId,
+      setId: setId,
+      expectedState: context.state.state
+    )
+  }
+
+  var body: some View {
+    if let intent {
+      Button(intent: intent) {
+        Image(systemName: systemImageName)
+          .font(.system(size: 19, weight: systemImageName == "checkmark" ? .heavy : .bold))
+          .foregroundColor(brandLime)
+          .frame(width: 44, height: 44)
+          .background(Color.black)
+          .clipShape(Circle())
+          .contentShape(Circle())
+      }
+      .buttonStyle(.plain)
+      .accessibilityLabel(title)
+    }
   }
 }
 

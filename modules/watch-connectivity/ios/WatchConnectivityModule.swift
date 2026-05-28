@@ -26,10 +26,17 @@ public class WatchConnectivityModule: Module {
   private var latestLifecyclePayload: [String: String]?
 
   private enum StorageKey {
-    static let pendingCommands = "WatchConnectivity.pendingCommands"
     static let seenCommandIds = "WatchConnectivity.seenCommandIds"
     static let pendingApplicationContext = "WatchConnectivity.pendingApplicationContext"
   }
+
+  private enum WorkoutCommandStorageKey {
+    static let pendingCommands = "WorkoutCommand.pendingCommands"
+  }
+
+  private static let workoutCommandQueueDidChangeNotificationName = Notification.Name(
+    "app.skulpt.workoutCommandQueue.didChange"
+  )
 
   private let maxSeenCommandIds = 200
 
@@ -139,14 +146,6 @@ public class WatchConnectivityModule: Module {
       }
     }
 
-    AsyncFunction("drainPendingWatchCommands") { () -> [[String: String]] in
-      return self.pendingCommands()
-    }
-
-    AsyncFunction("ackPendingWatchCommand") { (commandId: String) -> Bool in
-      return self.ackPendingCommand(commandId: commandId)
-    }
-
     Function("getCurrentWatchCommand") { () -> [String: String]? in
       guard WCSession.isSupported() else { return nil }
       let session = WCSession.default
@@ -245,29 +244,31 @@ public class WatchConnectivityModule: Module {
   private func handleIncomingCommand(payload: [String: String]) {
     if Self.isLifecycleCommand(payload) {
       setLatestLifecycleCommand(payload)
+
+      DispatchQueue.main.async {
+        self.sendEvent("onWatchCommand", payload)
+      }
+      return
     }
 
-    if let commandId = payload["commandId"] {
-      guard !hasSeenCommandId(commandId) else { return }
-      rememberCommandId(commandId)
-      enqueuePendingCommand(payload: payload)
-    }
+    guard let commandId = payload["commandId"] else { return }
+    guard !hasSeenCommandId(commandId) else { return }
 
-    DispatchQueue.main.async {
-      self.sendEvent("onWatchCommand", payload)
-    }
+    rememberCommandId(commandId)
+    enqueueWorkoutCommand(payload: payload)
   }
 
-  private func pendingCommands() -> [[String: String]] {
-    return defaults.array(forKey: StorageKey.pendingCommands) as? [[String: String]] ?? []
+  private func pendingWorkoutCommands() -> [[String: String]] {
+    return defaults.array(forKey: WorkoutCommandStorageKey.pendingCommands) as? [[String: String]]
+      ?? []
   }
 
-  private func setPendingCommands(_ commands: [[String: String]]) {
-    defaults.set(commands, forKey: StorageKey.pendingCommands)
+  private func setPendingWorkoutCommands(_ commands: [[String: String]]) {
+    defaults.set(commands, forKey: WorkoutCommandStorageKey.pendingCommands)
   }
 
-  private func enqueuePendingCommand(payload: [String: String]) {
-    var commands = pendingCommands()
+  private func enqueueWorkoutCommand(payload: [String: String]) {
+    var commands = pendingWorkoutCommands()
     let commandId = payload["commandId"]
 
     if let commandId, commands.contains(where: { $0["commandId"] == commandId }) {
@@ -275,19 +276,11 @@ public class WatchConnectivityModule: Module {
     }
 
     commands.append(payload)
-    setPendingCommands(commands)
-  }
-
-  private func ackPendingCommand(commandId: String) -> Bool {
-    let commands = pendingCommands()
-    let filtered = commands.filter { $0["commandId"] != commandId }
-    let didRemove = filtered.count != commands.count
-
-    if didRemove {
-      setPendingCommands(filtered)
-    }
-
-    return didRemove
+    setPendingWorkoutCommands(commands)
+    NotificationCenter.default.post(
+      name: Self.workoutCommandQueueDidChangeNotificationName,
+      object: nil
+    )
   }
 
   private func seenCommandIds() -> [String] {

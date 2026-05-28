@@ -114,31 +114,74 @@ public class LiveActivityModule: Module {
         return WorkoutAttributes.ContentState(
             state: dict["state"] as? String ?? "ready",
             exerciseName: dict["exerciseName"] as? String ?? "",
-            setNumber: dict["setNumber"] as? Int ?? 0,
-            totalSets: dict["totalSets"] as? Int ?? 0,
+            setNumber: intFromValue(dict["setNumber"]) ?? 0,
+            totalSets: intFromValue(dict["totalSets"]) ?? 0,
             setType: dict["setType"] as? String ?? "working",
-            weight: dict["weight"] as? Double,
+            weight: doubleFromValue(dict["weight"]),
             weightUnits: dict["weightUnits"] as? String,
-            reps: dict["reps"] as? Int,
+            reps: intFromValue(dict["reps"]),
             timeOptions: dict["timeOptions"] as? String,
             timerStartDate: dateFromMs(dict["timerStartDate"]),
             timerEndDate: dateFromMs(dict["timerEndDate"]),
             workoutStartDate: dateFromMs(dict["workoutStartDate"]),
             nextExerciseName: dict["nextExerciseName"] as? String,
-            nextSetNumber: dict["nextSetNumber"] as? Int,
-            nextWeight: dict["nextWeight"] as? Double,
+            nextSetNumber: intFromValue(dict["nextSetNumber"]),
+            nextTotalSets: intFromValue(dict["nextTotalSets"]),
+            nextSetType: dict["nextSetType"] as? String,
+            nextWeight: doubleFromValue(dict["nextWeight"]),
             nextWeightUnits: dict["nextWeightUnits"] as? String,
-            nextReps: dict["nextReps"] as? Int,
-            completedExercises: dict["completedExercises"] as? Int ?? 0,
-            totalExercises: dict["totalExercises"] as? Int ?? 0,
-            workoutExerciseId: dict["workoutExerciseId"] as? String
+            nextReps: intFromValue(dict["nextReps"]),
+            completedExercises: intFromValue(dict["completedExercises"]) ?? 0,
+            totalExercises: intFromValue(dict["totalExercises"]) ?? 0,
+            workoutExerciseId: dict["workoutExerciseId"] as? String,
+            currentSetId: dict["currentSetId"] as? String,
+            restSetId: dict["restSetId"] as? String,
+            nextSetId: dict["nextSetId"] as? String
         )
     }
 
     private static func dateFromMs(_ value: Any?) -> Date {
-        guard let ms = value as? Double else {
+        guard let ms = doubleFromValue(value) else {
             return Date()
         }
         return Date(timeIntervalSince1970: ms / 1000.0)
+    }
+
+    private static func intFromValue(_ value: Any?) -> Int? {
+        if let value = value as? Int {
+            return value
+        }
+        if let value = value as? Double {
+            return Int(value)
+        }
+        if let value = value as? Float {
+            return Int(value)
+        }
+        if let value = value as? NSNumber {
+            return value.intValue
+        }
+        if let value = value as? String {
+            return Int(value)
+        }
+        return nil
+    }
+
+    private static func doubleFromValue(_ value: Any?) -> Double? {
+        if let value = value as? Double {
+            return value
+        }
+        if let value = value as? Float {
+            return Double(value)
+        }
+        if let value = value as? Int {
+            return Double(value)
+        }
+        if let value = value as? NSNumber {
+            return value.doubleValue
+        }
+        if let value = value as? String {
+            return Double(value)
+        }
+        return nil
     }
 }

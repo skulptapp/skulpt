@@ -24,6 +24,8 @@ public struct WorkoutAttributes: ActivityAttributes {
 
         public var nextExerciseName: String?
         public var nextSetNumber: Int?
+        public var nextTotalSets: Int?
+        public var nextSetType: String?
         public var nextWeight: Double?
         public var nextWeightUnits: String?
         public var nextReps: Int?
@@ -32,6 +34,9 @@ public struct WorkoutAttributes: ActivityAttributes {
         public var totalExercises: Int
 
         public var workoutExerciseId: String? // for deep link
+        public var currentSetId: String?
+        public var restSetId: String?
+        public var nextSetId: String?
     }
 }
 
@@ -60,12 +65,17 @@ extension WorkoutAttributes.ContentState {
             workoutStartDate: .now.addingTimeInterval(-1800),
             nextExerciseName: "Incline Dumbbell Press",
             nextSetNumber: 1,
+            nextTotalSets: 3,
+            nextSetType: "working",
             nextWeight: 30,
             nextWeightUnits: "kg",
             nextReps: 12,
             completedExercises: 1,
             totalExercises: 5,
-            workoutExerciseId: "ex-1"
+            workoutExerciseId: "ex-1",
+            currentSetId: "set-3",
+            restSetId: nil,
+            nextSetId: "set-4"
         )
     }
 
@@ -85,12 +95,17 @@ extension WorkoutAttributes.ContentState {
             workoutStartDate: .now.addingTimeInterval(-1200),
             nextExerciseName: "Plank",
             nextSetNumber: 3,
+            nextTotalSets: 3,
+            nextSetType: "working",
             nextWeight: nil,
             nextWeightUnits: nil,
             nextReps: nil,
             completedExercises: 3,
             totalExercises: 5,
-            workoutExerciseId: "ex-3"
+            workoutExerciseId: "ex-3",
+            currentSetId: "set-plank-2",
+            restSetId: nil,
+            nextSetId: "set-plank-3"
         )
     }
 
@@ -110,12 +125,17 @@ extension WorkoutAttributes.ContentState {
             workoutStartDate: .now.addingTimeInterval(-900),
             nextExerciseName: "Dead Hang",
             nextSetNumber: 2,
+            nextTotalSets: 3,
+            nextSetType: "working",
             nextWeight: nil,
             nextWeightUnits: nil,
             nextReps: nil,
             completedExercises: 2,
             totalExercises: 4,
-            workoutExerciseId: "ex-4"
+            workoutExerciseId: "ex-4",
+            currentSetId: "set-hang-1",
+            restSetId: nil,
+            nextSetId: "set-hang-2"
         )
     }
 
@@ -135,12 +155,17 @@ extension WorkoutAttributes.ContentState {
             workoutStartDate: .now.addingTimeInterval(-1800),
             nextExerciseName: "Bench Press",
             nextSetNumber: 4,
+            nextTotalSets: 5,
+            nextSetType: "working",
             nextWeight: 85,
             nextWeightUnits: "kg",
             nextReps: 6,
             completedExercises: 1,
             totalExercises: 5,
-            workoutExerciseId: "ex-1"
+            workoutExerciseId: "ex-1",
+            currentSetId: nil,
+            restSetId: "set-3",
+            nextSetId: "set-4"
         )
     }
 
@@ -160,12 +185,17 @@ extension WorkoutAttributes.ContentState {
             workoutStartDate: .now.addingTimeInterval(-2400),
             nextExerciseName: nil,
             nextSetNumber: nil,
+            nextTotalSets: nil,
+            nextSetType: nil,
             nextWeight: nil,
             nextWeightUnits: nil,
             nextReps: nil,
             completedExercises: 2,
             totalExercises: 5,
-            workoutExerciseId: "ex-2"
+            workoutExerciseId: "ex-2",
+            currentSetId: nil,
+            restSetId: nil,
+            nextSetId: "set-ohp-1"
         )
     }
 }

@@ -48,9 +48,21 @@ export const buildLiveActivityState = ({
     executionOrderSets: ExecutionOrderSet[];
 }): LiveActivityState => {
     const workoutStartMs = toMs(runningWorkout.startedAt);
+    const lastCompletedEntry = [...executionOrderSets]
+        .reverse()
+        .find((entry) => !!entry.set.completedAt);
+    const allSetsCompleted =
+        executionOrderSets.length > 0 &&
+        executionOrderSets.every((entry) => !!entry.set.completedAt);
+    const isCompleted = !restingSet && !activeSet && !nextSet && allSetsCompleted;
+    const displayExercise =
+        activeExercise ??
+        (isCompleted && lastCompletedEntry
+            ? exercises.find((exercise) => exercise.id === lastCompletedEntry.exerciseId)
+            : undefined);
 
     // Determine state
-    let state: LiveActivityState['state'] = 'ready';
+    let state: LiveActivityState['state'] = isCompleted ? 'completed' : 'ready';
     if (restingSet) {
         const hasNext = nextSet != null;
         state = hasNext ? 'resting' : 'resting_no_next';
@@ -59,13 +71,13 @@ export const buildLiveActivityState = ({
     }
 
     // Current exercise info
-    const exerciseName = activeExercise?.name ?? '';
-    const exerciseSets = activeExercise?.sets ?? [];
+    const exerciseName = displayExercise?.name ?? '';
+    const exerciseSets = displayExercise?.sets ?? [];
     const totalSets = exerciseSets.length;
-    const timeOptions = activeExercise?.exercise?.timeOptions ?? null;
+    const timeOptions = displayExercise?.exercise?.timeOptions ?? null;
 
     // Current set info
-    const currentSet = restingSet ?? activeSet;
+    const currentSet = restingSet ?? activeSet ?? (isCompleted ? lastCompletedEntry?.set : null);
     const setNumber = currentSet ? (currentSet.order ?? 0) + 1 : 0;
     const setType = normalizeSetType(currentSet?.type);
 
@@ -101,6 +113,8 @@ export const buildLiveActivityState = ({
     // Next set info — resolve exercise name from the execution order
     let nextExerciseName: string | undefined;
     let nextSetNumber: number | undefined;
+    let nextTotalSets: number | undefined;
+    let nextSetType: string | undefined;
     let nextWeight: number | undefined;
     let nextWeightUnits: string | undefined;
     let nextReps: number | undefined;
@@ -111,15 +125,17 @@ export const buildLiveActivityState = ({
         if (nextEntry) {
             const nextExercise = exercises.find((ex) => ex.id === nextEntry.exerciseId);
             nextExerciseName = nextExercise?.name;
+            nextTotalSets = nextExercise?.sets?.length;
         }
         nextSetNumber = (nextSet.order ?? 0) + 1;
+        nextSetType = normalizeSetType(nextSet.type);
         nextWeight = nextSet.weight ?? undefined;
         nextWeightUnits = nextSet.weightUnits ?? undefined;
         nextReps = nextSet.reps ?? undefined;
     }
 
     // Workout exercise ID for deep link
-    const workoutExerciseId = activeExercise?.id;
+    const workoutExerciseId = displayExercise?.id;
 
     return {
         state,
@@ -136,12 +152,17 @@ export const buildLiveActivityState = ({
         workoutStartDate: workoutStartMs,
         nextExerciseName,
         nextSetNumber,
+        nextTotalSets,
+        nextSetType,
         nextWeight,
         nextWeightUnits,
         nextReps,
-        completedExercises: completedExercises.length,
+        completedExercises: isCompleted ? exercises.length : completedExercises.length,
         totalExercises: exercises.length,
         workoutExerciseId,
+        currentSetId: activeSet?.id,
+        restSetId: restingSet?.id,
+        nextSetId: nextSet?.id,
     };
 };
 
@@ -150,7 +171,7 @@ export const buildLiveActivityState = ({
  * Includes timer anchor dates so that starting a new rest/work period triggers an update.
  */
 const stateKey = (s: LiveActivityState): string =>
-    `${s.state}:${s.exerciseName}:${s.setNumber}:${s.totalSets}:${s.weight}:${s.reps}:${s.nextExerciseName}:${s.nextSetNumber}:${s.completedExercises}:${s.timerStartDate}:${s.timerEndDate}`;
+    `${s.state}:${s.exerciseName}:${s.setNumber}:${s.totalSets}:${s.weight}:${s.reps}:${s.nextExerciseName}:${s.nextSetNumber}:${s.nextTotalSets}:${s.nextSetType}:${s.nextWeight}:${s.nextReps}:${s.completedExercises}:${s.timerStartDate}:${s.timerEndDate}:${s.currentSetId}:${s.restSetId}:${s.nextSetId}`;
 
 /**
  * Live Activity Manager — tracks the activity ID and deduplicates updates.

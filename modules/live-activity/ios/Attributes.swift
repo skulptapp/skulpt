@@ -25,6 +25,8 @@ public struct WorkoutAttributes: ActivityAttributes {
 
         public var nextExerciseName: String?
         public var nextSetNumber: Int?
+        public var nextTotalSets: Int?
+        public var nextSetType: String?
         public var nextWeight: Double?
         public var nextWeightUnits: String?
         public var nextReps: Int?
@@ -33,6 +35,9 @@ public struct WorkoutAttributes: ActivityAttributes {
         public var totalExercises: Int
 
         public var workoutExerciseId: String?  // for deep link
+        public var currentSetId: String?
+        public var restSetId: String?
+        public var nextSetId: String?
     }
 }
 #endif
