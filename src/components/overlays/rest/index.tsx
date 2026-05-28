@@ -17,6 +17,7 @@ import { VStack } from '@/components/primitives/vstack';
 import { useExerciseSets, useUpdateExerciseSet } from '@/hooks/use-workouts';
 import { SheetInput } from '@/components/primitives/sheet/input';
 import { digitsFromSeconds, formatClockSecondsCompact, secondsFromDigits } from '@/helpers/times';
+import { buildExerciseSetRestUpdate } from './updates';
 
 type Selection = { start: number; end: number };
 
@@ -144,15 +145,8 @@ const RestInput: FC = () => {
     const { mutate: updateSet } = useUpdateExerciseSet();
 
     const buildRestUpdate = useCallback(
-        (set: (typeof sortedSets)[number], restValue: number | null) => ({
-            restTime: restValue,
-            ...(set.completedAt && restValue != null
-                ? {
-                      finalRestTime: restValue,
-                      restCompletedAt: null,
-                  }
-                : {}),
-        }),
+        (set: (typeof sortedSets)[number], restValue: number | null) =>
+            buildExerciseSetRestUpdate(set, restValue),
         [],
     );
 
