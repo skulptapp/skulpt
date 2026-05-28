@@ -113,6 +113,19 @@
             "title": "Grupo muscular"
         }
     },
+    "appReview": {
+        "title": "¿Te gusta Skulpt?",
+        "options": {
+            "bad": "Terrible",
+            "notBad": "Normal",
+            "good": "Me gusta"
+        },
+        "submit": "Enviar",
+        "actions": {
+            "close": "Cerrar",
+            "submit": "Enviar"
+        }
+    },
     "exercise": {
         "deleteExerciseAlert": "¿Estás seguro de que quieres eliminar este ejercicio?",
         "tabs": {

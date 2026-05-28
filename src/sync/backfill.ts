@@ -2,6 +2,7 @@ import { and, eq, gt, ne } from 'drizzle-orm';
 
 import { db } from '@/db';
 import {
+    appReviewPrompt,
     exercise,
     exerciseSet,
     measurement,
@@ -52,6 +53,11 @@ export const backfillSyncQueue = async (): Promise<void> => {
         },
         { name: 'exercise_set', table: exerciseSet, updatedAtCol: exerciseSet.updatedAt },
         { name: 'measurement', table: measurement, updatedAtCol: measurement.updatedAt },
+        {
+            name: 'app_review_prompt',
+            table: appReviewPrompt,
+            updatedAtCol: appReviewPrompt.updatedAt,
+        },
     ];
 
     for (const { name, table, updatedAtCol } of tables) {

@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import * as Sentry from '@sentry/react-native';
 import { getServerChanges, sendChangesToServer, SyncBatchRequest } from '@/api';
 import { sanitizeMuscleGroupSelections } from '@/constants/muscles';
@@ -18,6 +18,7 @@ import {
     CreateDataSync,
     SyncQueueSelect,
     UpdateDataSync,
+    appReviewPrompt,
     exercise,
     exerciseSet,
     user as userTable,
@@ -584,6 +585,81 @@ const applyUserSyncPacks = async (packs: Record<string, any>) => {
             }
         };
 
+        const upsertAppReviewPrompts = async (rows: any[]) => {
+            const dateKeys = [
+                'createdAt',
+                'updatedAt',
+                'serverCreatedAt',
+                'serverUpdatedAt',
+                'storeReviewRequestedAt',
+                'shownAt',
+                'submittedAt',
+                'dismissedAt',
+            ];
+
+            for (const row of rows) {
+                const payload = { ...(row as Record<string, any>) };
+
+                for (const keyName of dateKeys) {
+                    if (payload[keyName] != null) {
+                        payload[keyName] = parseServerDate(payload[keyName]);
+                    }
+                }
+
+                delete payload.serverCreatedAt;
+                delete payload.serverUpdatedAt;
+
+                const recordId = payload.id as string | undefined;
+                const userId = payload.userId as string | undefined;
+                const promptKey = payload.promptKey as string | undefined;
+                const cycleIndex = payload.cycleIndex as number | undefined;
+
+                if (typeof recordId !== 'string' || recordId.length === 0) {
+                    continue;
+                }
+
+                const byId = await tx
+                    .select()
+                    .from(appReviewPrompt)
+                    .where(eq(appReviewPrompt.id, recordId))
+                    .limit(1);
+
+                const found =
+                    byId.length > 0
+                        ? byId
+                        : typeof userId === 'string' &&
+                            typeof promptKey === 'string' &&
+                            typeof cycleIndex === 'number'
+                          ? await tx
+                                .select()
+                                .from(appReviewPrompt)
+                                .where(
+                                    and(
+                                        eq(appReviewPrompt.userId, userId),
+                                        eq(appReviewPrompt.promptKey, promptKey),
+                                        eq(appReviewPrompt.cycleIndex, cycleIndex),
+                                    ),
+                                )
+                                .limit(1)
+                          : [];
+
+                if (found.length === 0) {
+                    await tx.insert(appReviewPrompt).values(payload as any);
+                    continue;
+                }
+
+                const local = found[0];
+                const serverTime = parseServerDate(payload.updatedAt).getTime();
+                const localTime = parseServerDate(local.updatedAt).getTime();
+                if (serverTime > localTime) {
+                    await tx
+                        .update(appReviewPrompt)
+                        .set(payload)
+                        .where(eq(appReviewPrompt.id, local.id));
+                }
+            }
+        };
+
         if (packs.user) {
             await upsert('user', userTable, packs.user.records ?? [], userTable.id, [
                 'createdAt',
@@ -593,6 +669,13 @@ const applyUserSyncPacks = async (packs: Record<string, any>) => {
             ]);
             for (const id of packs.user.deletedIds ?? []) {
                 await tx.delete(userTable).where(eq(userTable.id, id));
+            }
+        }
+
+        if (packs.app_review_prompt) {
+            await upsertAppReviewPrompts(packs.app_review_prompt.records ?? []);
+            for (const id of packs.app_review_prompt.deletedIds ?? []) {
+                await tx.delete(appReviewPrompt).where(eq(appReviewPrompt.id, id));
             }
         }
 

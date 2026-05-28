@@ -113,6 +113,19 @@
             "title": "Muscle Group"
         }
     },
+    "appReview": {
+        "title": "Do you like Skulpt?",
+        "options": {
+            "bad": "Terrible",
+            "notBad": "It's okay",
+            "good": "Like it"
+        },
+        "submit": "Submit",
+        "actions": {
+            "close": "Close",
+            "submit": "Submit"
+        }
+    },
     "exercise": {
         "deleteExerciseAlert": "Are you sure you want to delete this exercise?",
         "tabs": {

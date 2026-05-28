@@ -19,6 +19,7 @@ import m0014 from './0014_clean_morbius.sql';
 import m0015 from './0015_stale_annihilus.sql';
 import m0016 from './0016_faulty_rocket_racer.sql';
 import m0017 from './0017_curved_morlocks.sql';
+import m0018 from './0018_legal_cerebro.sql';
 
 export default {
     journal,
@@ -41,5 +42,6 @@ export default {
         m0015,
         m0016,
         m0017,
+        m0018,
     },
 };

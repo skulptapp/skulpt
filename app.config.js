@@ -14,6 +14,7 @@ module.exports = {
     android: {
         versionCode: Number(process.env.APP_BUILD_NUMBER) || 1,
         package: process.env.APP_BUNDLE_IDENTIFIER || '',
+        playStoreUrl: process.env.PLAY_STORE_URL,
         softwareKeyboardLayoutMode: 'pan',
         edgeToEdgeEnabled: true,
         adaptiveIcon: {
@@ -38,6 +39,7 @@ module.exports = {
         buildNumber: String(process.env.APP_BUILD_NUMBER) || '1',
         appleTeamId: process.env.APP_APPLE_TEAM_ID || '',
         bundleIdentifier: process.env.APP_BUNDLE_IDENTIFIER || '',
+        appStoreUrl: process.env.APP_STORE_URL,
         supportsTablet: false,
         config: {
             usesNonExemptEncryption: false,

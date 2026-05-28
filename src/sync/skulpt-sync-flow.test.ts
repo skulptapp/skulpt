@@ -9,6 +9,7 @@ const mockUpdateLastSyncTimestamp = jest.fn();
 const mockUpdateSkulptLastSyncTimestamp = jest.fn();
 const mockCleanupSyncedOperations = jest.fn();
 const mockGetCurrentUser = jest.fn();
+const mockTxInsertValues = jest.fn(async () => undefined);
 
 const mockExerciseTable = {
     __name: 'exercise',
@@ -25,7 +26,7 @@ const mockTx = {
         })),
     })),
     insert: jest.fn(() => ({
-        values: jest.fn(async () => undefined),
+        values: mockTxInsertValues,
     })),
     update: jest.fn(() => ({
         set: jest.fn(() => ({
@@ -44,6 +45,7 @@ const mockDb = {
 };
 
 jest.mock('drizzle-orm', () => ({
+    and: (...conditions: unknown[]) => ({ conditions }),
     eq: (column: unknown, value: unknown) => ({ column, value }),
 }));
 
@@ -76,6 +78,14 @@ jest.mock('@/db', () => ({
 }));
 
 jest.mock('@/db/schema', () => ({
+    appReviewPrompt: {
+        __name: 'app_review_prompt',
+        id: 'app_review_prompt.id',
+        userId: 'app_review_prompt.user_id',
+        promptKey: 'app_review_prompt.prompt_key',
+        cycleIndex: 'app_review_prompt.cycle_index',
+        updatedAt: 'app_review_prompt.updated_at',
+    },
     exercise: mockExerciseTable,
     exerciseSet: {
         __name: 'exercise_set',
@@ -152,6 +162,7 @@ describe('dataset sync flow', () => {
         mockDb.transaction.mockClear();
         mockTx.select.mockClear();
         mockTx.insert.mockClear();
+        mockTxInsertValues.mockClear();
         mockTx.update.mockClear();
         mockTx.delete.mockClear();
         // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -268,6 +279,65 @@ describe('dataset sync flow', () => {
         expect(mockUpdateSkulptLastSyncTimestamp).toHaveBeenCalledTimes(1);
         expect(mockUpdateSkulptLastSyncTimestamp).toHaveBeenCalledWith('hi-IN', expect.any(Date));
         expect(mockUpdateSkulptLastSyncTimestamp.mock.calls[0][1].getTime()).toBe(900);
+    });
+
+    test('pullServerChanges applies app review prompts and parses nullable timestamps', async () => {
+        const { pullServerChanges } = loadSyncModule();
+
+        mockGetLastSyncTimestamp.mockResolvedValue(new Date(500));
+        mockGetSkulptLastSyncTimestamp.mockResolvedValue(new Date(700));
+        mockGetServerChanges
+            .mockResolvedValueOnce({
+                success: true,
+                data: {
+                    app_review_prompt: {
+                        records: [
+                            {
+                                id: 'prompt_1',
+                                userId: 'user_1',
+                                promptKey: 'post_workout_review',
+                                cycleIndex: 0,
+                                status: 'shown',
+                                eligibleWorkoutCount: 5,
+                                completionSource: 'phone',
+                                createdAt: '2026-05-28T10:00:00Z',
+                                updatedAt: '2026-05-28T10:01:00Z',
+                                serverCreatedAt: '2026-05-28T10:00:01Z',
+                                serverUpdatedAt: '2026-05-28T10:01:01Z',
+                                storeReviewRequestedAt: '2026-05-28T10:02:00Z',
+                                shownAt: '2026-05-28T10:01:00Z',
+                                submittedAt: null,
+                                dismissedAt: null,
+                            },
+                        ],
+                        deletedIds: ['prompt_2'],
+                        timestamp: 2000,
+                    },
+                },
+            })
+            .mockResolvedValueOnce({
+                success: true,
+                data: {},
+            });
+
+        const result = await pullServerChanges();
+
+        expect(result).toEqual({ success: true });
+        expect(mockTx.insert).toHaveBeenCalledWith(
+            expect.objectContaining({ __name: 'app_review_prompt' }),
+        );
+
+        const payload = mockTxInsertValues.mock.calls[0][0];
+        expect(payload.createdAt).toBeInstanceOf(Date);
+        expect(payload.updatedAt).toBeInstanceOf(Date);
+        expect(payload.storeReviewRequestedAt).toBeInstanceOf(Date);
+        expect(payload.shownAt).toBeInstanceOf(Date);
+        expect(payload.serverCreatedAt).toBeUndefined();
+        expect(payload.serverUpdatedAt).toBeUndefined();
+        expect(mockTx.delete).toHaveBeenCalledWith(
+            expect.objectContaining({ __name: 'app_review_prompt' }),
+        );
+        expect(mockUpdateLastSyncTimestamp.mock.calls[0][0].getTime()).toBe(2000);
     });
 
     test('treats retryable user pull HTTP failures as transient sync failures', async () => {

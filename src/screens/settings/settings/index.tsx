@@ -5,7 +5,6 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import Constants from 'expo-constants';
 import * as MailComposer from 'expo-mail-composer';
-import * as StoreReview from 'expo-store-review';
 import {
     Globe,
     ChevronRight,
@@ -34,6 +33,7 @@ import { Label } from '@/components/forms/label';
 import { useUser } from '@/hooks/use-user';
 import { useRunningWorkoutStatic } from '@/hooks/use-running-workout';
 import { reportError } from '@/services/error-reporting';
+import { requestStoreReviewIfAvailable } from '@/services/store-review';
 
 const styles = StyleSheet.create((theme, rt) => ({
     container: {
@@ -246,7 +246,10 @@ const SettingsScreen = () => {
         {
             icon: Star,
             title: t('settings.supportSkulpt.items.reviewAppStore.title', { ns: 'screens' }),
-            onPress: () => StoreReview.requestReview(),
+            onPress: () =>
+                requestStoreReviewIfAvailable().catch((error) => {
+                    reportError(error, 'Failed to request store review from settings:');
+                }),
         },
     ];
 

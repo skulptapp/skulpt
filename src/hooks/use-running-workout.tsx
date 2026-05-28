@@ -59,6 +59,7 @@ import {
     saveWorkoutToHealth,
 } from '@/services/health';
 import { reportError, runInBackground } from '@/services/error-reporting';
+import { usePostWorkoutAppReviewPrompt } from '@/hooks/use-app-review-prompt';
 
 type ProviderReturn = ReturnType<typeof useRunningWorkoutProvider>;
 
@@ -177,6 +178,7 @@ const useRunningWorkoutProvider = () => {
     const [isTrackingOnWatch, setIsTrackingOnWatch] = useState(false);
     const [runtimeBirthday, setRuntimeBirthday] = useState<Date | null>(null);
     const { playWorkoutStart, playWorkoutStop } = useAudio();
+    const handlePostWorkoutReviewPrompt = usePostWorkoutAppReviewPrompt();
     const { t } = useTranslation(['common']);
     const { playTimerEnd } = useAudio();
     const { workoutExerciseId } = useGlobalSearchParams<{
@@ -903,10 +905,7 @@ const useRunningWorkoutProvider = () => {
         if (!runningWorkoutActiveExercise) {
             // No active exercise — either data not yet loaded or all sets completed.
             // Still send watch state so the watch knows all sets are done.
-            const canBuildCompletedState =
-                workoutDetails != null &&
-                workoutExercises !== undefined &&
-                areAllWorkoutSetsCompleted;
+            const canBuildCompletedState = isWorkoutCommandStateReady && areAllWorkoutSetsCompleted;
 
             if (canBuildCompletedState) {
                 const completedState = buildLiveActivityState({
@@ -1005,6 +1004,7 @@ const useRunningWorkoutProvider = () => {
         runningWorkoutRestingSet,
         runningWorkoutNextSet,
         areAllWorkoutSetsCompleted,
+        isWorkoutCommandStateReady,
         runningWorkoutExercises,
         runningWorkoutCompletedExercises,
         executionOrderSets,
@@ -1061,6 +1061,13 @@ const useRunningWorkoutProvider = () => {
             );
         }
     }, [cancelAllNotifications, data, runningWorkout]);
+
+    const maybeShowAppReviewPrompt = useCallback(
+        async (completedWorkout: WorkoutSelect, completionSource: 'phone' | 'watch') => {
+            await handlePostWorkoutReviewPrompt(completedWorkout, completionSource);
+        },
+        [handlePostWorkoutReviewPrompt],
+    );
 
     // --- Native workout commands: Apple Watch, Live Activity, and other native surfaces ---
     const processWorkoutCommand = useCallback(
@@ -1181,6 +1188,7 @@ const useRunningWorkoutProvider = () => {
                     () => watchManagerRef.current.end(completedWorkout.id),
                     'Failed to end watch session after watch workout completion:',
                 );
+                await maybeShowAppReviewPrompt(completedWorkout, 'watch');
                 await syncCompletedWorkoutHealth(completedWorkout, {
                     preferWatchSave: true,
                 });
@@ -1191,6 +1199,7 @@ const useRunningWorkoutProvider = () => {
         [
             complete,
             isWorkoutCommandStateReady,
+            maybeShowAppReviewPrompt,
             playTimerEnd,
             playWorkoutStop,
             runningWorkout,
@@ -1356,6 +1365,10 @@ const useRunningWorkoutProvider = () => {
                                     () => watchManagerRef.current.end(data.id),
                                     'Failed to end watch session after workout completion:',
                                 );
+                                runInBackground(
+                                    () => maybeShowAppReviewPrompt(data, 'phone'),
+                                    'Failed to show post-workout app review prompt:',
+                                );
                             },
                         });
                     },
@@ -1365,7 +1378,14 @@ const useRunningWorkoutProvider = () => {
                 cancelable: true,
             },
         );
-    }, [complete, playWorkoutStop, runningWorkout, syncCompletedWorkoutHealth, t]);
+    }, [
+        complete,
+        maybeShowAppReviewPrompt,
+        playWorkoutStop,
+        runningWorkout,
+        syncCompletedWorkoutHealth,
+        t,
+    ]);
 
     const resetWatchSync = useCallback(() => {
         watchManagerRef.current.reset();

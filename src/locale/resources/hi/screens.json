@@ -113,6 +113,19 @@
             "title": "मांसपेशी समूह"
         }
     },
+    "appReview": {
+        "title": "क्या आपको Skulpt पसंद है?",
+        "options": {
+            "bad": "बहुत खराब",
+            "notBad": "ठीक है",
+            "good": "पसंद है"
+        },
+        "submit": "भेजें",
+        "actions": {
+            "close": "बंद करें",
+            "submit": "भेजें"
+        }
+    },
     "exercise": {
         "deleteExerciseAlert": "क्या आप वाकई इस एक्सरसाइज को हटाना चाहते हैं?",
         "tabs": {

@@ -111,6 +111,19 @@
             "title": "肌肉群"
         }
     },
+    "appReview": {
+        "title": "你喜欢 Skulpt 吗？",
+        "options": {
+            "bad": "很糟糕",
+            "notBad": "一般",
+            "good": "喜欢"
+        },
+        "submit": "提交",
+        "actions": {
+            "close": "关闭",
+            "submit": "提交"
+        }
+    },
     "exercise": {
         "deleteExerciseAlert": "确定要删除这个运动项目吗？",
         "tabs": {

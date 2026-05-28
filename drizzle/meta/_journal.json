@@ -127,6 +127,13 @@
             "when": 1776077947884,
             "tag": "0017_curved_morlocks",
             "breakpoints": true
+        },
+        {
+            "idx": 18,
+            "version": "6",
+            "when": 1779973233664,
+            "tag": "0018_legal_cerebro",
+            "breakpoints": true
         }
     ]
 }

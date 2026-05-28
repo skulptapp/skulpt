@@ -127,6 +127,15 @@ const App: FC = () => {
                             }}
                         />
                         <Stack.Screen
+                            name="review"
+                            options={{
+                                presentation: 'card',
+                                animationTypeForReplace: 'pop',
+                                cardOverlayEnabled: false,
+                                animation: 'slide_from_bottom',
+                            }}
+                        />
+                        <Stack.Screen
                             name="day"
                             options={{
                                 presentation: 'card',

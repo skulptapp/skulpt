@@ -4,6 +4,7 @@ export { default as ExercisesScreen } from './exercises/exercises';
 export { default as ExerciseScreen } from './exercises/exercise';
 export { default as PreviewScreen } from './exercises/preview';
 export { default as GuideScreen } from './exercises/guide';
+export { default as AppReviewScreen } from './app-review';
 export { default as FilterScreen } from './exercises/filter';
 export { default as SelectScreen } from './select';
 export { default as WorkoutScreen } from './workouts/workout';

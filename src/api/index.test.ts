@@ -76,6 +76,20 @@ describe('sync API error reporting', () => {
         expect(mockReportError).not.toHaveBeenCalled();
     });
 
+    test('sends current sync schema version header', () => {
+        loadApiModule();
+
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const axios = require('axios');
+        expect(axios.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                headers: expect.objectContaining({
+                    'x-skulpt-sync-schema': '2',
+                }),
+            }),
+        );
+    });
+
     test('does not report retryable push HTTP failures to Sentry', async () => {
         const { sendChangesToServer } = loadApiModule();
 
