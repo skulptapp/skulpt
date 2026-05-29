@@ -451,6 +451,7 @@
         "bpm": "bpm",
         "calculatedMhr": "Max Heart Rate",
         "zones": {
+            "zone0": "Zone 0 — Below Zone",
             "zone1": "Zone 1 — Warm Up",
             "zone2": "Zone 2 — Fat Burn",
             "zone3": "Zone 3 — Cardio",

@@ -18,7 +18,7 @@ import {
 } from '@/components/layout/workout-metrics';
 import type { ExerciseSelect, ExerciseSetSelect, WorkoutSelect } from '@/db/schema';
 import { stableOutlineWidth } from '@/helpers/styles';
-import { calculateAge, getZoneDefinitions, getZoneForHeartRate } from '@/helpers/heart-rate-zones';
+import { calculateAge, getZoneForHeartRate } from '@/helpers/heart-rate-zones';
 import { useUser } from '@/hooks/use-user';
 import { reportError } from '@/services/error-reporting';
 import { type HealthStatsDisplay } from '@/types/health-stats';
@@ -149,6 +149,8 @@ const HEART_RATE_ZONE_LABEL_COLORS: Record<HeartRateZoneKey, string> = {
     5: '#7C43E7',
 };
 
+const HEART_RATE_ZONE_DISPLAY_ORDER: readonly HeartRateZoneKey[] = [5, 4, 3, 2, 1, 0] as const;
+
 const HEART_RATE_ZONE_GRADIENT_COLORS = [
     '#AFC1FA',
     '#4582EA',
@@ -251,6 +253,7 @@ const styles = StyleSheet.create((theme) => ({
     },
     zoneFill: {
         height: theme.space(1.5),
+        minWidth: theme.space(1.5),
         borderRadius: theme.radius.full,
         overflow: 'hidden',
     },
@@ -918,6 +921,61 @@ const buildRecoveryScaleModel = (
     };
 };
 
+const computeZoneZeroSecondsFromSeries = (
+    rawSeries: string | null | undefined,
+    mhr: number | null | undefined,
+    workoutStartDate: Date | null | undefined,
+    workoutEndDate: Date | null | undefined,
+): number | null => {
+    if (mhr == null || mhr <= 0) return null;
+
+    const samples = parseHeartRateSeries(rawSeries ?? null)
+        .filter((sample) => sample.bpm > 0 && Number.isFinite(sample.timestamp))
+        .sort((left, right) => left.timestamp - right.timestamp);
+
+    if (samples.length === 0) return null;
+
+    const firstSample = samples[0]!;
+    const lastSample = samples[samples.length - 1]!;
+    const workoutStartMs = workoutStartDate?.getTime() ?? firstSample.timestamp;
+    const workoutEndMs = workoutEndDate?.getTime() ?? lastSample.timestamp;
+
+    if (workoutEndMs <= workoutStartMs) return null;
+
+    const inWorkoutSamples = samples.filter(
+        (sample) => sample.timestamp >= workoutStartMs && sample.timestamp <= workoutEndMs,
+    );
+
+    if (inWorkoutSamples.length === 0) return null;
+
+    let zoneZeroMs = 0;
+    const addSegment = (bpm: number, segmentStartMs: number, segmentEndMs: number) => {
+        if (segmentEndMs <= segmentStartMs) return;
+        if (getZoneForHeartRate(bpm, mhr) === 0) {
+            zoneZeroMs += segmentEndMs - segmentStartMs;
+        }
+    };
+
+    const firstInWorkoutSample = inWorkoutSamples[0]!;
+    const lastInWorkoutSample = inWorkoutSamples[inWorkoutSamples.length - 1]!;
+
+    if (firstInWorkoutSample.timestamp > workoutStartMs) {
+        addSegment(firstInWorkoutSample.bpm, workoutStartMs, firstInWorkoutSample.timestamp);
+    }
+
+    for (let index = 0; index < inWorkoutSamples.length - 1; index += 1) {
+        const currentSample = inWorkoutSamples[index]!;
+        const nextSample = inWorkoutSamples[index + 1]!;
+        addSegment(currentSample.bpm, currentSample.timestamp, nextSample.timestamp);
+    }
+
+    if (lastInWorkoutSample.timestamp < workoutEndMs) {
+        addSegment(lastInWorkoutSample.bpm, lastInWorkoutSample.timestamp, workoutEndMs);
+    }
+
+    return Math.round(zoneZeroMs / 1000);
+};
+
 export const Stats: FC<StatsProps> = ({
     workout,
     exercises = [],
@@ -969,8 +1027,9 @@ export const Stats: FC<StatsProps> = ({
     const recoveryChartColor = recoveryScaleModel?.markerColor ?? FALLBACK_RECOVERY_CHART_COLOR;
     const recoveryChartPointerStripColor = withAlpha(recoveryChartColor, 0.35);
 
-    const zoneColors = useMemo(
+    const zoneColors = useMemo<Record<HeartRateZoneKey, string>>(
         () => ({
+            0: HEART_RATE_ZONE_LABEL_COLORS[0],
             1: HEART_RATE_ZONE_LABEL_COLORS[1],
             2: HEART_RATE_ZONE_LABEL_COLORS[2],
             3: HEART_RATE_ZONE_LABEL_COLORS[3],
@@ -980,40 +1039,56 @@ export const Stats: FC<StatsProps> = ({
         [],
     );
 
-    const zoneSecondsByZone = useMemo(
-        () =>
-            ({
-                1:
-                    healthStats?.zone1Seconds ??
-                    (healthStats?.zone1Minutes != null
-                        ? Math.round(healthStats.zone1Minutes * 60)
-                        : 0),
-                2:
-                    healthStats?.zone2Seconds ??
-                    (healthStats?.zone2Minutes != null
-                        ? Math.round(healthStats.zone2Minutes * 60)
-                        : 0),
-                3:
-                    healthStats?.zone3Seconds ??
-                    (healthStats?.zone3Minutes != null
-                        ? Math.round(healthStats.zone3Minutes * 60)
-                        : 0),
-                4:
-                    healthStats?.zone4Seconds ??
-                    (healthStats?.zone4Minutes != null
-                        ? Math.round(healthStats.zone4Minutes * 60)
-                        : 0),
-                5:
-                    healthStats?.zone5Seconds ??
-                    (healthStats?.zone5Minutes != null
-                        ? Math.round(healthStats.zone5Minutes * 60)
-                        : 0),
-            }) as const,
-        [healthStats],
-    );
+    const zoneSecondsByZone = useMemo(() => {
+        const activeZoneSeconds = {
+            1:
+                healthStats?.zone1Seconds ??
+                (healthStats?.zone1Minutes != null ? Math.round(healthStats.zone1Minutes * 60) : 0),
+            2:
+                healthStats?.zone2Seconds ??
+                (healthStats?.zone2Minutes != null ? Math.round(healthStats.zone2Minutes * 60) : 0),
+            3:
+                healthStats?.zone3Seconds ??
+                (healthStats?.zone3Minutes != null ? Math.round(healthStats.zone3Minutes * 60) : 0),
+            4:
+                healthStats?.zone4Seconds ??
+                (healthStats?.zone4Minutes != null ? Math.round(healthStats.zone4Minutes * 60) : 0),
+            5:
+                healthStats?.zone5Seconds ??
+                (healthStats?.zone5Minutes != null ? Math.round(healthStats.zone5Minutes * 60) : 0),
+        };
+        const activeZoneTotalSeconds =
+            activeZoneSeconds[1] +
+            activeZoneSeconds[2] +
+            activeZoneSeconds[3] +
+            activeZoneSeconds[4] +
+            activeZoneSeconds[5];
+        const workoutDurationFromDates =
+            workout.startedAt && workout.completedAt
+                ? Math.max(
+                      0,
+                      Math.round(
+                          (workout.completedAt.getTime() - workout.startedAt.getTime()) / 1000,
+                      ),
+                  )
+                : activeZoneTotalSeconds;
+        const zoneZeroSeconds =
+            computeZoneZeroSecondsFromSeries(
+                healthStats?.hrTimeSeries,
+                healthStats?.mhrUsed,
+                workout.startedAt,
+                workout.completedAt,
+            ) ?? Math.max(0, workoutDurationFromDates - activeZoneTotalSeconds);
+
+        return {
+            0: zoneZeroSeconds,
+            ...activeZoneSeconds,
+        } satisfies Record<HeartRateZoneKey, number>;
+    }, [healthStats, workout.completedAt, workout.startedAt]);
 
     const totalZoneSeconds = useMemo(
         () =>
+            zoneSecondsByZone[0] +
             zoneSecondsByZone[1] +
             zoneSecondsByZone[2] +
             zoneSecondsByZone[3] +
@@ -1040,20 +1115,20 @@ export const Stats: FC<StatsProps> = ({
                 : 0;
         const totalSeconds = zonePercentageTotal || totalZoneSeconds || workoutDurationSeconds || 0;
 
-        return [...getZoneDefinitions()].reverse().map((zone) => {
-            const seconds = zoneSecondsByZone[zone.zone];
+        return HEART_RATE_ZONE_DISPLAY_ORDER.map((zone) => {
+            const seconds = zoneSecondsByZone[zone];
             const percentage = totalSeconds > 0 ? (seconds / totalSeconds) * 100 : 0;
 
             return {
-                zone: zone.zone,
+                zone,
                 label: compactZoneLabel(
-                    t(`heartrate.zones.zone${zone.zone}`, {
+                    t(`heartrate.zones.zone${zone}`, {
                         ns: 'screens',
                     }),
                 ),
                 seconds,
                 percentage,
-                color: zoneColors[zone.zone],
+                color: zoneColors[zone],
             };
         });
     }, [

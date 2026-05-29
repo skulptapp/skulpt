@@ -451,6 +451,7 @@
         "bpm": "lpm",
         "calculatedMhr": "FC máxima",
         "zones": {
+            "zone0": "Zona 0 — Por debajo",
             "zone1": "Zona 1 — Calentamiento",
             "zone2": "Zona 2 — Quema de grasa",
             "zone3": "Zona 3 — Cardio",

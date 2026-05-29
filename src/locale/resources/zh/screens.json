@@ -449,6 +449,7 @@
         "bpm": "bpm",
         "calculatedMhr": "最大心率",
         "zones": {
+            "zone0": "区间 0 — 低于区间",
             "zone1": "区间 1 — 热身",
             "zone2": "区间 2 — 燃脂",
             "zone3": "区间 3 — 有氧",
