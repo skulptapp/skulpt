@@ -3,7 +3,8 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useTranslation } from 'react-i18next';
 import { LineChart, type lineDataItem } from 'react-native-gifted-charts';
 import { type StyleProp, type ViewStyle } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
+import { LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 
 import { VStack } from '@/components/primitives/vstack';
 import { HStack } from '@/components/primitives/hstack';
@@ -17,10 +18,11 @@ import {
 } from '@/components/layout/workout-metrics';
 import type { ExerciseSelect, ExerciseSetSelect, WorkoutSelect } from '@/db/schema';
 import { stableOutlineWidth } from '@/helpers/styles';
-import { calculateAge, getZoneDefinitions } from '@/helpers/heart-rate-zones';
+import { calculateAge, getZoneDefinitions, getZoneForHeartRate } from '@/helpers/heart-rate-zones';
 import { useUser } from '@/hooks/use-user';
 import { reportError } from '@/services/error-reporting';
 import { type HealthStatsDisplay } from '@/types/health-stats';
+import { formatTime } from '@/helpers/times';
 import {
     buildHeartRateMetrics,
     buildOverviewMetrics,
@@ -82,7 +84,18 @@ type RecoveryLineDataItem = lineDataItem & {
     bpm: number;
 };
 
+type HeartRateLineDataItem = lineDataItem & {
+    timestamp: number;
+    bpm: number;
+};
+
+type HeartRateLineGradientStop = {
+    offset: string;
+    color: string;
+};
+
 type RecoveryRatingKey = 'poor' | 'fair' | 'good' | 'excellent' | 'superior';
+type HeartRateZoneKey = 0 | 1 | 2 | 3 | 4 | 5;
 
 type RecoveryScaleSegment = {
     key: RecoveryRatingKey;
@@ -98,7 +111,22 @@ type RecoveryScaleModel = {
     segments: RecoveryScaleSegment[];
 };
 
+type HeartRateZoneScaleSegment = {
+    zone: HeartRateZoneKey;
+    min: number;
+    max: number | null;
+    labelColor: string;
+};
+
+type HeartRateZoneScaleModel = {
+    markerPercent: number | null;
+    markerColor: string | null;
+    currentZone: HeartRateZoneKey | null;
+    segments: HeartRateZoneScaleSegment[];
+};
+
 type RecoveryScaleStarts = readonly [number, number, number, number, number];
+type HeartRateZoneScaleStarts = readonly [number, number, number, number, number, number];
 type RgbColor = {
     r: number;
     g: number;
@@ -109,6 +137,27 @@ const CHART_HEIGHT = 120;
 const CHART_EDGE_INSET = 3;
 const CHART_ASPECT_RATIO = CHART_HEIGHT / 250;
 const FALLBACK_RECOVERY_CHART_COLOR = '#ef4444';
+const HEART_RATE_CHART_MAX_POINTS = 144;
+const HEART_RATE_LINE_GRADIENT_ID = 'heartRateLineGradient';
+
+const HEART_RATE_ZONE_LABEL_COLORS: Record<HeartRateZoneKey, string> = {
+    0: '#AFC1FA',
+    1: '#4582EA',
+    2: '#F4C844',
+    3: '#F2A842',
+    4: '#EA4C3F',
+    5: '#7C43E7',
+};
+
+const HEART_RATE_ZONE_GRADIENT_COLORS = [
+    '#AFC1FA',
+    '#4582EA',
+    '#F4C844',
+    '#F2A842',
+    '#EA4C3F',
+    '#7C43E7',
+    '#7941EB',
+] as const;
 
 const RECOVERY_SCALE_COLORS: Record<RecoveryRatingKey, { labelColor: string }> = {
     poor: {
@@ -170,6 +219,9 @@ const styles = StyleSheet.create((theme) => ({
         height: StyleSheet.hairlineWidth,
         backgroundColor: theme.colors.border,
     },
+    zonesContainer: {
+        gap: theme.space(5),
+    },
     zoneSection: {
         paddingBottom: theme.space(2),
     },
@@ -198,7 +250,7 @@ const styles = StyleSheet.create((theme) => ({
         fontWeight: theme.fontWeight.bold.fontWeight,
     },
     zoneFill: {
-        height: theme.space(2),
+        height: theme.space(1.5),
         borderRadius: theme.radius.full,
         overflow: 'hidden',
     },
@@ -220,6 +272,134 @@ const styles = StyleSheet.create((theme) => ({
         color: theme.colors.typography,
         fontSize: theme.fontSize.sm.fontSize,
         fontWeight: theme.fontWeight.bold.fontWeight,
+    },
+    heartRateChartCard: {
+        width: '100%',
+        gap: theme.space(3),
+    },
+    heartRateChartContent: {
+        width: '100%',
+        gap: theme.space(3),
+        alignItems: 'stretch',
+    },
+    heartRateChartHeader: {
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        gap: theme.space(3),
+    },
+    heartRateChartAverageBlock: {
+        flex: 1,
+        minWidth: 0,
+        gap: theme.space(0.5),
+    },
+    heartRateChartAverageValue: {
+        ...theme.fontSize['2xl'],
+        fontWeight: theme.fontWeight.bold.fontWeight,
+        color: theme.colors.typography,
+    },
+    heartRateChartAverageLabel: {
+        ...theme.fontSize.sm,
+        color: theme.colors.typography,
+        opacity: 0.6,
+    },
+    heartRateChartZone: {
+        flexShrink: 0,
+        marginTop: theme.space(1.5),
+        fontSize: theme.fontSize.default.fontSize,
+        lineHeight: theme.space(4),
+        fontWeight: theme.fontWeight.bold.fontWeight,
+        textAlign: 'right',
+    },
+    heartRateChartCanvasWrap: {
+        position: 'relative',
+        width: '100%',
+        justifyContent: 'center',
+    },
+    heartRateChartYAxisLabel: {
+        position: 'absolute',
+        right: 0,
+        color: theme.colors.typography,
+        opacity: 0.35,
+        fontSize: theme.fontSize.xs.fontSize,
+        fontWeight: theme.fontWeight.medium.fontWeight,
+    },
+    heartRateChartYAxisTop: {
+        top: -theme.space(0.5),
+    },
+    heartRateChartYAxisBottom: {
+        bottom: theme.space(0.5),
+    },
+    heartRateChartMetaRow: {
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: -theme.space(1.5),
+    },
+    heartRateChartMetaLabel: {
+        color: theme.colors.typography,
+        opacity: 0.55,
+        fontSize: theme.fontSize.xs.fontSize,
+        fontWeight: theme.fontWeight.medium.fontWeight,
+    },
+    heartRateZoneScale: {
+        gap: theme.space(1.5),
+        marginTop: theme.space(2),
+    },
+    heartRateZoneScaleLabels: {
+        width: '100%',
+        alignItems: 'center',
+    },
+    heartRateZoneScaleLabelSlot: {
+        minWidth: 0,
+        paddingRight: theme.space(0.5),
+    },
+    heartRateZoneScaleLabel: {
+        fontSize: theme.fontSize.xs.fontSize,
+        fontWeight: theme.fontWeight.bold.fontWeight,
+    },
+    heartRateZoneScaleBarWrap: {
+        height: theme.space(1),
+        justifyContent: 'center',
+    },
+    heartRateZoneScaleTrack: {
+        height: theme.space(2.5),
+        borderRadius: theme.radius.full,
+        overflow: 'hidden',
+        backgroundColor: theme.colors.background,
+    },
+    heartRateZoneScaleGradient: {
+        flex: 1,
+    },
+    heartRateZoneScaleDivider: {
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        width: theme.space(0.5),
+        marginLeft: -theme.space(0.25),
+        backgroundColor: theme.colors.foreground,
+    },
+    heartRateZoneScaleMarker: {
+        position: 'absolute',
+        width: theme.space(2.5),
+        height: theme.space(2.5),
+        marginLeft: -theme.space(1.25),
+        borderRadius: theme.radius.full,
+        borderWidth: theme.space(0.55),
+        borderColor: '#34343C',
+        backgroundColor: 'transparent',
+    },
+    heartRateZoneScaleTicks: {
+        width: '100%',
+        alignItems: 'center',
+    },
+    heartRateZoneScaleTickSlot: {
+        minWidth: 0,
+        paddingRight: theme.space(0.5),
+    },
+    heartRateZoneScaleTick: {
+        color: theme.colors.typography,
+        opacity: 0.55,
+        fontSize: theme.fontSize.xs.fontSize,
+        fontWeight: theme.fontWeight.medium.fontWeight,
     },
     recoveryCard: {
         width: '100%',
@@ -494,6 +674,164 @@ const getRecoveryScaleColor = (markerPercent: number): string => {
     });
 };
 
+const getGradientColorAtPercent = (markerPercent: number, colors: readonly string[]): string => {
+    const boundedPercent = Math.max(0, Math.min(100, markerPercent));
+    const scaledPosition = (boundedPercent / 100) * (colors.length - 1);
+    const leftIndex = Math.min(Math.floor(scaledPosition), colors.length - 2);
+    const rightIndex = leftIndex + 1;
+    const progress = scaledPosition - leftIndex;
+    const left = parseHexColor(colors[leftIndex]!);
+    const right = parseHexColor(colors[rightIndex]!);
+
+    return rgbToHex({
+        r: left.r + (right.r - left.r) * progress,
+        g: left.g + (right.g - left.g) * progress,
+        b: left.b + (right.b - left.b) * progress,
+    });
+};
+
+const getHeartRateZoneScaleStarts = (
+    mhr: number | null | undefined,
+): HeartRateZoneScaleStarts | null => {
+    if (mhr == null || !Number.isFinite(mhr) || mhr <= 0) return null;
+
+    const effectiveMhr = Math.max(1, Math.floor(mhr));
+
+    return [
+        0,
+        Math.floor(effectiveMhr * 0.5),
+        Math.floor(effectiveMhr * 0.6),
+        Math.floor(effectiveMhr * 0.7),
+        Math.floor(effectiveMhr * 0.8),
+        Math.floor(effectiveMhr * 0.9),
+    ];
+};
+
+const getHeartRateZoneScaleMarkerPercent = (
+    bpm: number,
+    starts: HeartRateZoneScaleStarts,
+): number => {
+    const segmentCount = starts.length;
+    const value = Math.max(0, bpm);
+
+    for (let index = 0; index < starts.length - 1; index += 1) {
+        const min = starts[index]!;
+        const max = starts[index + 1]!;
+
+        if (value < max) {
+            const progress = Math.max(0, Math.min(1, (value - min) / Math.max(max - min, 1)));
+            return ((index + progress) / segmentCount) * 100;
+        }
+    }
+
+    const maxZoneStart = starts[starts.length - 1]!;
+    const maxZoneSpan = Math.max(maxZoneStart - starts[starts.length - 2]!, 1);
+    const maxZoneProgress = Math.max(0, Math.min(1, (value - maxZoneStart) / maxZoneSpan));
+
+    return ((segmentCount - 1 + maxZoneProgress) / segmentCount) * 100;
+};
+
+const getHeartRateScaleColor = (markerPercent: number): string =>
+    getGradientColorAtPercent(markerPercent, HEART_RATE_ZONE_GRADIENT_COLORS);
+
+const buildHeartRateZoneScaleModel = (
+    averageBpm: number | null | undefined,
+    mhr: number | null | undefined,
+): HeartRateZoneScaleModel | null => {
+    const starts = getHeartRateZoneScaleStarts(mhr);
+    if (!starts) return null;
+
+    const segments = starts.map((start, index) => ({
+        zone: index as HeartRateZoneKey,
+        min: start,
+        max: index < starts.length - 1 ? starts[index + 1]! - 1 : null,
+        labelColor: HEART_RATE_ZONE_LABEL_COLORS[index as HeartRateZoneKey],
+    }));
+
+    if (averageBpm == null || !Number.isFinite(averageBpm)) {
+        return {
+            markerPercent: null,
+            markerColor: null,
+            currentZone: null,
+            segments,
+        };
+    }
+
+    const markerPercent = getHeartRateZoneScaleMarkerPercent(averageBpm, starts);
+    const safeMhr = Math.max(1, Math.floor(mhr ?? 1));
+
+    return {
+        markerPercent,
+        markerColor: getHeartRateScaleColor(markerPercent),
+        currentZone: getZoneForHeartRate(averageBpm, safeMhr),
+        segments,
+    };
+};
+
+const buildHeartRateLineGradientStops = (
+    minBpm: number,
+    maxBpm: number,
+    starts: HeartRateZoneScaleStarts,
+): HeartRateLineGradientStop[] => {
+    const range = Math.max(1, maxBpm - minBpm);
+    const stopBpmValues = [
+        maxBpm,
+        ...starts.filter((start) => start > minBpm && start < maxBpm).sort((a, b) => b - a),
+        minBpm,
+    ];
+
+    return stopBpmValues.map((bpm) => {
+        const offsetProgress = (maxBpm - bpm) / range;
+        const markerPercent = getHeartRateZoneScaleMarkerPercent(bpm, starts);
+
+        return {
+            offset: `${Math.round(offsetProgress * 10_000) / 100}%`,
+            color: getHeartRateScaleColor(markerPercent),
+        };
+    });
+};
+
+const compactHeartRateSamples = (
+    samples: HeartRateSeriesPoint[],
+    maxPoints: number,
+): HeartRateSeriesPoint[] => {
+    if (samples.length <= maxPoints) return samples;
+
+    const bucketSize = Math.ceil(samples.length / Math.max(1, Math.floor(maxPoints / 2)));
+    const compacted: HeartRateSeriesPoint[] = [];
+
+    for (let index = 0; index < samples.length; index += bucketSize) {
+        const bucket = samples.slice(index, index + bucketSize);
+        if (bucket.length === 0) continue;
+
+        const minPoint = bucket.reduce((current, next) =>
+            next.bpm < current.bpm ? next : current,
+        );
+        const maxPoint = bucket.reduce((current, next) =>
+            next.bpm > current.bpm ? next : current,
+        );
+        const orderedPoints =
+            minPoint.timestamp <= maxPoint.timestamp ? [minPoint, maxPoint] : [maxPoint, minPoint];
+
+        for (const point of orderedPoints) {
+            if (compacted[compacted.length - 1]?.timestamp !== point.timestamp) {
+                compacted.push(point);
+            }
+        }
+    }
+
+    const lastSample = samples[samples.length - 1]!;
+    if (compacted[compacted.length - 1]?.timestamp !== lastSample.timestamp) {
+        compacted.push(lastSample);
+    }
+
+    if (compacted.length > maxPoints) {
+        return [...compacted.slice(0, maxPoints - 1), lastSample];
+    }
+
+    return compacted;
+};
+
 const getRecoveryScaleStarts = (age: number | null | undefined): RecoveryScaleStarts => {
     const safeAge = age == null || !Number.isFinite(age) ? 30 : Math.max(18, Math.floor(age));
     const bounds =
@@ -593,6 +931,7 @@ export const Stats: FC<StatsProps> = ({
     const { user } = useUser();
     const { theme } = useUnistyles();
     const [recoveryContentWidth, setRecoveryContentWidth] = useState<number | null>(null);
+    const [heartRateContentWidth, setHeartRateContentWidth] = useState<number | null>(null);
 
     const effectiveRecoveryChartWidth =
         recoveryContentWidth != null
@@ -606,8 +945,21 @@ export const Stats: FC<StatsProps> = ({
         0,
         (effectiveRecoveryChartWidth ?? 0) - CHART_EDGE_INSET * 2,
     );
+    const effectiveHeartRateChartWidth =
+        heartRateContentWidth != null
+            ? Math.max(CHART_EDGE_INSET * 2 + 1, heartRateContentWidth)
+            : null;
+    const heartRateChartHeight =
+        effectiveHeartRateChartWidth != null
+            ? Math.max(1, Math.round(effectiveHeartRateChartWidth * CHART_ASPECT_RATIO))
+            : CHART_HEIGHT;
+    const heartRateChartTimelineWidth = Math.max(
+        0,
+        (effectiveHeartRateChartWidth ?? 0) - CHART_EDGE_INSET * 2,
+    );
 
     const distanceUnits = user?.distanceUnits ?? 'km';
+    const timeFormat = user?.timeFormat ?? '24h';
     const userBirthday = user?.birthday ?? null;
     const twoMinuteRecovery = healthStats?.heartRateRecoveryTwoMinutes ?? null;
     const recoveryScaleModel = useMemo(() => {
@@ -619,11 +971,11 @@ export const Stats: FC<StatsProps> = ({
 
     const zoneColors = useMemo(
         () => ({
-            1: '#94a3b8',
-            2: '#facc15',
-            3: '#fb923c',
-            4: '#f87171',
-            5: '#f472b6',
+            1: HEART_RATE_ZONE_LABEL_COLORS[1],
+            2: HEART_RATE_ZONE_LABEL_COLORS[2],
+            3: HEART_RATE_ZONE_LABEL_COLORS[3],
+            4: HEART_RATE_ZONE_LABEL_COLORS[4],
+            5: HEART_RATE_ZONE_LABEL_COLORS[5],
         }),
         [],
     );
@@ -712,6 +1064,92 @@ export const Stats: FC<StatsProps> = ({
         zonePercentageTotalSeconds,
         zoneSecondsByZone,
     ]);
+
+    const heartRateZoneScaleModel = useMemo(
+        () => buildHeartRateZoneScaleModel(healthStats?.avgHeartRate, healthStats?.mhrUsed),
+        [healthStats?.avgHeartRate, healthStats?.mhrUsed],
+    );
+
+    const heartRateChartModel = useMemo(() => {
+        const savedHeartRateSamples = parseHeartRateSeries(healthStats?.hrTimeSeries ?? null)
+            .filter(
+                (sample) =>
+                    Number.isFinite(sample.timestamp) &&
+                    Number.isFinite(sample.bpm) &&
+                    sample.bpm > 0,
+            )
+            .sort((left, right) => left.timestamp - right.timestamp)
+            .filter(
+                (sample, index, samples) =>
+                    index === 0 || sample.timestamp !== samples[index - 1]!.timestamp,
+            );
+
+        if (savedHeartRateSamples.length < 2) {
+            return null;
+        }
+
+        const compactedSamples = compactHeartRateSamples(
+            savedHeartRateSamples,
+            HEART_RATE_CHART_MAX_POINTS,
+        );
+        const bpmValues = savedHeartRateSamples.map((sample) => sample.bpm);
+        const minBpmValue = Math.min(
+            ...bpmValues,
+            ...(healthStats?.minHeartRate != null ? [healthStats.minHeartRate] : []),
+        );
+        const maxBpmValue = Math.max(
+            ...bpmValues,
+            ...(healthStats?.maxHeartRate != null ? [healthStats.maxHeartRate] : []),
+        );
+        const verticalPadding = Math.max(3, Math.round((maxBpmValue - minBpmValue) * 0.06) || 3);
+        const minBpm = Math.max(0, Math.floor(minBpmValue - verticalPadding));
+        const maxBpm = Math.max(minBpm + 1, Math.ceil(maxBpmValue + verticalPadding));
+        const firstTimestamp = savedHeartRateSamples[0]!.timestamp;
+        const lastTimestamp = savedHeartRateSamples[savedHeartRateSamples.length - 1]!.timestamp;
+        const durationMs = Math.max(1, lastTimestamp - firstTimestamp);
+        const averageBpm =
+            healthStats?.avgHeartRate ??
+            Math.round(bpmValues.reduce((total, bpm) => total + bpm, 0) / bpmValues.length);
+        const zoneStarts = getHeartRateZoneScaleStarts(healthStats?.mhrUsed);
+
+        return {
+            plotPoints: compactedSamples,
+            minBpm,
+            maxBpm,
+            durationMs,
+            averageBpm,
+            currentZone: heartRateZoneScaleModel?.currentZone ?? null,
+            lineGradientStops: zoneStarts
+                ? buildHeartRateLineGradientStops(minBpm, maxBpm, zoneStarts)
+                : null,
+            xLabels: [
+                formatTime(new Date(firstTimestamp), timeFormat),
+                formatTime(new Date(firstTimestamp + durationMs / 2), timeFormat),
+                formatTime(new Date(lastTimestamp), timeFormat),
+            ],
+        };
+    }, [healthStats, heartRateZoneScaleModel?.currentZone, timeFormat]);
+
+    const heartRateChartData = useMemo(() => {
+        if (!heartRateChartModel) {
+            return [] as HeartRateLineDataItem[];
+        }
+
+        return heartRateChartModel.plotPoints.map((point, index) => {
+            const nextPoint = heartRateChartModel.plotPoints[index + 1];
+            const spacing = nextPoint
+                ? ((nextPoint.timestamp - point.timestamp) / heartRateChartModel.durationMs) *
+                  heartRateChartTimelineWidth
+                : 0;
+
+            return {
+                value: point.bpm,
+                bpm: point.bpm,
+                timestamp: point.timestamp,
+                spacing: Math.max(0, spacing),
+            } satisfies HeartRateLineDataItem;
+        });
+    }, [heartRateChartModel, heartRateChartTimelineWidth]);
 
     const shouldShowLocomotionMetrics = useMemo(
         () =>
@@ -929,6 +1367,7 @@ export const Stats: FC<StatsProps> = ({
     );
 
     const hasZoneSection =
+        heartRateChartModel != null ||
         totalZoneSeconds > 0 ||
         healthStats?.avgHeartRate != null ||
         healthStats?.minHeartRate != null ||
@@ -967,43 +1406,269 @@ export const Stats: FC<StatsProps> = ({
                     hasRecoverySection) && <Box style={styles.divider} />}
 
             {hasZoneSection && (
-                <VStack style={[styles.section, styles.zoneSection]}>
-                    <Text style={styles.sectionTitle}>
-                        {t('workout.stats.sections.zone', { ns: 'screens' })}
-                    </Text>
-                    <VStack style={styles.zoneList}>
-                        {zoneMetrics.map((zone) => (
-                            <VStack key={zone.zone} style={styles.zoneRow}>
-                                <HStack style={styles.zoneTop}>
-                                    <VStack style={styles.zoneLabelWrap}>
-                                        <HStack style={styles.zoneLabelRow}>
-                                            <Text style={styles.zoneLabel}>{zone.label}</Text>
+                <VStack style={styles.zonesContainer}>
+                    <VStack style={[styles.section, styles.zoneSection]}>
+                        <Text style={styles.sectionTitle}>
+                            {t('workout.stats.sections.zone', { ns: 'screens' })}
+                        </Text>
+                        <VStack style={styles.zoneList}>
+                            {zoneMetrics.map((zone) => (
+                                <VStack key={zone.zone} style={styles.zoneRow}>
+                                    <HStack style={styles.zoneTop}>
+                                        <VStack style={styles.zoneLabelWrap}>
+                                            <HStack style={styles.zoneLabelRow}>
+                                                <Text style={styles.zoneLabel}>{zone.label}</Text>
+                                            </HStack>
+                                            <Box
+                                                style={[
+                                                    styles.zoneFill,
+                                                    {
+                                                        backgroundColor: zone.color,
+                                                        width:
+                                                            zone.percentage > 0
+                                                                ? `${Math.min(100, zone.percentage)}%`
+                                                                : theme.space(2),
+                                                    },
+                                                ]}
+                                            />
+                                        </VStack>
+                                        <HStack style={styles.zoneStats}>
+                                            <Text style={styles.zonePercent}>
+                                                {Math.round(zone.percentage)}%
+                                            </Text>
+                                            <Text style={styles.zoneDuration}>
+                                                {formatCompactDuration(zone.seconds)}
+                                            </Text>
                                         </HStack>
-                                        <Box
-                                            style={[
-                                                styles.zoneFill,
-                                                {
-                                                    backgroundColor: zone.color,
-                                                    width:
-                                                        zone.percentage > 0
-                                                            ? `${Math.min(100, zone.percentage)}%`
-                                                            : theme.space(2),
-                                                },
-                                            ]}
-                                        />
-                                    </VStack>
-                                    <HStack style={styles.zoneStats}>
-                                        <Text style={styles.zonePercent}>
-                                            {Math.round(zone.percentage)}%
-                                        </Text>
-                                        <Text style={styles.zoneDuration}>
-                                            {formatCompactDuration(zone.seconds)}
-                                        </Text>
                                     </HStack>
-                                </HStack>
-                            </VStack>
-                        ))}
+                                </VStack>
+                            ))}
+                        </VStack>
                     </VStack>
+                    {heartRateChartModel && (
+                        <>
+                            <Box style={styles.divider} />
+                            <VStack style={styles.heartRateChartCard}>
+                                <VStack
+                                    style={styles.heartRateChartContent}
+                                    onLayout={(event) => {
+                                        const nextWidth = Math.round(
+                                            event.nativeEvent.layout.width,
+                                        );
+                                        if (nextWidth > 0 && nextWidth !== heartRateContentWidth) {
+                                            setHeartRateContentWidth(nextWidth);
+                                        }
+                                    }}
+                                >
+                                    <HStack style={styles.heartRateChartHeader}>
+                                        <VStack style={styles.heartRateChartAverageBlock}>
+                                            <Text style={styles.heartRateChartAverageValue}>
+                                                {`${Math.round(heartRateChartModel.averageBpm)} bpm`}
+                                            </Text>
+                                            <Text style={styles.heartRateChartAverageLabel}>
+                                                {t('workout.stats.avgHeartRate', { ns: 'screens' })}
+                                            </Text>
+                                        </VStack>
+                                        {heartRateChartModel.currentZone != null && (
+                                            <Text
+                                                style={[
+                                                    styles.heartRateChartZone,
+                                                    {
+                                                        color: HEART_RATE_ZONE_LABEL_COLORS[
+                                                            heartRateChartModel.currentZone
+                                                        ],
+                                                    },
+                                                ]}
+                                            >
+                                                {t('workout.stats.zoneLabel', {
+                                                    ns: 'screens',
+                                                    zone: heartRateChartModel.currentZone,
+                                                })}
+                                            </Text>
+                                        )}
+                                    </HStack>
+                                    <VStack style={styles.heartRateChartCanvasWrap}>
+                                        {effectiveHeartRateChartWidth != null && (
+                                            <LineChart
+                                                data={heartRateChartData}
+                                                areaChart
+                                                width={effectiveHeartRateChartWidth}
+                                                height={heartRateChartHeight}
+                                                disableScroll
+                                                adjustToWidth
+                                                initialSpacing={CHART_EDGE_INSET}
+                                                endSpacing={CHART_EDGE_INSET}
+                                                yAxisOffset={heartRateChartModel.minBpm}
+                                                maxValue={Math.max(
+                                                    1,
+                                                    heartRateChartModel.maxBpm -
+                                                        heartRateChartModel.minBpm,
+                                                )}
+                                                noOfSections={3}
+                                                thickness={2}
+                                                strokeLinecap="round"
+                                                color={
+                                                    heartRateZoneScaleModel?.markerColor ??
+                                                    HEART_RATE_ZONE_LABEL_COLORS[2]
+                                                }
+                                                lineGradient={
+                                                    heartRateChartModel.lineGradientStops != null
+                                                }
+                                                lineGradientId={HEART_RATE_LINE_GRADIENT_ID}
+                                                lineGradientComponent={() => (
+                                                    <SvgLinearGradient
+                                                        id={HEART_RATE_LINE_GRADIENT_ID}
+                                                        gradientUnits="userSpaceOnUse"
+                                                        x1="0"
+                                                        y1="0"
+                                                        x2="0"
+                                                        y2={heartRateChartHeight}
+                                                    >
+                                                        {heartRateChartModel.lineGradientStops?.map(
+                                                            (stop) => (
+                                                                <Stop
+                                                                    key={stop.offset}
+                                                                    offset={stop.offset}
+                                                                    stopColor={stop.color}
+                                                                />
+                                                            ),
+                                                        )}
+                                                    </SvgLinearGradient>
+                                                )}
+                                                startFillColor={
+                                                    heartRateZoneScaleModel?.markerColor ??
+                                                    HEART_RATE_ZONE_LABEL_COLORS[1]
+                                                }
+                                                endFillColor={theme.colors.foreground}
+                                                startOpacity={0.18}
+                                                endOpacity={0}
+                                                hideYAxisText
+                                                yAxisLabelWidth={0}
+                                                yAxisThickness={0}
+                                                xAxisThickness={1}
+                                                xAxisColor={theme.colors.border}
+                                                xAxisLabelsHeight={0}
+                                                xAxisLabelsVerticalShift={0}
+                                                labelsExtraHeight={0}
+                                                hideRules={false}
+                                                rulesColor={theme.colors.border}
+                                                rulesThickness={1}
+                                                hideDataPoints={true}
+                                            />
+                                        )}
+                                        <Text
+                                            style={[
+                                                styles.heartRateChartYAxisLabel,
+                                                styles.heartRateChartYAxisTop,
+                                            ]}
+                                        >
+                                            {heartRateChartModel.maxBpm}
+                                        </Text>
+                                        <Text
+                                            style={[
+                                                styles.heartRateChartYAxisLabel,
+                                                styles.heartRateChartYAxisBottom,
+                                            ]}
+                                        >
+                                            {heartRateChartModel.minBpm}
+                                        </Text>
+                                    </VStack>
+                                    <HStack style={styles.heartRateChartMetaRow}>
+                                        {heartRateChartModel.xLabels.map((label, index) => (
+                                            <Text
+                                                key={`${label}-${index}`}
+                                                style={styles.heartRateChartMetaLabel}
+                                            >
+                                                {label}
+                                            </Text>
+                                        ))}
+                                    </HStack>
+                                    {heartRateZoneScaleModel && (
+                                        <VStack style={styles.heartRateZoneScale}>
+                                            <HStack style={styles.heartRateZoneScaleLabels}>
+                                                {heartRateZoneScaleModel.segments.map((segment) => (
+                                                    <Box
+                                                        key={segment.zone}
+                                                        style={[
+                                                            styles.heartRateZoneScaleLabelSlot,
+                                                            { flex: 1 },
+                                                        ]}
+                                                    >
+                                                        <Text
+                                                            adjustsFontSizeToFit
+                                                            minimumFontScale={0.75}
+                                                            numberOfLines={1}
+                                                            style={[
+                                                                styles.heartRateZoneScaleLabel,
+                                                                { color: segment.labelColor },
+                                                            ]}
+                                                        >
+                                                            {`Z${segment.zone}`}
+                                                        </Text>
+                                                    </Box>
+                                                ))}
+                                            </HStack>
+                                            <Box style={styles.heartRateZoneScaleBarWrap}>
+                                                <Box style={styles.heartRateZoneScaleTrack}>
+                                                    <ExpoLinearGradient
+                                                        colors={HEART_RATE_ZONE_GRADIENT_COLORS}
+                                                        start={{ x: 0, y: 0.5 }}
+                                                        end={{ x: 1, y: 0.5 }}
+                                                        style={styles.heartRateZoneScaleGradient}
+                                                    />
+                                                    {heartRateZoneScaleModel.segments
+                                                        .slice(1)
+                                                        .map((segment, index) => (
+                                                            <Box
+                                                                key={segment.zone}
+                                                                style={[
+                                                                    styles.heartRateZoneScaleDivider,
+                                                                    {
+                                                                        left: `${((index + 1) / heartRateZoneScaleModel.segments.length) * 100}%`,
+                                                                    },
+                                                                ]}
+                                                            />
+                                                        ))}
+                                                </Box>
+                                                {heartRateZoneScaleModel.markerPercent != null && (
+                                                    <Box
+                                                        style={[
+                                                            styles.heartRateZoneScaleMarker,
+                                                            {
+                                                                left: `${heartRateZoneScaleModel.markerPercent}%`,
+                                                            },
+                                                        ]}
+                                                    />
+                                                )}
+                                            </Box>
+                                            <HStack style={styles.heartRateZoneScaleTicks}>
+                                                {heartRateZoneScaleModel.segments.map((segment) => (
+                                                    <Box
+                                                        key={segment.zone}
+                                                        style={[
+                                                            styles.heartRateZoneScaleTickSlot,
+                                                            { flex: 1 },
+                                                        ]}
+                                                    >
+                                                        <Text
+                                                            adjustsFontSizeToFit
+                                                            minimumFontScale={0.75}
+                                                            numberOfLines={1}
+                                                            style={styles.heartRateZoneScaleTick}
+                                                        >
+                                                            {segment.max == null
+                                                                ? `${segment.min}+`
+                                                                : segment.min}
+                                                        </Text>
+                                                    </Box>
+                                                ))}
+                                            </HStack>
+                                        </VStack>
+                                    )}
+                                </VStack>
+                            </VStack>
+                        </>
+                    )}
                 </VStack>
             )}
 
@@ -1132,7 +1797,7 @@ export const Stats: FC<StatsProps> = ({
                                             </HStack>
                                             <Box style={styles.recoveryScaleBarWrap}>
                                                 <Box style={styles.recoveryScaleTrack}>
-                                                    <LinearGradient
+                                                    <ExpoLinearGradient
                                                         colors={RECOVERY_SCALE_GRADIENT_COLORS}
                                                         start={{ x: 0, y: 0.5 }}
                                                         end={{ x: 1, y: 0.5 }}

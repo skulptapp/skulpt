@@ -296,6 +296,7 @@
                 "excellent": "优秀",
                 "superior": "卓越"
             },
+            "zoneLabel": "区间 {{zone}}",
             "mhrUsed": "最大心率",
             "activeScore": "活动得分",
             "avgMets": "平均 METs",

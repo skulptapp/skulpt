@@ -298,6 +298,7 @@
                 "excellent": "Excellent",
                 "superior": "Superior"
             },
+            "zoneLabel": "Zone {{zone}}",
             "mhrUsed": "MHR",
             "activeScore": "Active Score",
             "avgMets": "Avg METs",

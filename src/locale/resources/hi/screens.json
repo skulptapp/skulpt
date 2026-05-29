@@ -298,6 +298,7 @@
                 "excellent": "उत्कृष्ट",
                 "superior": "श्रेष्ठ"
             },
+            "zoneLabel": "ज़ोन {{zone}}",
             "mhrUsed": "अधिकतम हृदय गति",
             "activeScore": "गतिविधि स्कोर",
             "avgMets": "औसत METs",

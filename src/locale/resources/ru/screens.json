@@ -303,6 +303,7 @@
                 "excellent": "Отлично",
                 "superior": "Супер"
             },
+            "zoneLabel": "Зона {{zone}}",
             "mhrUsed": "МЧП",
             "activeScore": "Оценка активности",
             "avgMets": "Средние METs",
