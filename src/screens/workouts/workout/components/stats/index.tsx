@@ -926,51 +926,35 @@ const computeZoneZeroSecondsFromSeries = (
     mhr: number | null | undefined,
     workoutStartDate: Date | null | undefined,
     workoutEndDate: Date | null | undefined,
-): number | null => {
-    if (mhr == null || mhr <= 0) return null;
+): number => {
+    if (mhr == null || mhr <= 0) return 0;
 
+    const workoutStartMs = workoutStartDate?.getTime() ?? Number.NEGATIVE_INFINITY;
+    const workoutEndMs = workoutEndDate?.getTime() ?? Number.POSITIVE_INFINITY;
     const samples = parseHeartRateSeries(rawSeries ?? null)
-        .filter((sample) => sample.bpm > 0 && Number.isFinite(sample.timestamp))
+        .filter(
+            (sample) =>
+                sample.bpm > 0 &&
+                Number.isFinite(sample.timestamp) &&
+                sample.timestamp >= workoutStartMs &&
+                sample.timestamp <= workoutEndMs,
+        )
         .sort((left, right) => left.timestamp - right.timestamp);
 
-    if (samples.length === 0) return null;
-
-    const firstSample = samples[0]!;
-    const lastSample = samples[samples.length - 1]!;
-    const workoutStartMs = workoutStartDate?.getTime() ?? firstSample.timestamp;
-    const workoutEndMs = workoutEndDate?.getTime() ?? lastSample.timestamp;
-
-    if (workoutEndMs <= workoutStartMs) return null;
-
-    const inWorkoutSamples = samples.filter(
-        (sample) => sample.timestamp >= workoutStartMs && sample.timestamp <= workoutEndMs,
-    );
-
-    if (inWorkoutSamples.length === 0) return null;
+    if (samples.length < 2) return 0;
 
     let zoneZeroMs = 0;
-    const addSegment = (bpm: number, segmentStartMs: number, segmentEndMs: number) => {
-        if (segmentEndMs <= segmentStartMs) return;
-        if (getZoneForHeartRate(bpm, mhr) === 0) {
-            zoneZeroMs += segmentEndMs - segmentStartMs;
+
+    for (let index = 0; index < samples.length - 1; index += 1) {
+        const currentSample = samples[index]!;
+        const nextSample = samples[index + 1]!;
+
+        if (
+            nextSample.timestamp > currentSample.timestamp &&
+            getZoneForHeartRate(currentSample.bpm, mhr) === 0
+        ) {
+            zoneZeroMs += nextSample.timestamp - currentSample.timestamp;
         }
-    };
-
-    const firstInWorkoutSample = inWorkoutSamples[0]!;
-    const lastInWorkoutSample = inWorkoutSamples[inWorkoutSamples.length - 1]!;
-
-    if (firstInWorkoutSample.timestamp > workoutStartMs) {
-        addSegment(firstInWorkoutSample.bpm, workoutStartMs, firstInWorkoutSample.timestamp);
-    }
-
-    for (let index = 0; index < inWorkoutSamples.length - 1; index += 1) {
-        const currentSample = inWorkoutSamples[index]!;
-        const nextSample = inWorkoutSamples[index + 1]!;
-        addSegment(currentSample.bpm, currentSample.timestamp, nextSample.timestamp);
-    }
-
-    if (lastInWorkoutSample.timestamp < workoutEndMs) {
-        addSegment(lastInWorkoutSample.bpm, lastInWorkoutSample.timestamp, workoutEndMs);
     }
 
     return Math.round(zoneZeroMs / 1000);
@@ -1057,28 +1041,12 @@ export const Stats: FC<StatsProps> = ({
                 healthStats?.zone5Seconds ??
                 (healthStats?.zone5Minutes != null ? Math.round(healthStats.zone5Minutes * 60) : 0),
         };
-        const activeZoneTotalSeconds =
-            activeZoneSeconds[1] +
-            activeZoneSeconds[2] +
-            activeZoneSeconds[3] +
-            activeZoneSeconds[4] +
-            activeZoneSeconds[5];
-        const workoutDurationFromDates =
-            workout.startedAt && workout.completedAt
-                ? Math.max(
-                      0,
-                      Math.round(
-                          (workout.completedAt.getTime() - workout.startedAt.getTime()) / 1000,
-                      ),
-                  )
-                : activeZoneTotalSeconds;
-        const zoneZeroSeconds =
-            computeZoneZeroSecondsFromSeries(
-                healthStats?.hrTimeSeries,
-                healthStats?.mhrUsed,
-                workout.startedAt,
-                workout.completedAt,
-            ) ?? Math.max(0, workoutDurationFromDates - activeZoneTotalSeconds);
+        const zoneZeroSeconds = computeZoneZeroSecondsFromSeries(
+            healthStats?.hrTimeSeries,
+            healthStats?.mhrUsed,
+            workout.startedAt,
+            workout.completedAt,
+        );
 
         return {
             0: zoneZeroSeconds,
