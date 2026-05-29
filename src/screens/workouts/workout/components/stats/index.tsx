@@ -1405,6 +1405,20 @@ export const Stats: FC<StatsProps> = ({
                     hasHeartRateSection ||
                     hasRecoverySection) && <Box style={styles.divider} />}
 
+            {hasActivitySection && (
+                <VStack style={styles.section}>
+                    <Text style={styles.sectionTitle}>
+                        {t('workout.stats.sections.activity', { ns: 'screens' })}
+                    </Text>
+                    <MetricGrid metrics={activityMetrics} />
+                </VStack>
+            )}
+
+            {hasActivitySection &&
+                (hasZoneSection || hasHeartRateSection || hasRecoverySection) && (
+                    <Box style={styles.divider} />
+                )}
+
             {hasZoneSection && (
                 <VStack style={styles.zonesContainer}>
                     <VStack style={[styles.section, styles.zoneSection]}>
@@ -1672,21 +1686,7 @@ export const Stats: FC<StatsProps> = ({
                 </VStack>
             )}
 
-            {hasZoneSection &&
-                (hasActivitySection || hasHeartRateSection || hasRecoverySection) && (
-                    <Box style={styles.divider} />
-                )}
-
-            {hasActivitySection && (
-                <VStack style={styles.section}>
-                    <Text style={styles.sectionTitle}>
-                        {t('workout.stats.sections.activity', { ns: 'screens' })}
-                    </Text>
-                    <MetricGrid metrics={activityMetrics} />
-                </VStack>
-            )}
-
-            {hasActivitySection && (hasHeartRateSection || hasRecoverySection) && (
+            {hasZoneSection && (hasHeartRateSection || hasRecoverySection) && (
                 <Box style={styles.divider} />
             )}
 
