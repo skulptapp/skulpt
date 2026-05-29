@@ -754,24 +754,25 @@ export const Stats: FC<StatsProps> = ({
         : null;
 
     const recoveryChartModel = useMemo(() => {
-        const savedRecoverySamples =
-            workout.completedAt != null
-                ? parseHeartRateSeries(healthStats?.hrRecoverySeries ?? null)
-                : [];
+        const savedRecoverySamples = parseHeartRateSeries(healthStats?.hrRecoverySeries ?? null);
 
-        if (savedRecoverySamples.length === 0 || !workout.completedAt) {
+        if (savedRecoverySamples.length === 0) {
             return null;
         }
 
-        const completedAtMs = workout.completedAt.getTime();
-        const recoveryWindowEndMs = completedAtMs + 2 * 60 * 1000;
-        const points = savedRecoverySamples
+        const sortedRecoverySamples = savedRecoverySamples.sort(
+            (left, right) => left.timestamp - right.timestamp,
+        );
+        const recoveryWindowStartMs = sortedRecoverySamples[0]!.timestamp;
+        const recoveryWindowEndMs = recoveryWindowStartMs + 2 * 60 * 1000;
+        const points = sortedRecoverySamples
             .filter(
                 (sample) =>
-                    sample.timestamp >= completedAtMs && sample.timestamp <= recoveryWindowEndMs,
+                    sample.timestamp >= recoveryWindowStartMs &&
+                    sample.timestamp <= recoveryWindowEndMs,
             )
             .map((sample) => ({
-                minute: (sample.timestamp - completedAtMs) / 60_000,
+                minute: (sample.timestamp - recoveryWindowStartMs) / 60_000,
                 bpm: sample.bpm,
             }))
             .sort((left, right) => left.minute - right.minute);
@@ -820,7 +821,7 @@ export const Stats: FC<StatsProps> = ({
             minBpm: minBpm - verticalPadding,
             maxBpm: maxBpm + verticalPadding,
         };
-    }, [healthStats?.hrRecoverySeries, workout.completedAt]);
+    }, [healthStats?.hrRecoverySeries]);
 
     const recoveryChartData = useMemo(() => {
         if (!recoveryChartModel) {

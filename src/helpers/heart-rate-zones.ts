@@ -124,6 +124,14 @@ export interface WorkoutHealthStats {
     zone5Minutes: number;
 }
 
+export interface HeartRateRecoveryWindow {
+    oneMinuteRecovery: number | null;
+    twoMinuteRecovery: number;
+    series: HeartRateSample[];
+    startTimestamp: number;
+    endTimestamp: number;
+}
+
 export function computeWorkoutHealthStats(
     samples: HeartRateSample[],
     mhr: number,
@@ -334,4 +342,105 @@ export function computeHeartRateRecovery(
     if (recoveryBpm == null) return null;
 
     return Math.round(stopBpm - recoveryBpm);
+}
+
+export function computeHeartRateRecoveryWindow(
+    samples: HeartRateSample[],
+    workoutStartDate: Date,
+    workoutEndDate: Date,
+): HeartRateRecoveryWindow | null {
+    if (samples.length === 0) return null;
+
+    const sorted = [...samples].sort((a, b) => a.timestamp - b.timestamp);
+    const workoutStartMs = workoutStartDate.getTime();
+    const workoutEndMs = workoutEndDate.getTime();
+    const windowMs = 2 * 60_000;
+
+    if (workoutEndMs - workoutStartMs < windowMs) return null;
+
+    const inWorkoutSamples = sorted.filter(
+        (sample) => sample.timestamp >= workoutStartMs && sample.timestamp <= workoutEndMs,
+    );
+
+    if (inWorkoutSamples.length === 0) return null;
+
+    let best: {
+        startTimestamp: number;
+        endTimestamp: number;
+        startBpm: number;
+        oneMinuteBpm: number | null;
+        endBpm: number;
+        drop: number;
+    } | null = null;
+
+    for (const sample of inWorkoutSamples) {
+        const startTimestamp = sample.timestamp;
+        const endTimestamp = startTimestamp + windowMs;
+        if (endTimestamp > workoutEndMs) break;
+
+        const endBpm = getInterpolatedBpmAt(
+            inWorkoutSamples,
+            endTimestamp,
+            endTimestamp - 30_000,
+            endTimestamp + 30_000,
+        );
+
+        if (endBpm == null) continue;
+
+        const oneMinuteTimestamp = startTimestamp + 60_000;
+        const oneMinuteBpm = getInterpolatedBpmAt(
+            inWorkoutSamples,
+            oneMinuteTimestamp,
+            oneMinuteTimestamp - 30_000,
+            oneMinuteTimestamp + 30_000,
+        );
+        const drop = sample.bpm - endBpm;
+
+        if (!best || drop > best.drop) {
+            best = {
+                startTimestamp,
+                endTimestamp,
+                startBpm: sample.bpm,
+                oneMinuteBpm,
+                endBpm,
+                drop,
+            };
+        }
+    }
+
+    if (!best || best.drop <= 0) return null;
+
+    const pointByTimestamp = new Map<number, number>();
+    pointByTimestamp.set(best.startTimestamp, best.startBpm);
+
+    for (const sample of inWorkoutSamples) {
+        if (sample.timestamp < best.startTimestamp || sample.timestamp > best.endTimestamp) {
+            continue;
+        }
+
+        pointByTimestamp.set(sample.timestamp, sample.bpm);
+    }
+
+    if (best.oneMinuteBpm != null) {
+        pointByTimestamp.set(best.startTimestamp + 60_000, best.oneMinuteBpm);
+    }
+    pointByTimestamp.set(best.endTimestamp, best.endBpm);
+
+    const series = Array.from(pointByTimestamp.entries())
+        .map(([timestamp, bpm]) => ({
+            timestamp,
+            bpm: Math.round(bpm),
+        }))
+        .sort((a, b) => a.timestamp - b.timestamp);
+
+    return {
+        oneMinuteRecovery:
+            best.oneMinuteBpm == null
+                ? null
+                : Math.max(0, Math.round(best.startBpm - best.oneMinuteBpm)),
+        twoMinuteRecovery: Math.max(0, Math.round(best.drop)),
+        series,
+        startTimestamp: best.startTimestamp,
+        endTimestamp: best.endTimestamp,
+    };
 }

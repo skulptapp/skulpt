@@ -6,7 +6,7 @@ import {
     readWorkoutSummaryMetrics,
 } from './health';
 import {
-    computeHeartRateRecovery,
+    computeHeartRateRecoveryWindow,
     computeWorkoutHealthStats,
     resolveMhrFromProfile,
 } from '@/helpers/heart-rate-zones';
@@ -65,9 +65,7 @@ export async function computeWorkoutStats(
         const effectiveWorkoutStartDate = summaryMetrics.workoutStartDate ?? startDate;
         const effectiveWorkoutEndDate = summaryMetrics.workoutEndDate ?? endDate;
         const hrReadStartDate = new Date(effectiveWorkoutStartDate.getTime() - 30 * 1000);
-        const hrReadEndDate = new Date(effectiveWorkoutEndDate.getTime() + 2 * 60 * 1000);
-        const recoveryWindowStartDate = effectiveWorkoutEndDate;
-        const hasRecoveryWindowElapsed = Date.now() >= hrReadEndDate.getTime();
+        const hrReadEndDate = effectiveWorkoutEndDate;
         const workoutDurationSeconds = Math.max(
             0,
             Math.round(
@@ -87,18 +85,25 @@ export async function computeWorkoutStats(
                 sample.timestamp >= effectiveWorkoutStartDate.getTime() &&
                 sample.timestamp <= effectiveWorkoutEndDate.getTime(),
         );
-        const recoveryHeartRateSamples = hrSamples.filter(
-            (sample) =>
-                sample.timestamp >= recoveryWindowStartDate.getTime() &&
-                sample.timestamp <= hrReadEndDate.getTime(),
-        );
 
         const stats: WorkoutHealthStats = {
             hrTimeSeries: JSON.stringify(workoutOnlyHeartRateSamples),
         };
 
-        if (hasRecoveryWindowElapsed) {
-            stats.hrRecoverySeries = JSON.stringify(recoveryHeartRateSamples);
+        const recoveryWindow = computeHeartRateRecoveryWindow(
+            workoutOnlyHeartRateSamples,
+            effectiveWorkoutStartDate,
+            effectiveWorkoutEndDate,
+        );
+
+        if (recoveryWindow) {
+            stats.heartRateRecovery = recoveryWindow.oneMinuteRecovery;
+            stats.heartRateRecoveryTwoMinutes = recoveryWindow.twoMinuteRecovery;
+            stats.hrRecoverySeries = JSON.stringify(recoveryWindow.series);
+        } else {
+            stats.heartRateRecovery = null;
+            stats.heartRateRecoveryTwoMinutes = null;
+            stats.hrRecoverySeries = null;
         }
 
         if (summaryMetrics.avgMets != null) {
@@ -161,26 +166,7 @@ export async function computeWorkoutStats(
                 stats.zone3Minutes = heartStats.zone3Minutes;
                 stats.zone4Minutes = heartStats.zone4Minutes;
                 stats.zone5Minutes = heartStats.zone5Minutes;
-
-                if (hasRecoveryWindowElapsed) {
-                    stats.heartRateRecovery =
-                        computeHeartRateRecovery(
-                            hrSamples,
-                            effectiveWorkoutEndDate,
-                            heartStats.mhrUsed,
-                        ) ?? null;
-                    stats.heartRateRecoveryTwoMinutes =
-                        computeHeartRateRecovery(
-                            hrSamples,
-                            effectiveWorkoutEndDate,
-                            heartStats.mhrUsed,
-                            2,
-                        ) ?? null;
-                }
             }
-        } else if (hasRecoveryWindowElapsed) {
-            stats.heartRateRecovery = null;
-            stats.heartRateRecoveryTwoMinutes = null;
         }
 
         const resolvedActiveCalories = summaryMetrics.activeCalories ?? activeCaloriesFallback;
@@ -198,14 +184,6 @@ export async function computeWorkoutStats(
             stats.totalCalories < stats.activeCalories
         ) {
             stats.totalCalories = stats.activeCalories;
-        }
-
-        if (!hasRecoveryWindowElapsed) {
-            return {
-                status: 'waiting_recovery',
-                stats,
-                nextRunAt: new Date(hrReadEndDate.getTime() + 1_000),
-            };
         }
 
         return {
