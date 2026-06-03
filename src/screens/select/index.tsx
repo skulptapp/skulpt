@@ -357,6 +357,7 @@ const SelectExercisesScreen: FC = () => {
                     value={query}
                     onChange={setQuery}
                     placeholder={t('placeholder.search', { ns: 'common' })}
+                    dismissText={t('done', { ns: 'common' })}
                 />
             </Box>
             <ExercisesListContainer

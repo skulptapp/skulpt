@@ -31,7 +31,7 @@ interface SearchProps {
     value: string;
     onChange: (text: string) => void;
     placeholder: string;
-    dismissText?: string;
+    dismissText: string;
 }
 
 export const Search: FC<SearchProps> = ({ value, onChange, placeholder, dismissText }) => {
@@ -64,7 +64,7 @@ export const Search: FC<SearchProps> = ({ value, onChange, placeholder, dismissT
         };
     });
 
-    const label = useMemo(() => dismissText || 'Готово', [dismissText]);
+    const label = useMemo(() => dismissText, [dismissText]);
     useEffect(() => {
         const shouldShow = (isFocused || !!value) && !manualHide;
         visible.set(withTiming(shouldShow ? 1 : 0, { duration: 180 }));

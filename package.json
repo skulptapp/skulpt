@@ -89,6 +89,7 @@
         "expo-system-ui": "^56.0.5",
         "expo-task-manager": "^56.0.16",
         "expo-updates": "^56.0.17",
+        "fuse.js": "^7.4.1",
         "i18next": "^26.3.0",
         "immer": "^11.1.8",
         "intl-pluralrules": "^2.0.1",

@@ -11,6 +11,7 @@ import { ExerciseListItemComponent } from '../card';
 import {
     ExerciseCard,
     ExerciseListItem,
+    createExerciseSearchIndex,
     filterGroupedExercisesByName,
     groupExercises,
     useDeleteExercise,
@@ -65,14 +66,18 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
         return groupExercises(rawExercises);
     }, [rawExercises]);
 
+    const exerciseSearchIndex = useMemo(() => {
+        return createExerciseSearchIndex(groupedData);
+    }, [groupedData]);
+
     const data = useMemo<ExerciseListItem[]>(() => {
-        const normalizedQuery = query.trim().toLowerCase();
-        if (!normalizedQuery) {
+        const trimmedQuery = query.trim();
+        if (!trimmedQuery) {
             return groupedData;
         }
 
-        return filterGroupedExercisesByName(groupedData, normalizedQuery);
-    }, [groupedData, query]);
+        return filterGroupedExercisesByName(groupedData, trimmedQuery, exerciseSearchIndex);
+    }, [exerciseSearchIndex, groupedData, query]);
 
     const stickyLookup = useMemo(() => {
         const categoryByIndex: (string | undefined)[] = [];
