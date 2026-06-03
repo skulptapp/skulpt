@@ -15,6 +15,7 @@ import { RestChangeType, useRestStore } from '@/stores/rest';
 import { BaseButtons } from '@/components/forms/fields/base/buttons';
 import { VStack } from '@/components/primitives/vstack';
 import { useExerciseSets, useUpdateExerciseSet } from '@/hooks/use-workouts';
+import { useRunningWorkoutTicker } from '@/hooks/use-running-workout';
 import { SheetInput } from '@/components/primitives/sheet/input';
 import { digitsFromSeconds, formatClockSecondsCompact, secondsFromDigits } from '@/helpers/times';
 import { buildExerciseSetRestUpdate } from './updates';
@@ -131,6 +132,7 @@ const RestInput: FC = () => {
     const title = baseTitle.charAt(0).toUpperCase() + baseTitle.slice(1);
 
     const { data: sets } = useExerciseSets(workoutExerciseId || '');
+    const { runningWorkoutRestingSet } = useRunningWorkoutTicker();
 
     const sortedSets = useMemo(
         () => (sets || []).slice().sort((a, b) => a.order - b.order),
@@ -146,8 +148,10 @@ const RestInput: FC = () => {
 
     const buildRestUpdate = useCallback(
         (set: (typeof sortedSets)[number], restValue: number | null) =>
-            buildExerciseSetRestUpdate(set, restValue),
-        [],
+            buildExerciseSetRestUpdate(set, restValue, {
+                isCurrentActiveRest: set.id === runningWorkoutRestingSet?.id,
+            }),
+        [runningWorkoutRestingSet?.id],
     );
 
     const activeDraftKey = `${workoutExerciseId ?? ''}:${setId ?? 'general'}`;

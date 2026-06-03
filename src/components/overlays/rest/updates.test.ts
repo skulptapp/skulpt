@@ -1,8 +1,26 @@
-// @ts-nocheck
+import { describe, expect, test } from '@jest/globals';
 import { buildExerciseSetRestUpdate } from './updates';
 
 describe('buildExerciseSetRestUpdate', () => {
     test('keeps an active rest pending when its duration changes', () => {
+        const update = buildExerciseSetRestUpdate(
+            {
+                completedAt: new Date('2026-05-28T10:00:00.000Z'),
+                restCompletedAt: null,
+                finalRestTime: null,
+            },
+            120,
+            { isCurrentActiveRest: true },
+        );
+
+        expect(update).toEqual({
+            restTime: 120,
+            restCompletedAt: null,
+            finalRestTime: null,
+        });
+    });
+
+    test('does not reopen a completed non-active rest when its duration changes', () => {
         const update = buildExerciseSetRestUpdate(
             {
                 completedAt: new Date('2026-05-28T10:00:00.000Z'),
@@ -15,7 +33,7 @@ describe('buildExerciseSetRestUpdate', () => {
         expect(update).toEqual({
             restTime: 120,
             restCompletedAt: null,
-            finalRestTime: null,
+            finalRestTime: 120,
         });
     });
 

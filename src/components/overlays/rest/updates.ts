@@ -7,9 +7,14 @@ type RestUpdate = Partial<
     Pick<ExerciseSetSelect, 'restTime' | 'restCompletedAt' | 'finalRestTime'>
 >;
 
+type RestUpdateOptions = {
+    isCurrentActiveRest?: boolean;
+};
+
 export const buildExerciseSetRestUpdate = (
     set: RestEditableSet,
     restValue: number | null,
+    options: RestUpdateOptions = {},
 ): RestUpdate => {
     const restTime = restValue == null ? null : Math.max(0, Math.trunc(restValue));
 
@@ -34,9 +39,17 @@ export const buildExerciseSetRestUpdate = (
             : { restTime };
     }
 
+    if (options.isCurrentActiveRest) {
+        return {
+            restTime,
+            restCompletedAt: null,
+            finalRestTime: null,
+        };
+    }
+
     return {
         restTime,
         restCompletedAt: null,
-        finalRestTime: null,
+        finalRestTime: restTime,
     };
 };
