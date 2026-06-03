@@ -27,6 +27,7 @@ export const buildWatchState = (
     },
 ): WatchWorkoutState => {
     const laState = buildLiveActivityState(args);
+    const watchState = laState.state === 'completed' ? 'ready' : laState.state;
     const currentSet = args.restingSet ?? args.activeSet;
     const lastCompletedSet = [...args.executionOrderSets]
         .map((entry) => entry.set)
@@ -47,6 +48,7 @@ export const buildWatchState = (
 
     return {
         ...laState,
+        state: watchState,
         setType: normalizeSetType(currentSet?.type ?? lastCompletedSet?.type),
         tracking: currentTracking,
         distance: currentSet?.distance ?? undefined,

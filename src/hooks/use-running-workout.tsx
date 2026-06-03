@@ -1287,13 +1287,15 @@ const useRunningWorkoutProvider = () => {
                 setIsTrackingOnWatch(watchManagerRef.current.isTrackingOnWatch);
                 return;
             }
+
+            enqueueWorkoutCommand(payload);
         });
         setIsTrackingOnWatch(watchManagerRef.current.isTrackingOnWatch);
 
         return () => {
             sub?.remove();
         };
-    }, []);
+    }, [enqueueWorkoutCommand]);
 
     useEffect(() => {
         const sub = workoutCommandManagerRef.current.onCommand(enqueueWorkoutCommand);

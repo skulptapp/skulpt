@@ -244,18 +244,24 @@ public class WatchConnectivityModule: Module {
   private func handleIncomingCommand(payload: [String: String]) {
     if Self.isLifecycleCommand(payload) {
       setLatestLifecycleCommand(payload)
-
-      DispatchQueue.main.async {
-        self.sendEvent("onWatchCommand", payload)
-      }
+      emitWatchCommand(payload)
       return
     }
 
-    guard let commandId = payload["commandId"] else { return }
-    guard !hasSeenCommandId(commandId) else { return }
+    if let commandId = payload["commandId"] {
+      guard !hasSeenCommandId(commandId) else { return }
 
-    rememberCommandId(commandId)
-    enqueueWorkoutCommand(payload: payload)
+      rememberCommandId(commandId)
+      enqueueWorkoutCommand(payload: payload, notify: false)
+    }
+
+    emitWatchCommand(payload)
+  }
+
+  private func emitWatchCommand(_ payload: [String: String]) {
+    DispatchQueue.main.async {
+      self.sendEvent("onWatchCommand", payload)
+    }
   }
 
   private func pendingWorkoutCommands() -> [[String: String]] {
@@ -267,7 +273,7 @@ public class WatchConnectivityModule: Module {
     defaults.set(commands, forKey: WorkoutCommandStorageKey.pendingCommands)
   }
 
-  private func enqueueWorkoutCommand(payload: [String: String]) {
+  private func enqueueWorkoutCommand(payload: [String: String], notify: Bool = true) {
     var commands = pendingWorkoutCommands()
     let commandId = payload["commandId"]
 
@@ -277,6 +283,8 @@ public class WatchConnectivityModule: Module {
 
     commands.append(payload)
     setPendingWorkoutCommands(commands)
+    guard notify else { return }
+
     NotificationCenter.default.post(
       name: Self.workoutCommandQueueDidChangeNotificationName,
       object: nil
