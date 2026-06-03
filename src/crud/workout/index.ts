@@ -20,14 +20,39 @@ import { HealthStats } from '@/types/health-stats';
 import { getTopLevelMuscleValues } from '@/constants/muscles';
 import { isRestFinalized } from '@/helpers/rest';
 
-import { queueSyncOperation } from '../sync';
-import { getExerciseSets, updateExerciseSet, createExerciseSet } from '../exercise';
+import { queueSyncOperation, queueSyncOperations } from '../sync';
+import { getExerciseSets, updateExerciseSet } from '../exercise';
 import { convertWeight } from '@/helpers/units';
 import { getCurrentUser } from '../user';
 
 const getDateMs = (value: Date | null | undefined) => {
     if (!value) return null;
     return value instanceof Date ? value.getTime() : new Date(value as unknown as string).getTime();
+};
+
+type QueuedCreateOperation = Parameters<typeof queueSyncOperations>[0][number];
+type BulkWorkoutGroupRow = WorkoutGroupInsert & { id: string; createdAt: Date; updatedAt: Date };
+type BulkWorkoutExerciseRow = WorkoutExerciseInsert & {
+    id: string;
+    createdAt: Date;
+    updatedAt: Date;
+};
+type BulkExerciseSetRow = ExerciseSetInsert & { id: string; createdAt: Date; updatedAt: Date };
+
+const appendCreateSyncOperations = <T extends { id: string; updatedAt: Date }>(
+    operations: QueuedCreateOperation[],
+    tableName: string,
+    rows: T[],
+) => {
+    operations.push(
+        ...rows.map((row) => ({
+            tableName,
+            recordId: row.id,
+            operation: 'create' as const,
+            timestamp: row.updatedAt,
+            data: row,
+        })),
+    );
 };
 
 const syncManualCompletedSetsToWorkoutCompletedAt = async (
@@ -825,69 +850,117 @@ export const duplicateWorkout = async (
                   }
                 : null;
 
+        const createdAt = new Date();
         const groupIdMap = new Map<string, string>();
-        for (const groupData of originalWorkout.groups) {
+        const groupRows: BulkWorkoutGroupRow[] = originalWorkout.groups.map((groupData) => {
             const originalGroup = groupData.group;
-            const newGroup = await createWorkoutGroup({
+            const newGroup: BulkWorkoutGroupRow = {
+                id: nanoid(),
                 workoutId: newWorkout.id,
                 type: originalGroup.type,
                 order: originalGroup.order,
                 notes: originalGroup.notes,
-            });
+                createdAt,
+                updatedAt: createdAt,
+            };
             groupIdMap.set(originalGroup.id, newGroup.id);
-        }
+            return newGroup;
+        });
+
+        const workoutExerciseRows: BulkWorkoutExerciseRow[] = [];
+        const exerciseSetRows: BulkExerciseSetRow[] = [];
 
         for (const exerciseData of originalWorkout.exercises) {
             const originalWorkoutExercise = exerciseData.workoutExercise;
             const originalSets = exerciseData.sets;
+            const newWorkoutExerciseId = nanoid();
 
             let newGroupId: string | null = null;
             if (originalWorkoutExercise.groupId) {
                 newGroupId = groupIdMap.get(originalWorkoutExercise.groupId) || null;
             }
 
-            const newWorkoutExercise = await createWorkoutExercise({
+            workoutExerciseRows.push({
+                id: newWorkoutExerciseId,
                 workoutId: newWorkout.id,
                 exerciseId: originalWorkoutExercise.exerciseId,
                 groupId: newGroupId,
                 orderInGroup: originalWorkoutExercise.orderInGroup,
+                createdAt,
+                updatedAt: createdAt,
             });
 
+            const usedOrders = new Set<number>();
+            let maxOrder = -1;
+
             for (const originalSet of originalSets) {
-                const newSetData: Omit<ExerciseSetInsert, 'id'> = {
-                    workoutExerciseId: newWorkoutExercise.id,
-                    order: originalSet.order,
+                let safeOrder = originalSet.order;
+                if (usedOrders.has(safeOrder)) {
+                    safeOrder = maxOrder + 1;
+                }
+                usedOrders.add(safeOrder);
+                maxOrder = Math.max(maxOrder, safeOrder);
+
+                const isFirstNowSet = mode === 'now' && exerciseSetRows.length === 0;
+                const completedDuplicateRestTime =
+                    mode === 'completed' &&
+                    (originalSet.restTime === null ||
+                        originalSet.restTime === undefined ||
+                        originalSet.restTime <= 0)
+                        ? null
+                        : originalSet.restTime;
+                const completedDuplicateFinalRestTime =
+                    mode === 'completed' &&
+                    completedDuplicateRestTime != null &&
+                    completedDuplicateRestTime > 0
+                        ? Math.max(0, completedDuplicateRestTime)
+                        : null;
+
+                exerciseSetRows.push({
+                    id: nanoid(),
+                    workoutExerciseId: newWorkoutExerciseId,
+                    order: safeOrder,
                     type: originalSet.type,
                     round: originalSet.round,
                     weight: originalSet.weight,
+                    weightUnits: exerciseData.exercise.weightUnits,
                     reps: originalSet.reps,
                     time: originalSet.time,
                     distance: originalSet.distance,
+                    distanceUnits: exerciseData.exercise.distanceUnits,
                     rpe: originalSet.rpe,
-                    restTime: originalSet.restTime,
+                    restTime:
+                        mode === 'completed' ? completedDuplicateRestTime : originalSet.restTime,
                     restCompletedAt: completedSetDefaults?.restCompletedAt ?? null,
-                    finalRestTime: completedSetDefaults?.finalRestTime ?? null,
-                    startedAt: completedSetDefaults?.startedAt ?? null,
+                    finalRestTime:
+                        mode === 'completed'
+                            ? completedDuplicateFinalRestTime
+                            : (completedSetDefaults?.finalRestTime ?? null),
+                    startedAt: isFirstNowSet ? now : (completedSetDefaults?.startedAt ?? null),
                     completedAt: completedSetDefaults?.completedAt ?? null,
-                };
-
-                await createExerciseSet(newSetData);
+                    createdAt,
+                    updatedAt: createdAt,
+                });
             }
         }
 
-        if (mode === 'now') {
-            const newWorkoutExercises = await getWorkoutExercises(newWorkout.id);
-            if (newWorkoutExercises.length > 0) {
-                const firstNewExercise = newWorkoutExercises[0];
-                const newSets = await getExerciseSets(firstNewExercise.id);
-                if (newSets.length > 0) {
-                    const firstNewSet = newSets.slice().sort((a, b) => a.order - b.order)[0];
-                    if (firstNewSet) {
-                        await updateExerciseSet(firstNewSet.id, { startedAt: now });
-                    }
-                }
+        await db.transaction(async (tx) => {
+            if (groupRows.length > 0) {
+                await tx.insert(workoutGroup).values(groupRows);
             }
-        }
+            if (workoutExerciseRows.length > 0) {
+                await tx.insert(workoutExercise).values(workoutExerciseRows);
+            }
+            if (exerciseSetRows.length > 0) {
+                await tx.insert(exerciseSet).values(exerciseSetRows);
+            }
+        });
+
+        const syncOperations: QueuedCreateOperation[] = [];
+        appendCreateSyncOperations(syncOperations, 'workout_group', groupRows);
+        appendCreateSyncOperations(syncOperations, 'workout_exercise', workoutExerciseRows);
+        appendCreateSyncOperations(syncOperations, 'exercise_set', exerciseSetRows);
+        await queueSyncOperations(syncOperations);
 
         return newWorkout;
     } catch (error) {

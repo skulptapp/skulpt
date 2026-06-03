@@ -30,12 +30,14 @@ const WorkoutDuplicateItems: FC<WorkoutDuplicateItemsProps> = ({ labels = 'repea
 
     const handleDuplicate = async (mode: 'now' | 'planned' | 'completed') => {
         if (!payload || !('workoutId' in payload)) return;
+        if (duplicateWorkout.isPending) return;
 
+        const { workoutId } = payload;
+        close();
         const newWorkout = await duplicateWorkout.mutateAsync({
-            workoutId: payload.workoutId,
+            workoutId,
             mode,
         });
-        close();
         router.setParams({ workoutId: newWorkout.id });
     };
 
@@ -44,16 +46,19 @@ const WorkoutDuplicateItems: FC<WorkoutDuplicateItemsProps> = ({ labels = 'repea
             {!runningWorkout && (
                 <MenuItem
                     title={t(`workout.${labels}.now`, { ns: 'screens' })}
+                    disabled={duplicateWorkout.isPending}
                     onPress={() => handleDuplicate('now')}
                 />
             )}
             <MenuItem
                 title={t(`workout.${labels}.plan`, { ns: 'screens' })}
+                disabled={duplicateWorkout.isPending}
                 onPress={() => handleDuplicate('planned')}
             />
             <MenuItem
                 title={t(`workout.${labels}.completed`, { ns: 'screens' })}
                 last={last}
+                disabled={duplicateWorkout.isPending}
                 onPress={() => handleDuplicate('completed')}
             />
         </>
