@@ -9,6 +9,8 @@ import {
     isWatchReachable,
     updateWatchContext,
     sendWatchMessage,
+    drainPendingWatchCommands,
+    ackPendingWatchCommand,
     onWatchCommand,
     WatchCommandPayload,
 } from '../../modules/watch-connectivity';
@@ -72,7 +74,7 @@ export const buildWatchState = (
     };
 };
 
-type WatchLifecyclePayload = WatchCommandPayload;
+export type WatchCommand = WatchCommandPayload;
 
 const stateKey = (state: WatchWorkoutState): string =>
     JSON.stringify({
@@ -136,7 +138,7 @@ export class WatchManager {
         return this._isTrackingOnWatch;
     }
 
-    private applyLifecyclePayload(payload: WatchLifecyclePayload): boolean {
+    private applyLifecyclePayload(payload: WatchCommand): boolean {
         if (payload.command !== 'watchSessionStarted' && payload.command !== 'watchSessionEnded') {
             return false;
         }
@@ -311,6 +313,16 @@ export class WatchManager {
         });
     }
 
+    async drainPendingCommands(): Promise<WatchCommand[]> {
+        if (!isWatchSupported()) return [];
+        return drainPendingWatchCommands();
+    }
+
+    async ackCommand(commandId: string): Promise<void> {
+        if (!isWatchSupported()) return;
+        await ackPendingWatchCommand(commandId);
+    }
+
     hydrateLifecycleState(): void {
         if (!isWatchSupported()) return;
 
@@ -320,7 +332,7 @@ export class WatchManager {
         this.applyLifecyclePayload(payload);
     }
 
-    onCommand(listener: (payload: WatchLifecyclePayload) => void): EventSubscription | null {
+    onCommand(listener: (payload: WatchCommand) => void): EventSubscription | null {
         const subscription = onWatchCommand((payload) => {
             this.applyLifecyclePayload(payload);
 

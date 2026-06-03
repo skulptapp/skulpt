@@ -50,7 +50,7 @@ import {
 } from '@/services/workout-notification-chain';
 import { useUser } from './use-user';
 import { LiveActivityManager, buildLiveActivityState } from '@/services/live-activity';
-import { WatchManager, buildWatchState } from '@/services/watch-connectivity';
+import { WatchCommand, WatchManager, buildWatchState } from '@/services/watch-connectivity';
 import { WorkoutCommand, WorkoutCommandManager } from '@/services/workout-command';
 import {
     readBiologicalSex,
@@ -192,9 +192,14 @@ const useRunningWorkoutProvider = () => {
     const watchManagerRef = useRef(new WatchManager());
     const workoutCommandManagerRef = useRef(new WorkoutCommandManager());
     const lastRunningWorkoutIdRef = useRef<string | undefined>(undefined);
+    const queuedWatchCommandIdsRef = useRef<Set<string>>(new Set());
     const queuedWorkoutCommandIdsRef = useRef<Set<string>>(new Set());
+    const watchCommandSequenceRef = useRef<Promise<void>>(Promise.resolve());
     const workoutCommandSequenceRef = useRef<Promise<void>>(Promise.resolve());
     const phoneHealthPermissionsGrantedRef = useRef(false);
+    const processWatchCommandRef = useRef<(payload: WatchCommand) => Promise<void>>(
+        async () => undefined,
+    );
     const processWorkoutCommandRef = useRef<(payload: WorkoutCommand) => Promise<void>>(
         async () => undefined,
     );
@@ -1070,15 +1075,18 @@ const useRunningWorkoutProvider = () => {
     );
 
     // --- Native workout commands: Apple Watch, Live Activity, and other native surfaces ---
-    const processWorkoutCommand = useCallback(
-        async (payload: WorkoutCommand) => {
+    const processNativeWorkoutCommand = useCallback(
+        async (
+            payload: WatchCommand | WorkoutCommand,
+            ackCommand: (commandId: string) => Promise<void>,
+        ) => {
             if (!isWorkoutCommandStateReady) {
                 return;
             }
 
             const ack = async () => {
                 if (payload.commandId) {
-                    await workoutCommandManagerRef.current.ackCommand(payload.commandId);
+                    await ackCommand(payload.commandId);
                 }
             };
 
@@ -1213,9 +1221,57 @@ const useRunningWorkoutProvider = () => {
         ],
     );
 
+    const processWatchCommand = useCallback(
+        async (payload: WatchCommand) => {
+            await processNativeWorkoutCommand(payload, (commandId) =>
+                watchManagerRef.current.ackCommand(commandId),
+            );
+        },
+        [processNativeWorkoutCommand],
+    );
+
+    const processWorkoutCommand = useCallback(
+        async (payload: WorkoutCommand) => {
+            await processNativeWorkoutCommand(payload, (commandId) =>
+                workoutCommandManagerRef.current.ackCommand(commandId),
+            );
+        },
+        [processNativeWorkoutCommand],
+    );
+
+    useEffect(() => {
+        processWatchCommandRef.current = processWatchCommand;
+    }, [processWatchCommand]);
+
     useEffect(() => {
         processWorkoutCommandRef.current = processWorkoutCommand;
     }, [processWorkoutCommand]);
+
+    const enqueueWatchCommand = useCallback((payload: WatchCommand) => {
+        const commandId = payload.commandId;
+
+        if (commandId && queuedWatchCommandIdsRef.current.has(commandId)) {
+            return;
+        }
+
+        if (commandId) {
+            queuedWatchCommandIdsRef.current.add(commandId);
+        }
+
+        watchCommandSequenceRef.current = watchCommandSequenceRef.current
+            .catch(() => undefined)
+            .then(async () => {
+                try {
+                    await processWatchCommandRef.current(payload);
+                } catch (error) {
+                    reportError(error, 'Failed to process watch command:');
+                } finally {
+                    if (commandId) {
+                        queuedWatchCommandIdsRef.current.delete(commandId);
+                    }
+                }
+            });
+    }, []);
 
     const enqueueWorkoutCommand = useCallback((payload: WorkoutCommand) => {
         const commandId = payload.commandId;
@@ -1243,6 +1299,15 @@ const useRunningWorkoutProvider = () => {
             });
     }, []);
 
+    const drainPendingWatchCommandsToQueue = useCallback(async () => {
+        if (!isWorkoutCommandStateReady) return;
+
+        const pendingCommands = await watchManagerRef.current.drainPendingCommands();
+        for (const payload of pendingCommands) {
+            enqueueWatchCommand(payload);
+        }
+    }, [enqueueWatchCommand, isWorkoutCommandStateReady]);
+
     const drainPendingWorkoutCommandsToQueue = useCallback(async () => {
         if (!isWorkoutCommandStateReady) return;
 
@@ -1251,6 +1316,15 @@ const useRunningWorkoutProvider = () => {
             enqueueWorkoutCommand(payload);
         }
     }, [enqueueWorkoutCommand, isWorkoutCommandStateReady]);
+
+    useEffect(() => {
+        if (!isWorkoutCommandStateReady) return;
+
+        runInBackground(
+            drainPendingWatchCommandsToQueue,
+            'Failed to hydrate pending watch commands:',
+        );
+    }, [drainPendingWatchCommandsToQueue, runningWorkout?.id, isWorkoutCommandStateReady]);
 
     useEffect(() => {
         if (!isWorkoutCommandStateReady) return;
@@ -1268,6 +1342,10 @@ const useRunningWorkoutProvider = () => {
             if (nextState !== 'active') return;
 
             runInBackground(
+                drainPendingWatchCommandsToQueue,
+                'Failed to hydrate pending watch commands on app foreground:',
+            );
+            runInBackground(
                 drainPendingWorkoutCommandsToQueue,
                 'Failed to hydrate pending workout commands on app foreground:',
             );
@@ -1276,7 +1354,11 @@ const useRunningWorkoutProvider = () => {
         return () => {
             subscription.remove();
         };
-    }, [drainPendingWorkoutCommandsToQueue, isWorkoutCommandStateReady]);
+    }, [
+        drainPendingWatchCommandsToQueue,
+        drainPendingWorkoutCommandsToQueue,
+        isWorkoutCommandStateReady,
+    ]);
 
     useEffect(() => {
         const sub = watchManagerRef.current.onCommand((payload) => {
@@ -1288,14 +1370,14 @@ const useRunningWorkoutProvider = () => {
                 return;
             }
 
-            enqueueWorkoutCommand(payload);
+            enqueueWatchCommand(payload);
         });
         setIsTrackingOnWatch(watchManagerRef.current.isTrackingOnWatch);
 
         return () => {
             sub?.remove();
         };
-    }, [enqueueWorkoutCommand]);
+    }, [enqueueWatchCommand]);
 
     useEffect(() => {
         const sub = workoutCommandManagerRef.current.onCommand(enqueueWorkoutCommand);
