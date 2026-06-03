@@ -76,6 +76,36 @@ describe('sync API error reporting', () => {
         expect(mockReportError).not.toHaveBeenCalled();
     });
 
+    test('does not report transport pull failures when native request keeps a stale HTTP status', async () => {
+        const { getServerChanges } = loadApiModule();
+
+        mockGet.mockRejectedValue({
+            isAxiosError: true,
+            code: 'ERR_NETWORK',
+            message: 'Network Error',
+            request: {
+                status: 200,
+                responseText: '',
+            },
+        });
+
+        const result = await getServerChanges(0, 'user_1', {
+            syncType: 'skulpt',
+            locale: 'en',
+        });
+
+        expect(result).toEqual({
+            success: false,
+            error: 'NO_INTERNET',
+            status: 200,
+            type: undefined,
+            code: undefined,
+            table: undefined,
+            id: undefined,
+        });
+        expect(mockReportError).not.toHaveBeenCalled();
+    });
+
     test('sends current sync schema version header', () => {
         loadApiModule();
 

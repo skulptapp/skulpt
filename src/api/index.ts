@@ -55,6 +55,8 @@ type RetryableConfig = InternalAxiosRequestConfig & { _retried?: boolean };
 
 // HTTP statuses that are expected to recover on a later sync attempt.
 const RETRYABLE_HTTP_STATUSES = new Set([408, 429, 502, 503, 504]);
+const TIMEOUT_ERROR_CODES = new Set(['ECONNABORTED', 'ETIMEDOUT']);
+const NETWORK_ERROR_CODES = new Set(['ERR_NETWORK', 'ERR_CANCELED']);
 
 // Errors that should NOT be reported to Sentry from handleError:
 //  - NO_INTERNET / TIMEOUT  → expected transient conditions, not actionable
@@ -151,6 +153,22 @@ const parseFallbackResponse = (value: unknown): unknown => {
     }
 };
 
+const resolveTransportError = (err: { code?: unknown; message?: unknown }): string | undefined => {
+    const code = typeof err.code === 'string' ? err.code : undefined;
+    if (code && TIMEOUT_ERROR_CODES.has(code)) return 'TIMEOUT';
+    if (code && NETWORK_ERROR_CODES.has(code)) return 'NO_INTERNET';
+
+    const message = typeof err.message === 'string' ? err.message : undefined;
+    if (!message) return undefined;
+
+    if (message.toLowerCase().includes('timeout')) return 'TIMEOUT';
+    if (message === 'Network Error' || message === 'Request aborted' || message === 'canceled') {
+        return 'NO_INTERNET';
+    }
+
+    return undefined;
+};
+
 const getFallbackStatus = (err: {
     status?: unknown;
     request?: AxiosRequestFallback;
@@ -189,11 +207,14 @@ const handleError = (
         const request = err.request as AxiosRequestFallback | undefined;
         const responseText = parseFallbackResponse(request?.responseText);
         const rawResponse = parseFallbackResponse(request?._response);
+        const transportError = resolveTransportError(err);
 
         status = err.response?.status ?? getFallbackStatus(err);
         data = err.response?.data ?? responseText ?? rawResponse ?? null;
 
-        if (status != null) {
+        if (transportError) {
+            error = transportError;
+        } else if (status != null) {
             error = resolveErrorCode(status, data);
 
             if (typeof data === 'object' && data !== null) {
@@ -203,8 +224,6 @@ const handleError = (
                 if (typeof payload.table === 'string') table = payload.table;
                 if (typeof payload.id === 'string') id = payload.id;
             }
-        } else if (err.code === 'ECONNABORTED') {
-            error = 'TIMEOUT';
         } else {
             error = 'NO_INTERNET';
         }
