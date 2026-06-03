@@ -28,7 +28,15 @@ type ExerciseSearchDocument = {
     name: string;
 };
 
-export type ExerciseSearchIndex = Fuse<ExerciseSearchDocument>;
+type SearchRank = {
+    score: number;
+    order: number;
+};
+
+export type ExerciseSearchIndex = {
+    documents: ExerciseSearchDocument[];
+    fuse: Fuse<ExerciseSearchDocument>;
+};
 
 const exerciseSearchOptions: IFuseOptions<ExerciseSearchDocument> = {
     keys: ['name'],
@@ -37,7 +45,162 @@ const exerciseSearchOptions: IFuseOptions<ExerciseSearchDocument> = {
     threshold: 0.35,
     ignoreDiacritics: true,
     ignoreLocation: true,
-    shouldSort: false,
+    shouldSort: true,
+};
+
+const normalizeSearchText = (value: string) =>
+    value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLocaleLowerCase();
+
+const tokenizeSearchText = (value: string): string[] => {
+    return normalizeSearchText(value).match(/[\p{L}\p{N}]+/gu) ?? [];
+};
+
+const levenshteinDistance = (a: string, b: string): number => {
+    if (a === b) return 0;
+    if (a.length === 0) return b.length;
+    if (b.length === 0) return a.length;
+
+    const previous = Array.from({ length: b.length + 1 }, (_, index) => index);
+    const current = Array.from({ length: b.length + 1 }, () => 0);
+
+    for (let i = 1; i <= a.length; i += 1) {
+        current[0] = i;
+        for (let j = 1; j <= b.length; j += 1) {
+            const substitutionCost = a[i - 1] === b[j - 1] ? 0 : 1;
+            current[j] = Math.min(
+                previous[j] + 1,
+                current[j - 1] + 1,
+                previous[j - 1] + substitutionCost,
+            );
+        }
+
+        for (let j = 0; j <= b.length; j += 1) {
+            previous[j] = current[j];
+        }
+    }
+
+    return previous[b.length];
+};
+
+const getTokenScore = (queryToken: string, nameToken: string): number | null => {
+    if (queryToken === nameToken) return 0;
+
+    if (nameToken.startsWith(queryToken)) return 0.08;
+    if (queryToken.length >= 4 && nameToken.includes(queryToken)) return 0.16;
+    if (nameToken.length >= 4 && queryToken.includes(nameToken)) return 0.22;
+
+    if (queryToken.length <= 3 || nameToken.length <= 3) {
+        return null;
+    }
+
+    const distance = levenshteinDistance(queryToken, nameToken);
+    const normalizedDistance = distance / Math.max(queryToken.length, nameToken.length);
+    const maxDistance = queryToken.length <= 4 ? 0.25 : 0.34;
+
+    if (normalizedDistance > maxDistance) return null;
+
+    return 0.25 + normalizedDistance * 0.75;
+};
+
+const getBestTokenMatch = (queryToken: string, nameTokens: string[]) => {
+    let bestScore: number | null = null;
+    let bestIndex = -1;
+
+    for (let index = 0; index < nameTokens.length; index += 1) {
+        const score = getTokenScore(queryToken, nameTokens[index]);
+        if (score === null) continue;
+        if (bestScore === null || score < bestScore) {
+            bestScore = score;
+            bestIndex = index;
+        }
+    }
+
+    return bestScore === null ? null : { score: bestScore, index: bestIndex };
+};
+
+const getSearchRank = (
+    query: string,
+    document: ExerciseSearchDocument,
+    fallbackOrder: number,
+): SearchRank | null => {
+    const queryTokens = tokenizeSearchText(query);
+    if (queryTokens.length === 0) return null;
+
+    const name = normalizeSearchText(document.name);
+    const nameTokens = tokenizeSearchText(document.name);
+    if (nameTokens.length === 0) return null;
+
+    let tokenScoreSum = 0;
+    const tokenIndexes: number[] = [];
+
+    for (const queryToken of queryTokens) {
+        const match = getBestTokenMatch(queryToken, nameTokens);
+        if (!match) return null;
+
+        tokenScoreSum += match.score;
+        tokenIndexes.push(match.index);
+    }
+
+    const averageTokenScore = tokenScoreSum / queryTokens.length;
+    const normalizedQuery = normalizeSearchText(query);
+    const exactPhraseIndex = name.indexOf(normalizedQuery);
+    const ordered =
+        tokenIndexes.length <= 1 ||
+        tokenIndexes.every(
+            (index, tokenIndex) => tokenIndex === 0 || index >= tokenIndexes[tokenIndex - 1],
+        );
+    const firstIndex = Math.min(...tokenIndexes);
+    const lastIndex = Math.max(...tokenIndexes);
+    const gap = tokenIndexes.length > 1 ? lastIndex - firstIndex - (tokenIndexes.length - 1) : 0;
+    const orderPenalty = ordered ? Math.min(0.18, gap * 0.04) : 0.22;
+    const phraseBonus =
+        exactPhraseIndex === 0
+            ? -0.24
+            : exactPhraseIndex > 0
+              ? -0.16
+              : nameTokens[0] === queryTokens[0]
+                ? -0.06
+                : 0;
+
+    return {
+        score: Math.max(0, averageTokenScore + orderPenalty + phraseBonus),
+        order: fallbackOrder,
+    };
+};
+
+const createSearchRanks = (
+    searchIndex: ExerciseSearchIndex | null,
+    query: string,
+): Map<string, SearchRank> => {
+    if (!searchIndex) return new Map();
+
+    const fuseOrder = new Map<string, number>();
+    searchIndex.fuse.search(query).forEach((result, index) => {
+        fuseOrder.set(result.item.id, index);
+    });
+
+    const ranks = new Map<string, SearchRank>();
+    searchIndex.documents.forEach((document, index) => {
+        const rank = getSearchRank(query, document, fuseOrder.get(document.id) ?? index);
+        if (rank) {
+            ranks.set(document.id, rank);
+        }
+    });
+
+    return ranks;
+};
+
+const compareSearchRanks = (a: SearchRank, b: SearchRank) => {
+    if (a.score !== b.score) return a.score - b.score;
+    return a.order - b.order;
+};
+
+const getBestSearchRank = (current: SearchRank | null, next: SearchRank): SearchRank => {
+    if (!current) return next;
+    return compareSearchRanks(next, current) < 0 ? next : current;
 };
 
 export const groupExercises = (exercises: ExerciseListSelect[]): ExerciseListItem[] => {
@@ -114,16 +277,10 @@ export const createExerciseSearchIndex = (
 
     if (documents.length === 0) return null;
 
-    return new Fuse(documents, exerciseSearchOptions);
-};
-
-const getMatchingExerciseIds = (
-    searchIndex: ExerciseSearchIndex | null,
-    query: string,
-): Set<string> => {
-    if (!searchIndex) return new Set();
-
-    return new Set(searchIndex.search(query).map((result) => result.item.id));
+    return {
+        documents,
+        fuse: new Fuse(documents, exerciseSearchOptions),
+    };
 };
 
 export const filterGroupedExercisesByName = (
@@ -134,70 +291,94 @@ export const filterGroupedExercisesByName = (
     const q = query.trim();
     if (!q) return items;
 
-    const matchingExerciseIds = getMatchingExerciseIds(searchIndex, q);
-    const result: ExerciseListItem[] = [];
-    let currentCategory: string | null = null;
-    let currentMuscleGroup: string | null = null;
-    let categoryCount = 0;
-    let muscleCount = 0;
-    let categoryHeaderIndex = -1;
-    let muscleHeaderIndex = -1;
+    const searchRanks = createSearchRanks(searchIndex, q);
 
-    const flushMuscleGroup = () => {
-        if (currentMuscleGroup && muscleHeaderIndex >= 0) {
-            if (muscleCount > 0) {
-                (result[muscleHeaderIndex] as ExerciseMuscleGroup).count = muscleCount;
-            } else {
-                result.splice(muscleHeaderIndex, 1);
-                if (categoryHeaderIndex > muscleHeaderIndex) {
-                    categoryHeaderIndex -= 1;
-                }
-            }
-        }
-        muscleCount = 0;
-        currentMuscleGroup = null;
-        muscleHeaderIndex = -1;
+    type RankedExercise = {
+        item: ExerciseCard;
+        rank: SearchRank;
     };
 
-    const flushCategory = () => {
-        flushMuscleGroup();
-        if (currentCategory && categoryHeaderIndex >= 0) {
-            if (categoryCount > 0) {
-                (result[categoryHeaderIndex] as ExerciseCategory).count = categoryCount;
-            } else {
-                result.splice(categoryHeaderIndex, 1);
-            }
-        }
-        categoryCount = 0;
-        currentCategory = null;
-        categoryHeaderIndex = -1;
+    type RankedMuscleGroup = {
+        header: ExerciseMuscleGroup;
+        exercises: RankedExercise[];
+        bestRank: SearchRank | null;
     };
+
+    type RankedCategory = {
+        header: ExerciseCategory;
+        muscleGroups: RankedMuscleGroup[];
+        bestRank: SearchRank | null;
+    };
+
+    const categories: RankedCategory[] = [];
+    let currentCategory: RankedCategory | null = null;
+    let currentMuscleGroup: RankedMuscleGroup | null = null;
 
     for (const item of items) {
         if (item.type === 'category') {
-            if (currentCategory && item.name !== currentCategory) {
-                flushCategory();
-            }
-            currentCategory = item.name;
-            categoryHeaderIndex = result.length;
-            result.push({ ...item, count: 0 });
+            currentCategory = {
+                header: { ...item, count: 0 },
+                muscleGroups: [],
+                bestRank: null,
+            };
+            categories.push(currentCategory);
+            currentMuscleGroup = null;
         } else if (item.type === 'muscle-group') {
-            if (currentMuscleGroup && item.name !== currentMuscleGroup) {
-                flushMuscleGroup();
+            if (!currentCategory) {
+                continue;
             }
-            currentMuscleGroup = item.name;
-            muscleHeaderIndex = result.length;
-            result.push({ ...item, count: 0 });
+            currentMuscleGroup = {
+                header: { ...item, count: 0 },
+                exercises: [],
+                bestRank: null,
+            };
+            currentCategory.muscleGroups.push(currentMuscleGroup);
         } else if (item.type === 'exercise') {
-            const matches = matchingExerciseIds.has(item.exercise.id);
-            if (matches) {
-                result.push(item);
-                muscleCount += 1;
-                categoryCount += 1;
+            const searchRank = searchRanks.get(item.exercise.id);
+            if (!searchRank || !currentCategory || !currentMuscleGroup) {
+                continue;
             }
+
+            currentMuscleGroup.exercises.push({ item, rank: searchRank });
+            currentMuscleGroup.bestRank = getBestSearchRank(
+                currentMuscleGroup.bestRank,
+                searchRank,
+            );
+            currentCategory.bestRank = getBestSearchRank(currentCategory.bestRank, searchRank);
         }
     }
 
-    flushCategory();
+    const result: ExerciseListItem[] = [];
+
+    categories
+        .filter((category): category is RankedCategory & { bestRank: SearchRank } =>
+            Boolean(category.bestRank),
+        )
+        .sort((a, b) => compareSearchRanks(a.bestRank, b.bestRank))
+        .forEach((category) => {
+            const muscleGroups = category.muscleGroups
+                .filter(
+                    (muscleGroup): muscleGroup is RankedMuscleGroup & { bestRank: SearchRank } =>
+                        Boolean(muscleGroup.bestRank),
+                )
+                .sort((a, b) => compareSearchRanks(a.bestRank, b.bestRank));
+
+            const categoryCount = muscleGroups.reduce(
+                (total, muscleGroup) => total + muscleGroup.exercises.length,
+                0,
+            );
+
+            result.push({ ...category.header, count: categoryCount });
+
+            for (const muscleGroup of muscleGroups) {
+                const exercises = muscleGroup.exercises.sort((a, b) =>
+                    compareSearchRanks(a.rank, b.rank),
+                );
+
+                result.push({ ...muscleGroup.header, count: exercises.length });
+                result.push(...exercises.map((exercise) => exercise.item));
+            }
+        });
+
     return result;
 };
