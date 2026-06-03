@@ -48,6 +48,14 @@ const styles = StyleSheet.create((theme) => ({
     },
 }));
 
+const getListItemIdentity = (item: ExerciseListItem) => {
+    if (item.type === 'exercise') {
+        return `exercise:${item.exercise.id}`;
+    }
+
+    return `${item.type}:${item.name}`;
+};
+
 export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
     rawExercises,
     query,
@@ -100,6 +108,11 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
 
         return { categoryByIndex, muscleGroupByIndex };
     }, [data]);
+
+    const listRemountKey = useMemo(() => {
+        const rawCount = rawExercises?.length ?? 0;
+        return `${rawCount}:${data.map(getListItemIdentity).join('|')}`;
+    }, [data, rawExercises?.length]);
 
     const handleDelete = useCallback(
         (exerciseId: string) => {
@@ -206,13 +219,11 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
     );
 
     return (
-        // key is derived from the raw (unfiltered) exercise count so that when a
-        // sync pull adds or removes exercises, FlashList remounts entirely and
-        // discards any onLayout callbacks that reference now-stale indices.
-        // Changing the search query does NOT change rawExercises.length, so
-        // search-driven list changes don't cause a remount.
+        // Remount FlashList when the displayed rows change. Its internal
+        // viewability/layout state can otherwise keep stale indices after
+        // search or sync updates and crash before our viewability callback runs.
         <ExerciseList
-            key={rawExercises?.length ?? 0}
+            key={listRemountKey}
             data={data}
             renderItem={renderItem}
             getItemType={getItemType}
