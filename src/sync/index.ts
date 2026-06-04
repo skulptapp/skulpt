@@ -591,6 +591,7 @@ const applyUserSyncPacks = async (packs: Record<string, any>) => {
                 'updatedAt',
                 'serverCreatedAt',
                 'serverUpdatedAt',
+                'storeReviewPendingAt',
                 'storeReviewRequestedAt',
                 'shownAt',
                 'submittedAt',

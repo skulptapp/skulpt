@@ -1,0 +1,1 @@
+ALTER TABLE `app_review_prompt` ADD `store_review_pending_at` integer;

@@ -27,6 +27,8 @@ import RestInput from '@/components/overlays/rest';
 import { RunningWorkoutProvider } from '@/hooks/use-running-workout';
 import { AnalyticsProvider } from '@/hooks/use-analytics';
 import { useHealthImporter } from '@/hooks/use-health-importer';
+import { PendingStoreReviewCoordinator } from '@/hooks/use-pending-store-review';
+import { StoreReviewGateProvider } from '@/hooks/use-store-review-gate';
 
 import 'dayjs/locale/en';
 import 'dayjs/locale/ru';
@@ -80,83 +82,86 @@ const App: FC = () => {
     return (
         <SyncProvider>
             <RunningWorkoutProvider>
-                <BottomSheetModalProvider>
-                    <Stack
-                        screenOptions={{
-                            ...options,
-                            headerShown: false,
-                        }}
-                    >
-                        <Stack.Screen name="(tabs)" />
-                        <Stack.Screen name="workout" />
-                        <Stack.Screen name="settings" />
-                        <Stack.Screen
-                            name="editor"
-                            options={{
-                                presentation: 'card',
-                                animationTypeForReplace: 'pop',
-                                cardOverlayEnabled: false,
-                                animation: 'slide_from_bottom',
+                <StoreReviewGateProvider>
+                    <PendingStoreReviewCoordinator />
+                    <BottomSheetModalProvider>
+                        <Stack
+                            screenOptions={{
+                                ...options,
+                                headerShown: false,
                             }}
-                        />
-                        <Stack.Screen
-                            name="select"
-                            options={{
-                                presentation: 'card',
-                                animationTypeForReplace: 'pop',
-                                cardOverlayEnabled: false,
-                                animation: 'slide_from_bottom',
-                            }}
-                        />
-                        <Stack.Screen
-                            name="preview"
-                            options={{
-                                presentation: 'card',
-                                animationTypeForReplace: 'pop',
-                                cardOverlayEnabled: false,
-                                animation: 'slide_from_bottom',
-                            }}
-                        />
-                        <Stack.Screen
-                            name="guide"
-                            options={{
-                                presentation: 'card',
-                                animationTypeForReplace: 'pop',
-                                cardOverlayEnabled: false,
-                                animation: 'slide_from_bottom',
-                            }}
-                        />
-                        <Stack.Screen
-                            name="review"
-                            options={{
-                                presentation: 'card',
-                                animationTypeForReplace: 'pop',
-                                cardOverlayEnabled: false,
-                                animation: 'slide_from_bottom',
-                            }}
-                        />
-                        <Stack.Screen
-                            name="day"
-                            options={{
-                                presentation: 'card',
-                                animationTypeForReplace: 'pop',
-                                cardOverlayEnabled: false,
-                                animation: 'slide_from_bottom',
-                            }}
-                        />
-                        <Stack.Screen
-                            name="filter"
-                            options={{
-                                presentation: 'card',
-                                animationTypeForReplace: 'pop',
-                                cardOverlayEnabled: false,
-                                animation: 'slide_from_bottom',
-                            }}
-                        />
-                    </Stack>
-                    <Actions />
-                    <RestInput />
-                </BottomSheetModalProvider>
+                        >
+                            <Stack.Screen name="(tabs)" />
+                            <Stack.Screen name="workout" />
+                            <Stack.Screen name="settings" />
+                            <Stack.Screen
+                                name="editor"
+                                options={{
+                                    presentation: 'card',
+                                    animationTypeForReplace: 'pop',
+                                    cardOverlayEnabled: false,
+                                    animation: 'slide_from_bottom',
+                                }}
+                            />
+                            <Stack.Screen
+                                name="select"
+                                options={{
+                                    presentation: 'card',
+                                    animationTypeForReplace: 'pop',
+                                    cardOverlayEnabled: false,
+                                    animation: 'slide_from_bottom',
+                                }}
+                            />
+                            <Stack.Screen
+                                name="preview"
+                                options={{
+                                    presentation: 'card',
+                                    animationTypeForReplace: 'pop',
+                                    cardOverlayEnabled: false,
+                                    animation: 'slide_from_bottom',
+                                }}
+                            />
+                            <Stack.Screen
+                                name="guide"
+                                options={{
+                                    presentation: 'card',
+                                    animationTypeForReplace: 'pop',
+                                    cardOverlayEnabled: false,
+                                    animation: 'slide_from_bottom',
+                                }}
+                            />
+                            <Stack.Screen
+                                name="review"
+                                options={{
+                                    presentation: 'card',
+                                    animationTypeForReplace: 'pop',
+                                    cardOverlayEnabled: false,
+                                    animation: 'slide_from_bottom',
+                                }}
+                            />
+                            <Stack.Screen
+                                name="day"
+                                options={{
+                                    presentation: 'card',
+                                    animationTypeForReplace: 'pop',
+                                    cardOverlayEnabled: false,
+                                    animation: 'slide_from_bottom',
+                                }}
+                            />
+                            <Stack.Screen
+                                name="filter"
+                                options={{
+                                    presentation: 'card',
+                                    animationTypeForReplace: 'pop',
+                                    cardOverlayEnabled: false,
+                                    animation: 'slide_from_bottom',
+                                }}
+                            />
+                        </Stack>
+                        <Actions />
+                        <RestInput />
+                    </BottomSheetModalProvider>
+                </StoreReviewGateProvider>
             </RunningWorkoutProvider>
         </SyncProvider>
     );

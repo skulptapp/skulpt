@@ -18,6 +18,7 @@ import { Text } from '@/components/primitives/text';
 import { Backdrop } from '@/components/overlays/backdrop';
 import { Handle } from '@/components/overlays/handle';
 import { VStack } from '@/components/primitives/vstack';
+import { useStoreReviewGateBlocker } from '@/hooks/use-store-review-gate';
 
 import { ChoiceType, ChoicesFieldType, Choices as ChoicesField, ValueType } from '../../choices';
 import { Error } from '../../components';
@@ -139,6 +140,7 @@ function SheetChoices<T extends FieldValues, TName extends FieldPath<T>>({
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
     const { theme, rt } = useUnistyles();
     const { t } = useTranslation(['common']);
+    useStoreReviewGateBlocker(`sheet-choices:${name}`, visible);
 
     const {
         field: { onChange, value: fieldValue },

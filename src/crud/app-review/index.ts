@@ -1,4 +1,4 @@
-import { and, count, eq, gt } from 'drizzle-orm';
+import { and, count, eq, gt, isNotNull, isNull } from 'drizzle-orm';
 
 import { db } from '@/db';
 import {
@@ -81,6 +81,25 @@ export const getCurrentCyclePrompt = async (
 
 export const getAppReviewPromptById = async (id: string): Promise<AppReviewPromptSelect | null> => {
     const rows = await db.select().from(appReviewPrompt).where(eq(appReviewPrompt.id, id)).limit(1);
+    return rows[0] ?? null;
+};
+
+export const getPendingStoreReviewPrompt = async (
+    userId: string,
+): Promise<AppReviewPromptSelect | null> => {
+    const rows = await db
+        .select()
+        .from(appReviewPrompt)
+        .where(
+            and(
+                eq(appReviewPrompt.userId, userId),
+                eq(appReviewPrompt.response, 'good'),
+                isNotNull(appReviewPrompt.storeReviewPendingAt),
+                isNull(appReviewPrompt.storeReviewRequestedAt),
+            ),
+        )
+        .limit(1);
+
     return rows[0] ?? null;
 };
 
@@ -183,10 +202,12 @@ export const submitAppReviewPrompt = async (
     id: string,
     response: AppReviewResponse,
 ): Promise<AppReviewPromptSelect> => {
+    const now = new Date();
     return updatePrompt(id, {
         status: 'submitted',
         response,
-        submittedAt: new Date(),
+        submittedAt: now,
+        storeReviewPendingAt: response === 'good' ? now : null,
     });
 };
 

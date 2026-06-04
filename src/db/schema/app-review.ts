@@ -19,6 +19,7 @@ export const appReviewPrompt = sqliteTable(
         eligibleWorkoutCount: integer('eligible_workout_count').notNull().default(0),
         completionSource: text('completion_source', { enum: ['phone', 'watch'] }),
         response: text('response', { enum: ['bad', 'not_bad', 'good'] }),
+        storeReviewPendingAt: integer('store_review_pending_at', { mode: 'timestamp_ms' }),
         storeReviewAvailable: integer('store_review_available', { mode: 'boolean' }),
         storeReviewHasAction: integer('store_review_has_action', { mode: 'boolean' }),
         storeReviewRequestedAt: integer('store_review_requested_at', { mode: 'timestamp_ms' }),

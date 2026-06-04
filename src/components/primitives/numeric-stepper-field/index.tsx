@@ -13,6 +13,7 @@ import { Pressable } from '@/components/primitives/pressable';
 import { SheetInput } from '@/components/primitives/sheet/input';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
+import { useStoreReviewGateBlocker } from '@/hooks/use-store-review-gate';
 
 type Selection = { start: number; end: number };
 
@@ -185,6 +186,7 @@ const NumericStepperField: FC<NumericStepperFieldProps> = ({
 
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
     const [isModalVisible, setIsModalVisible] = useState(false);
+    useStoreReviewGateBlocker(`numeric-stepper:${modalTitle ?? unit}`, isModalVisible);
 
     const safeValue = useMemo(
         () => normalizeValue(Number.isFinite(value) ? value : min, min, max, decimalPlaces),

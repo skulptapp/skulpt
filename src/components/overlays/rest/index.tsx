@@ -16,6 +16,7 @@ import { BaseButtons } from '@/components/forms/fields/base/buttons';
 import { VStack } from '@/components/primitives/vstack';
 import { useExerciseSets, useUpdateExerciseSet } from '@/hooks/use-workouts';
 import { useRunningWorkoutTicker } from '@/hooks/use-running-workout';
+import { useStoreReviewGateBlocker } from '@/hooks/use-store-review-gate';
 import { SheetInput } from '@/components/primitives/sheet/input';
 import { digitsFromSeconds, formatClockSecondsCompact, secondsFromDigits } from '@/helpers/times';
 import { buildExerciseSetRestUpdate } from './updates';
@@ -127,6 +128,7 @@ const RestInput: FC = () => {
                 setChangeType: state.setChangeType,
             })),
         );
+    useStoreReviewGateBlocker('rest-input-sheet', opened);
 
     const baseTitle = customTitle ?? t('rest', { ns: 'common' });
     const title = baseTitle.charAt(0).toUpperCase() + baseTitle.slice(1);

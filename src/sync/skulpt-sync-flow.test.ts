@@ -304,6 +304,7 @@ describe('dataset sync flow', () => {
                                 updatedAt: '2026-05-28T10:01:00Z',
                                 serverCreatedAt: '2026-05-28T10:00:01Z',
                                 serverUpdatedAt: '2026-05-28T10:01:01Z',
+                                storeReviewPendingAt: '2026-05-28T10:01:30Z',
                                 storeReviewRequestedAt: '2026-05-28T10:02:00Z',
                                 shownAt: '2026-05-28T10:01:00Z',
                                 submittedAt: null,
@@ -330,6 +331,7 @@ describe('dataset sync flow', () => {
         const payload = mockTxInsertValues.mock.calls[0][0];
         expect(payload.createdAt).toBeInstanceOf(Date);
         expect(payload.updatedAt).toBeInstanceOf(Date);
+        expect(payload.storeReviewPendingAt).toBeInstanceOf(Date);
         expect(payload.storeReviewRequestedAt).toBeInstanceOf(Date);
         expect(payload.shownAt).toBeInstanceOf(Date);
         expect(payload.serverCreatedAt).toBeUndefined();

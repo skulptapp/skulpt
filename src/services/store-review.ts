@@ -1,7 +1,5 @@
 import * as StoreReview from 'expo-store-review';
 
-import { waitForIdle } from '@/helpers/idle';
-
 export type StoreReviewAttempt = {
     isAvailable: boolean;
     hasAction: boolean;
@@ -16,9 +14,4 @@ export const requestStoreReviewIfAvailable = async (): Promise<StoreReviewAttemp
     }
 
     return { isAvailable, hasAction };
-};
-
-export const requestStoreReviewAfterTransition = async (): Promise<StoreReviewAttempt> => {
-    await waitForIdle();
-    return requestStoreReviewIfAvailable();
 };

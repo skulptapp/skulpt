@@ -8,6 +8,9 @@ const mockAppReviewPromptTable = {
     userId: 'app_review_prompt.user_id',
     promptKey: 'app_review_prompt.prompt_key',
     cycleIndex: 'app_review_prompt.cycle_index',
+    response: 'app_review_prompt.response',
+    storeReviewPendingAt: 'app_review_prompt.store_review_pending_at',
+    storeReviewRequestedAt: 'app_review_prompt.store_review_requested_at',
 };
 const mockWorkoutTable = {
     __name: 'workout',
@@ -114,6 +117,8 @@ jest.mock('drizzle-orm', () => ({
     count: () => 'count',
     eq: (column: unknown, value: unknown) => ({ op: 'eq', column, value }),
     gt: (column: unknown, value: unknown) => ({ op: 'gt', column, value }),
+    isNotNull: (column: unknown) => ({ op: 'isNotNull', column }),
+    isNull: (column: unknown) => ({ op: 'isNull', column }),
 }));
 
 jest.mock('@/db', () => ({
@@ -288,4 +293,48 @@ describe('app review prompt crud', () => {
             expect(mockPrompts[0].status).toBe(status);
         },
     );
+
+    test('submitting good sets pending store review timestamp', async () => {
+        const { submitAppReviewPrompt } = loadServiceModule();
+
+        mockPrompts.push({
+            id: 'prompt_existing',
+            userId: 'user_1',
+            promptKey: 'post_workout_review',
+            cycleIndex: 0,
+            status: 'shown',
+            eligibleWorkoutCount: 5,
+            createdAt: new Date(1000),
+            updatedAt: new Date(1000),
+        });
+
+        const prompt = await submitAppReviewPrompt('prompt_existing', 'good');
+
+        expect(prompt.status).toBe('submitted');
+        expect(prompt.response).toBe('good');
+        expect(prompt.submittedAt).toBeInstanceOf(Date);
+        expect(prompt.storeReviewPendingAt).toBeInstanceOf(Date);
+    });
+
+    test('submitting non-good clears pending store review timestamp', async () => {
+        const { submitAppReviewPrompt } = loadServiceModule();
+
+        mockPrompts.push({
+            id: 'prompt_existing',
+            userId: 'user_1',
+            promptKey: 'post_workout_review',
+            cycleIndex: 0,
+            status: 'shown',
+            eligibleWorkoutCount: 5,
+            storeReviewPendingAt: new Date(1000),
+            createdAt: new Date(1000),
+            updatedAt: new Date(1000),
+        });
+
+        const prompt = await submitAppReviewPrompt('prompt_existing', 'not_bad');
+
+        expect(prompt.status).toBe('submitted');
+        expect(prompt.response).toBe('not_bad');
+        expect(prompt.storeReviewPendingAt).toBeNull();
+    });
 });

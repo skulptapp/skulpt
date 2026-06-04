@@ -4,6 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useUnistyles, StyleSheet } from 'react-native-unistyles';
 
 import { useActionsStore } from '@/stores/actions';
+import { useStoreReviewGateBlocker } from '@/hooks/use-store-review-gate';
 
 import { Backdrop } from '../backdrop';
 import { Handle } from '../handle';
@@ -54,6 +55,7 @@ const ActionsSheet: FC = () => {
             close: state.close,
         })),
     );
+    useStoreReviewGateBlocker('actions-sheet', !!type);
 
     useEffect(() => {
         if (bottomSheetRef.current) {

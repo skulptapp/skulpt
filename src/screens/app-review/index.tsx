@@ -5,22 +5,16 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet } from 'react-native-unistyles';
 
 import { Button } from '@/components/buttons/base';
-import { CloseButton } from '@/components/buttons/close';
 import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { VStack } from '@/components/primitives/vstack';
 import { type AppReviewResponse } from '@/constants/app-review';
-import {
-    dismissAppReviewPrompt,
-    recordStoreReviewAttempt,
-    submitAppReviewPrompt,
-} from '@/crud/app-review';
+import { dismissAppReviewPrompt, submitAppReviewPrompt } from '@/crud/app-review';
 import { type AppReviewPromptSelect } from '@/db/schema';
 import { useAnalytics } from '@/hooks/use-analytics';
 import { reportError, runInBackground } from '@/services/error-reporting';
-import { requestStoreReviewAfterTransition } from '@/services/store-review';
 
 type Option = {
     value: AppReviewResponse;
@@ -167,12 +161,12 @@ const styles = StyleSheet.create((theme, rt) => ({
     },
 }));
 
-const Header: FC<{ handleClose: () => void }> = ({ handleClose }) => {
+const Header = () => {
     return (
         <Box style={styles.header}>
             <HStack style={styles.headerWrapper}>
                 <Box />
-                <CloseButton onPressHandler={handleClose} />
+                <Box />
             </HStack>
         </Box>
     );
@@ -211,29 +205,6 @@ const AppReviewScreen: FC = () => {
         [],
     );
 
-    const handleClose = useCallback(async () => {
-        if (isSubmitting) return;
-
-        try {
-            actionInFlightRef.current = true;
-            setIsSubmitting(true);
-            if (promptId) {
-                const prompt = await dismissAppReviewPrompt(promptId);
-                finalizedRef.current = true;
-                track('app_review_prompt:dismissed', {
-                    ...getPromptAnalyticsProperties(prompt),
-                });
-            } else {
-                finalizedRef.current = true;
-            }
-            router.back();
-        } catch (error) {
-            actionInFlightRef.current = false;
-            reportError(error, 'Failed to dismiss app review prompt:');
-            router.back();
-        }
-    }, [isSubmitting, promptId, track]);
-
     const handleSubmit = useCallback(async () => {
         if (isSubmitting || !promptId) return;
 
@@ -246,18 +217,6 @@ const AppReviewScreen: FC = () => {
                 ...getPromptAnalyticsProperties(prompt, selected),
             });
             router.back();
-
-            if (selected === 'good') {
-                runInBackground(async () => {
-                    const attempt = await requestStoreReviewAfterTransition();
-                    await recordStoreReviewAttempt(promptId, attempt);
-                    track('app_review_prompt:store_review_requested', {
-                        ...getPromptAnalyticsProperties(prompt, selected),
-                        storeReviewAvailable: attempt.isAvailable,
-                        storeReviewHasAction: attempt.hasAction,
-                    });
-                }, 'Failed to request store review after app review prompt:');
-            }
         } catch (error) {
             actionInFlightRef.current = false;
             setIsSubmitting(false);
@@ -267,7 +226,7 @@ const AppReviewScreen: FC = () => {
 
     return (
         <Box style={[styles.container, styles.selectedBackground(selected)]}>
-            <Header handleClose={handleClose} />
+            <Header />
             <Box style={styles.content}>
                 <ScrollView contentContainerStyle={styles.scroll}>
                     <VStack style={styles.reviewContent}>

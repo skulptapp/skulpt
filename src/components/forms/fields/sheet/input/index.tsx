@@ -12,6 +12,7 @@ import { HStack } from '@/components/primitives/hstack';
 import { Pressable } from '@/components/primitives/pressable';
 import { Text } from '@/components/primitives/text';
 import { Backdrop } from '@/components/overlays/backdrop';
+import { useStoreReviewGateBlocker } from '@/hooks/use-store-review-gate';
 
 import { BaseInput, InputProps, InputContainer } from '../../base/input';
 import { Label, Error, Help } from '../../components';
@@ -75,6 +76,7 @@ const SheetInput: FC<SheetInputProps> = ({
     const { keyboardShown } = useKeyboard();
     const locale = useLocales();
     const { t } = useTranslation(['common']);
+    useStoreReviewGateBlocker(`sheet-input:${title ?? label ?? placeholder ?? 'field'}`, visible);
 
     const decimalSeparator = locale[0].decimalSeparator || '.';
 
