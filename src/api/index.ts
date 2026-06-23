@@ -1,7 +1,12 @@
 import { create as createAxios, isAxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { reportError } from '@/services/error-reporting';
-import { bootstrapAuth, clearToken, getStoredToken, isTokenValid } from '@/services/auth';
-import { storage } from '@/storage';
+import {
+    bootstrapAuth,
+    clearToken,
+    getStoredAuthUserId,
+    getStoredToken,
+    isTokenValid,
+} from '@/services/auth';
 
 interface ApiResponse<T> {
     success: boolean;
@@ -106,7 +111,7 @@ syncClient.interceptors.response.use(
         config._retried = true;
         clearToken();
 
-        const userId = storage.getString('auth.userId');
+        const userId = getStoredAuthUserId();
         if (!userId) return Promise.reject(error);
 
         const ok = await bootstrapAuth(userId);
