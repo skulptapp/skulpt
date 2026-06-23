@@ -218,10 +218,8 @@ const useRunningWorkoutProvider = () => {
     const watchManagerRef = useRef(new WatchManager());
     const workoutCommandManagerRef = useRef(new WorkoutCommandManager());
     const lastRunningWorkoutIdRef = useRef<string | undefined>(undefined);
-    const queuedWatchCommandIdsRef = useRef<Set<string>>(new Set());
-    const queuedWorkoutCommandIdsRef = useRef<Set<string>>(new Set());
-    const watchCommandSequenceRef = useRef<Promise<void>>(Promise.resolve());
-    const workoutCommandSequenceRef = useRef<Promise<void>>(Promise.resolve());
+    const queuedNativeWorkoutCommandIdsRef = useRef<Set<string>>(new Set());
+    const nativeWorkoutCommandSequenceRef = useRef<Promise<void>>(Promise.resolve());
     const lastAppliedWatchTrackingEventRef = useRef<Map<string, number>>(new Map());
     const phoneHealthPermissionsGrantedRef = useRef(false);
     const processWatchCommandRef = useRef<(payload: WatchCommand) => Promise<void>>(
@@ -1329,57 +1327,60 @@ const useRunningWorkoutProvider = () => {
         processWorkoutCommandRef.current = processWorkoutCommand;
     }, [processWorkoutCommand]);
 
-    const enqueueWatchCommand = useCallback((payload: WatchCommand) => {
-        const commandId = payload.commandId;
+    const enqueueNativeWorkoutCommand = useCallback(
+        (
+            payload: WatchCommand | WorkoutCommand,
+            process: (payload: WatchCommand | WorkoutCommand) => Promise<void>,
+            errorContext: string,
+        ) => {
+            const commandId = payload.commandId;
 
-        if (commandId && queuedWatchCommandIdsRef.current.has(commandId)) {
-            return;
-        }
+            if (commandId && queuedNativeWorkoutCommandIdsRef.current.has(commandId)) {
+                return;
+            }
 
-        if (commandId) {
-            queuedWatchCommandIdsRef.current.add(commandId);
-        }
+            if (commandId) {
+                queuedNativeWorkoutCommandIdsRef.current.add(commandId);
+            }
 
-        watchCommandSequenceRef.current = watchCommandSequenceRef.current
-            .catch(() => undefined)
-            .then(async () => {
-                try {
-                    await processWatchCommandRef.current(payload);
-                } catch (error) {
-                    reportError(error, 'Failed to process watch command:');
-                } finally {
-                    if (commandId) {
-                        queuedWatchCommandIdsRef.current.delete(commandId);
+            nativeWorkoutCommandSequenceRef.current = nativeWorkoutCommandSequenceRef.current
+                .catch(() => undefined)
+                .then(async () => {
+                    try {
+                        await process(payload);
+                    } catch (error) {
+                        reportError(error, errorContext);
+                    } finally {
+                        if (commandId) {
+                            queuedNativeWorkoutCommandIdsRef.current.delete(commandId);
+                        }
                     }
-                }
-            });
-    }, []);
+                });
+        },
+        [],
+    );
 
-    const enqueueWorkoutCommand = useCallback((payload: WorkoutCommand) => {
-        const commandId = payload.commandId;
+    const enqueueWatchCommand = useCallback(
+        (payload: WatchCommand) => {
+            enqueueNativeWorkoutCommand(
+                payload,
+                (nextPayload) => processWatchCommandRef.current(nextPayload as WatchCommand),
+                'Failed to process watch command:',
+            );
+        },
+        [enqueueNativeWorkoutCommand],
+    );
 
-        if (commandId && queuedWorkoutCommandIdsRef.current.has(commandId)) {
-            return;
-        }
-
-        if (commandId) {
-            queuedWorkoutCommandIdsRef.current.add(commandId);
-        }
-
-        workoutCommandSequenceRef.current = workoutCommandSequenceRef.current
-            .catch(() => undefined)
-            .then(async () => {
-                try {
-                    await processWorkoutCommandRef.current(payload);
-                } catch (error) {
-                    reportError(error, 'Failed to process workout command:');
-                } finally {
-                    if (commandId) {
-                        queuedWorkoutCommandIdsRef.current.delete(commandId);
-                    }
-                }
-            });
-    }, []);
+    const enqueueWorkoutCommand = useCallback(
+        (payload: WorkoutCommand) => {
+            enqueueNativeWorkoutCommand(
+                payload,
+                (nextPayload) => processWorkoutCommandRef.current(nextPayload as WorkoutCommand),
+                'Failed to process workout command:',
+            );
+        },
+        [enqueueNativeWorkoutCommand],
+    );
 
     const drainPendingWatchCommandsToQueue = useCallback(async () => {
         if (!isWorkoutCommandStateReady) return;
