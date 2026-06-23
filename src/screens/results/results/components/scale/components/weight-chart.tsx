@@ -16,14 +16,17 @@ import { type MeasurementWithDisplayValue, type WeightChartPage } from '../types
 const CHART_HEIGHT = 172;
 const CHART_SECTIONS = 3;
 const Y_AXIS_LABEL_AREA = 40;
-const DATA_POINT_SIZE = 8;
-const CHART_TERMINAL_EDGE_INSET = DATA_POINT_SIZE / 2;
 const WEIGHT_POINTS_PER_PAGE = 15;
 const PAGE_OVERLAP_POINTS = 1;
 const PAGE_PRERENDER_RADIUS = 1;
 const CHART_POINTER_LABEL_WIDTH = 88;
 const SCRUB_ACTIVATION_DELAY_MS = 180;
-const SCRUB_CANCEL_THRESHOLD_PX = 8;
+const SCRUB_CANCEL_DISTANCE = 8;
+const CHART_LINE_OPACITY = 0.2;
+const CHART_GUIDE_OPACITY = 0.35;
+const CHART_GUIDE_WIDTH = 2;
+const CHART_GUIDE_DOT_SIZE = 8;
+const CHART_EDGE_INSET = CHART_GUIDE_DOT_SIZE / 2;
 
 const styles = StyleSheet.create((theme) => ({
     chartWrap: {
@@ -96,10 +99,15 @@ const styles = StyleSheet.create((theme) => ({
     },
     selectedGuide: {
         position: 'absolute',
-        top: 0,
-        height: CHART_HEIGHT,
-        width: 1,
+        width: CHART_GUIDE_WIDTH,
         zIndex: 2,
+    },
+    selectedGuideDot: {
+        position: 'absolute',
+        width: CHART_GUIDE_DOT_SIZE,
+        height: CHART_GUIDE_DOT_SIZE,
+        borderRadius: CHART_GUIDE_DOT_SIZE / 2,
+        zIndex: 3,
     },
     pointerLabel: {
         position: 'absolute',
@@ -136,6 +144,21 @@ const styles = StyleSheet.create((theme) => ({
     },
 }));
 
+const withAlpha = (color: string, alpha: number): string => {
+    const normalized = color.trim();
+    const hex = normalized.startsWith('#') ? normalized.slice(1) : normalized;
+    if (!/^[0-9a-fA-F]{6}$/.test(hex)) {
+        return normalized;
+    }
+
+    const value = Number.parseInt(hex, 16);
+    const r = (value >> 16) & 255;
+    const g = (value >> 8) & 255;
+    const b = value & 255;
+
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 type WeightChartProps = {
     timeline: MeasurementWithDisplayValue[];
     numberFormatter: Intl.NumberFormat;
@@ -153,7 +176,9 @@ const WeightChart = ({ timeline, numberFormatter, formatValue, emptyText }: Weig
     const lastHapticPointIndexRef = useRef<number | null>(null);
     const currentPageIndexRef = useRef(0);
     const scrubActivationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const scrubTouchStartXRef = useRef<number | null>(null);
+    const latestTouchXRef = useRef(0);
+    const touchStartXRef = useRef(0);
+    const touchStartYRef = useRef(0);
     const isScrubbingRef = useRef(false);
 
     const chartModel = useMemo(() => {
@@ -209,8 +234,8 @@ const WeightChart = ({ timeline, numberFormatter, formatValue, emptyText }: Weig
 
         pageRanges.reverse().forEach(({ startIndex, endIndex }, pageIndex) => {
             const points = timeline.slice(startIndex, endIndex + 1);
-            const leftInset = pageIndex === 0 ? CHART_TERMINAL_EDGE_INSET : 0;
-            const rightInset = pageIndex === pageRanges.length - 1 ? CHART_TERMINAL_EDGE_INSET : 0;
+            const leftInset = pageIndex === 0 ? CHART_EDGE_INSET : 0;
+            const rightInset = pageIndex === pageRanges.length - 1 ? CHART_EDGE_INSET : 0;
             const segmentSpacing =
                 points.length > 1
                     ? Math.max(
@@ -265,136 +290,87 @@ const WeightChart = ({ timeline, numberFormatter, formatValue, emptyText }: Weig
         return Math.max(0, Math.min(selectedPointIndex, timeline.length - 1));
     }, [selectedPointIndex, timeline.length]);
 
-    const resolvePointIndexFromTouchX = useCallback(
-        (touchX: number, pointCount: number, segmentSpacing: number, leftInset: number) => {
-            if (pointCount <= 1) return 0;
+    const clearScrubActivationTimeout = useCallback(() => {
+        if (scrubActivationTimeoutRef.current == null) return;
 
-            const firstPointX = leftInset;
-            const lastPointX = leftInset + (pointCount - 1) * segmentSpacing;
-            const clampedTouchX = Math.max(firstPointX, Math.min(touchX, lastPointX));
-            const ratio = segmentSpacing > 0 ? (clampedTouchX - firstPointX) / segmentSpacing : 0;
-
-            return Math.round(ratio);
-        },
-        [],
-    );
-
-    const clearPendingScrubActivation = useCallback(() => {
-        if (scrubActivationTimeoutRef.current != null) {
-            clearTimeout(scrubActivationTimeoutRef.current);
-            scrubActivationTimeoutRef.current = null;
-        }
-        scrubTouchStartXRef.current = null;
+        clearTimeout(scrubActivationTimeoutRef.current);
+        scrubActivationTimeoutRef.current = null;
     }, []);
 
-    const beginScrubbingAt = useCallback(
-        (
-            touchX: number,
-            pageStartIndex: number,
-            pointCount: number,
-            segmentSpacing: number,
-            leftInset: number,
-        ) => {
-            isScrubbingRef.current = true;
-            setIsScrubbing(true);
+    const resolvePointIndexFromTouchX = useCallback(
+        (page: WeightChartPage, touchX: number) => {
+            if (page.points.length <= 1 || page.segmentSpacing <= 0) {
+                return 0;
+            }
 
-            const localPointIndex = resolvePointIndexFromTouchX(
-                touchX,
-                pointCount,
-                segmentSpacing,
-                leftInset,
-            );
-            const nextIndex = pageStartIndex + localPointIndex;
-            setSelectedPointIndex((prev) => (prev === nextIndex ? prev : nextIndex));
+            const clampedX = Math.max(0, Math.min(touchX, lineChartViewportWidth));
+            const rawIndex = Math.round((clampedX - page.leftInset) / page.segmentSpacing);
+
+            return Math.max(0, Math.min(rawIndex, page.points.length - 1));
+        },
+        [lineChartViewportWidth],
+    );
+
+    const selectPointFromTouch = useCallback(
+        (page: WeightChartPage, pageIndex: number, touchX: number) => {
+            if (pageIndex !== currentPageIndexRef.current) return;
+
+            const localPointIndex = resolvePointIndexFromTouchX(page, touchX);
+            const nextPointIndex = page.startIndex + localPointIndex;
+
+            setSelectedPointIndex((prev) => (prev === nextPointIndex ? prev : nextPointIndex));
         },
         [resolvePointIndexFromTouchX],
     );
 
     const resetScrubbingState = useCallback(() => {
-        clearPendingScrubActivation();
+        clearScrubActivationTimeout();
         isScrubbingRef.current = false;
         setIsScrubbing(false);
         setSelectedPointIndex(null);
-    }, [clearPendingScrubActivation]);
+    }, [clearScrubActivationTimeout]);
 
-    const handleChartTouch = useCallback(
-        (
-            event: GestureResponderEvent,
-            pageStartIndex: number,
-            pointCount: number,
-            segmentSpacing: number,
-            leftInset: number,
-        ) => {
-            if (!isScrubbingRef.current) {
-                return;
-            }
-            const localPointIndex = resolvePointIndexFromTouchX(
-                event.nativeEvent.locationX,
-                pointCount,
-                segmentSpacing,
-                leftInset,
-            );
-            const nextIndex = pageStartIndex + localPointIndex;
-            setSelectedPointIndex((prev) => (prev === nextIndex ? prev : nextIndex));
-        },
-        [resolvePointIndexFromTouchX],
-    );
+    useEffect(() => () => clearScrubActivationTimeout(), [clearScrubActivationTimeout]);
 
-    const handleTouchLayerStart = useCallback(
-        (
-            event: GestureResponderEvent,
-            pageStartIndex: number,
-            pointCount: number,
-            segmentSpacing: number,
-            leftInset: number,
-        ) => {
-            if (pointCount === 0) {
-                return;
-            }
+    const handleChartTouchStart = useCallback(
+        (event: GestureResponderEvent, page: WeightChartPage, pageIndex: number) => {
+            clearScrubActivationTimeout();
 
-            clearPendingScrubActivation();
-            const touchX = event.nativeEvent.locationX;
-            scrubTouchStartXRef.current = touchX;
+            const { locationX, locationY } = event.nativeEvent;
+            latestTouchXRef.current = locationX;
+            touchStartXRef.current = locationX;
+            touchStartYRef.current = locationY;
+            isScrubbingRef.current = false;
 
             scrubActivationTimeoutRef.current = setTimeout(() => {
                 scrubActivationTimeoutRef.current = null;
-                beginScrubbingAt(touchX, pageStartIndex, pointCount, segmentSpacing, leftInset);
+                isScrubbingRef.current = true;
+                setIsScrubbing(true);
+                selectPointFromTouch(page, pageIndex, latestTouchXRef.current);
             }, SCRUB_ACTIVATION_DELAY_MS);
         },
-        [beginScrubbingAt, clearPendingScrubActivation],
+        [clearScrubActivationTimeout, selectPointFromTouch],
     );
 
-    const handleTouchLayerMove = useCallback(
-        (event: GestureResponderEvent) => {
+    const handleChartTouchMove = useCallback(
+        (event: GestureResponderEvent, page: WeightChartPage, pageIndex: number) => {
+            const { locationX, locationY } = event.nativeEvent;
+            latestTouchXRef.current = locationX;
+
             if (isScrubbingRef.current) {
+                selectPointFromTouch(page, pageIndex, locationX);
                 return;
             }
 
-            if (scrubTouchStartXRef.current == null) {
-                return;
-            }
+            const distanceX = Math.abs(locationX - touchStartXRef.current);
+            const distanceY = Math.abs(locationY - touchStartYRef.current);
 
-            const movedX = Math.abs(event.nativeEvent.locationX - scrubTouchStartXRef.current);
-            if (movedX > SCRUB_CANCEL_THRESHOLD_PX) {
-                clearPendingScrubActivation();
+            if (distanceX > SCRUB_CANCEL_DISTANCE || distanceY > SCRUB_CANCEL_DISTANCE) {
+                clearScrubActivationTimeout();
             }
         },
-        [clearPendingScrubActivation],
+        [clearScrubActivationTimeout, selectPointFromTouch],
     );
-
-    const handleTouchLayerEnd = useCallback(() => {
-        if (isScrubbingRef.current) {
-            resetScrubbingState();
-            return;
-        }
-        clearPendingScrubActivation();
-    }, [clearPendingScrubActivation, resetScrubbingState]);
-
-    const handleChartTouchEnd = useCallback(() => {
-        if (isScrubbingRef.current) {
-            resetScrubbingState();
-        }
-    }, [resetScrubbingState]);
 
     const handlePageSelected = useCallback(
         (event: PagerViewOnPageSelectedEvent) => {
@@ -424,19 +400,12 @@ const WeightChart = ({ timeline, numberFormatter, formatValue, emptyText }: Weig
         void Haptics.selectionAsync();
     }, [clampedSelectedPointIndex, isScrubbing]);
 
-    useEffect(() => {
-        return () => {
-            if (scrubActivationTimeoutRef.current != null) {
-                clearTimeout(scrubActivationTimeoutRef.current);
-                scrubActivationTimeoutRef.current = null;
-            }
-        };
-    }, []);
-
     const currentPage = timelinePages[clampedCurrentPageIndex] ?? null;
     const currentPageTicks = currentPage?.xAxisTicks ?? [];
     const currentPageLeftInset = currentPage?.leftInset ?? 0;
     const currentPageRightInset = currentPage?.rightInset ?? 0;
+    const chartColor = theme.colors.lime[400];
+    const chartGuideColor = withAlpha(chartColor, CHART_GUIDE_OPACITY);
 
     return (
         <VStack
@@ -469,11 +438,11 @@ const WeightChart = ({ timeline, numberFormatter, formatValue, emptyText }: Weig
                                 }
 
                                 const selectedLocalPointIndex =
-                                    pageIndex === clampedCurrentPageIndex &&
-                                    clampedSelectedPointIndex != null &&
-                                    clampedSelectedPointIndex >= page.startIndex &&
-                                    clampedSelectedPointIndex <= page.endIndex
-                                        ? clampedSelectedPointIndex - page.startIndex
+                                    isScrubbing &&
+                                    selectedPointIndex != null &&
+                                    selectedPointIndex >= page.startIndex &&
+                                    selectedPointIndex <= page.endIndex
+                                        ? selectedPointIndex - page.startIndex
                                         : null;
 
                                 const selectedGuideX =
@@ -488,6 +457,21 @@ const WeightChart = ({ timeline, numberFormatter, formatValue, emptyText }: Weig
                                     selectedLocalPointIndex == null
                                         ? null
                                         : (page.points[selectedLocalPointIndex] ?? null);
+
+                                const selectedGuideY =
+                                    selectedPoint == null
+                                        ? null
+                                        : Math.max(
+                                              0,
+                                              Math.min(
+                                                  CHART_HEIGHT,
+                                                  CHART_HEIGHT -
+                                                      ((selectedPoint.displayValue -
+                                                          chartModel.axisMin) /
+                                                          chartModel.shiftedMaxValue) *
+                                                          CHART_HEIGHT,
+                                              ),
+                                          );
 
                                 const pointerLabelLeft =
                                     selectedGuideX == null
@@ -513,23 +497,8 @@ const WeightChart = ({ timeline, numberFormatter, formatValue, emptyText }: Weig
                                                     index < page.points.length - 1
                                                         ? page.segmentSpacing
                                                         : 0,
-                                                customDataPoint: () => (
-                                                    <View
-                                                        style={{
-                                                            width: DATA_POINT_SIZE,
-                                                            height: DATA_POINT_SIZE,
-                                                            borderRadius: DATA_POINT_SIZE / 2,
-                                                            borderWidth: 1.5,
-                                                            borderColor: theme.colors.lime[400],
-                                                            backgroundColor:
-                                                                theme.colors.foreground,
-                                                        }}
-                                                    />
-                                                ),
-                                                dataPointWidth: DATA_POINT_SIZE,
-                                                dataPointHeight: DATA_POINT_SIZE,
-                                                dataPointRadius: DATA_POINT_SIZE / 2,
                                             }))}
+                                            curved
                                             width={lineChartViewportWidth}
                                             height={CHART_HEIGHT}
                                             disableScroll
@@ -540,13 +509,14 @@ const WeightChart = ({ timeline, numberFormatter, formatValue, emptyText }: Weig
                                             endSpacing={page.rightInset}
                                             maxValue={chartModel.shiftedMaxValue}
                                             noOfSections={CHART_SECTIONS}
-                                            thickness={4}
-                                            color={theme.colors.lime[400]}
-                                            startFillColor={theme.colors.lime[400]}
-                                            endFillColor={theme.colors.lime[400]}
+                                            thickness={2}
+                                            color={chartColor}
+                                            startFillColor={chartColor}
+                                            endFillColor={chartColor}
                                             startOpacity={1}
-                                            endOpacity={0.4}
-                                            hideDataPoints={false}
+                                            startOpacity1={CHART_LINE_OPACITY}
+                                            endOpacity={0}
+                                            hideDataPoints
                                             hideYAxisText
                                             yAxisSide={yAxisSides.RIGHT}
                                             yAxisLabelWidth={0}
@@ -568,18 +538,39 @@ const WeightChart = ({ timeline, numberFormatter, formatValue, emptyText }: Weig
                                                 },
                                             ]}
                                         />
-                                        {selectedGuideX != null && (
-                                            <Box
-                                                pointerEvents="none"
-                                                style={[
-                                                    styles.selectedGuide,
-                                                    {
-                                                        left: selectedGuideX,
-                                                        backgroundColor: theme.colors.border,
-                                                        opacity: 0.95,
-                                                    },
-                                                ]}
-                                            />
+                                        {selectedGuideX != null && selectedGuideY != null && (
+                                            <>
+                                                <Box
+                                                    pointerEvents="none"
+                                                    style={[
+                                                        styles.selectedGuide,
+                                                        {
+                                                            left:
+                                                                selectedGuideX -
+                                                                CHART_GUIDE_WIDTH / 2,
+                                                            top: selectedGuideY + CHART_EDGE_INSET,
+                                                            height: Math.max(
+                                                                0,
+                                                                CHART_HEIGHT - selectedGuideY,
+                                                            ),
+                                                            backgroundColor: chartGuideColor,
+                                                        },
+                                                    ]}
+                                                />
+                                                <Box
+                                                    pointerEvents="none"
+                                                    style={[
+                                                        styles.selectedGuideDot,
+                                                        {
+                                                            left:
+                                                                selectedGuideX -
+                                                                CHART_GUIDE_DOT_SIZE / 2,
+                                                            top: selectedGuideY + CHART_EDGE_INSET,
+                                                            backgroundColor: chartColor,
+                                                        },
+                                                    ]}
+                                                />
+                                            </>
                                         )}
                                         {selectedPoint && (
                                             <VStack
@@ -608,39 +599,23 @@ const WeightChart = ({ timeline, numberFormatter, formatValue, emptyText }: Weig
                                                 { width: lineChartViewportWidth },
                                             ]}
                                             onTouchStart={(event) =>
-                                                handleTouchLayerStart(
-                                                    event,
-                                                    page.startIndex,
-                                                    page.points.length,
-                                                    page.segmentSpacing,
-                                                    page.leftInset,
-                                                )
+                                                handleChartTouchStart(event, page, pageIndex)
                                             }
-                                            onTouchMove={handleTouchLayerMove}
-                                            onTouchEnd={handleTouchLayerEnd}
-                                            onTouchCancel={handleTouchLayerEnd}
+                                            onTouchMove={(event) =>
+                                                handleChartTouchMove(event, page, pageIndex)
+                                            }
+                                            onTouchEnd={resetScrubbingState}
+                                            onTouchCancel={resetScrubbingState}
                                             onStartShouldSetResponder={() => false}
                                             onMoveShouldSetResponder={() => isScrubbingRef.current}
                                             onResponderGrant={(event) =>
-                                                handleChartTouch(
-                                                    event,
-                                                    page.startIndex,
-                                                    page.points.length,
-                                                    page.segmentSpacing,
-                                                    page.leftInset,
-                                                )
+                                                handleChartTouchMove(event, page, pageIndex)
                                             }
                                             onResponderMove={(event) =>
-                                                handleChartTouch(
-                                                    event,
-                                                    page.startIndex,
-                                                    page.points.length,
-                                                    page.segmentSpacing,
-                                                    page.leftInset,
-                                                )
+                                                handleChartTouchMove(event, page, pageIndex)
                                             }
-                                            onResponderRelease={handleChartTouchEnd}
-                                            onResponderTerminate={handleChartTouchEnd}
+                                            onResponderRelease={resetScrubbingState}
+                                            onResponderTerminate={resetScrubbingState}
                                             onResponderTerminationRequest={() =>
                                                 !isScrubbingRef.current
                                             }
