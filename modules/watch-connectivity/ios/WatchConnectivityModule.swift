@@ -468,6 +468,20 @@ private class SessionDelegate: NSObject, WCSessionDelegate {
       payload["expectedState"] = expectedState
     }
 
+    if let field = dictionary["field"] as? String {
+      payload["field"] = field
+    }
+
+    if let value = dictionary["value"] as? String {
+      payload["value"] = value
+    } else if let value = dictionary["value"] as? NSNumber {
+      payload["value"] = value.stringValue
+    } else if let value = dictionary["value"] as? Double {
+      payload["value"] = String(value)
+    } else if let value = dictionary["value"] as? Int {
+      payload["value"] = String(value)
+    }
+
     if let eventAtMs = dictionary["eventAtMs"] as? NSNumber {
       payload["eventAtMs"] = eventAtMs.stringValue
     } else if let eventAtMs = dictionary["eventAtMs"] as? Int64 {

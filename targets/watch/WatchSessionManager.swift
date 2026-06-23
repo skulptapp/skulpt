@@ -5,6 +5,7 @@ import WatchKit
 class WatchSessionManager: NSObject, ObservableObject {
   static let shared = WatchSessionManager()
   private let timerWarningLeadSeconds: TimeInterval = 4
+  private let trackingUpdateDebounceSeconds: TimeInterval = 0.12
 
   @Published var workoutState: WatchWorkoutState = .idle
 
@@ -14,6 +15,8 @@ class WatchSessionManager: NSObject, ObservableObject {
   private var lastCountdownWarningKey: String?
   private var finishingWorkoutId: String?
   private var pendingLifecyclePayload: [String: Any]?
+  private var pendingTrackingUpdatePayloads: [String: [String: Any]] = [:]
+  private var pendingTrackingUpdateWorkItems: [String: DispatchWorkItem] = [:]
 
   private override init() {
     super.init()
@@ -27,10 +30,7 @@ class WatchSessionManager: NSObject, ObservableObject {
   func sendCommand(_ command: String, setId: String? = nil, expectedState: String? = nil) {
     guard WCSession.isSupported() else { return }
 
-    let session = WCSession.default
-    if session.activationState != .activated {
-      session.activate()
-    }
+    flushPendingTrackingUpdates()
 
     if let optimisticState = optimisticState(for: command) {
       handleStateUpdate(optimisticState)
@@ -57,14 +57,123 @@ class WatchSessionManager: NSObject, ObservableObject {
       payload["expectedState"] = expectedState
     }
 
-    session.transferUserInfo(payload)
+    deliverCommandPayload(
+      payload,
+      context: "WatchSessionManager.sendCommand failed",
+      queueWhenReachable: true
+    )
+  }
 
-    guard session.isReachable else { return }
+  func sendTrackingUpdate(
+    setId: String,
+    field: WatchEditableTrackingField,
+    value: Double,
+    expectedState: String? = nil
+  ) {
+    guard WCSession.isSupported() else { return }
+
+    let valueString: String
+    switch field {
+    case .reps:
+      valueString = "\(Int(value.rounded()))"
+    case .weight, .distance:
+      valueString = watchFormatMetricNumber(value)
+    }
+
+    var payload: [String: Any] = [
+      "command": "updateSetTracking",
+      "commandId": UUID().uuidString,
+      "setId": setId,
+      "field": field.rawValue,
+      "value": valueString,
+      "eventAtMs": NSNumber(value: Int64(Date().timeIntervalSince1970 * 1000)),
+    ]
+
+    if let workoutId = workoutState.workoutId {
+      payload["workoutId"] = workoutId
+    }
+
+    if let expectedState {
+      payload["expectedState"] = expectedState
+    }
+
+    let key = "\(setId):\(field.rawValue)"
+    let commandId = payload["commandId"] as? String
+
+    pendingTrackingUpdateWorkItems[key]?.cancel()
+    pendingTrackingUpdatePayloads[key] = payload
+
+    let workItem = DispatchWorkItem { [weak self] in
+      self?.flushPendingTrackingUpdate(for: key, commandId: commandId)
+    }
+    pendingTrackingUpdateWorkItems[key] = workItem
+    DispatchQueue.main.asyncAfter(
+      deadline: .now() + trackingUpdateDebounceSeconds,
+      execute: workItem
+    )
+  }
+
+  func flushPendingTrackingUpdates() {
+    guard !pendingTrackingUpdatePayloads.isEmpty else { return }
+
+    let payloads = Array(pendingTrackingUpdatePayloads.values)
+    for item in pendingTrackingUpdateWorkItems.values {
+      item.cancel()
+    }
+    pendingTrackingUpdatePayloads.removeAll()
+    pendingTrackingUpdateWorkItems.removeAll()
+
+    for payload in payloads {
+      deliverCommandPayload(
+        payload,
+        context: "WatchSessionManager.sendTrackingUpdate failed",
+        queueWhenReachable: false
+      )
+    }
+  }
+
+  private func flushPendingTrackingUpdate(for key: String, commandId: String?) {
+    guard let payload = pendingTrackingUpdatePayloads[key] else { return }
+    guard payload["commandId"] as? String == commandId else { return }
+
+    pendingTrackingUpdatePayloads.removeValue(forKey: key)
+    pendingTrackingUpdateWorkItems.removeValue(forKey: key)
+    deliverCommandPayload(
+      payload,
+      context: "WatchSessionManager.sendTrackingUpdate failed",
+      queueWhenReachable: false
+    )
+  }
+
+  private func deliverCommandPayload(
+    _ payload: [String: Any],
+    context: String,
+    queueWhenReachable: Bool
+  ) {
+    guard WCSession.isSupported() else { return }
+
+    let session = WCSession.default
+    if session.activationState != .activated {
+      session.activate()
+    }
+
+    guard session.isReachable else {
+      session.transferUserInfo(payload)
+      return
+    }
+
+    if queueWhenReachable {
+      session.transferUserInfo(payload)
+    }
+
     session.sendMessage(
       payload,
       replyHandler: nil,
       errorHandler: { error in
-        reportNativeError(error, context: "WatchSessionManager.sendCommand failed")
+        if !queueWhenReachable {
+          session.transferUserInfo(payload)
+        }
+        reportNativeError(error, context: context)
       }
     )
   }

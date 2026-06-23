@@ -55,6 +55,14 @@ enum WatchLayoutMetrics {
     }
   }
 
+  static var trackingRowHeight: CGFloat {
+    trackingValueFontSize * 1.35
+  }
+
+  static var trackingRowMinimumScale: CGFloat {
+    0.52
+  }
+
   static var trackingSeparatorBaselineOffset: CGFloat {
     switch screenWidth {
     case 208, 205: return 6.0  // Series 10 Large, Ultra/Ultra 2

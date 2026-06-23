@@ -3,6 +3,12 @@ import SwiftUI
 
 let watchBrandLime = Color(red: 163 / 255, green: 230 / 255, blue: 53 / 255)
 
+enum WatchEditableTrackingField: String {
+  case weight
+  case reps
+  case distance
+}
+
 func watchLocalized(_ key: String) -> String {
   NSLocalizedString(key, comment: "")
 }
@@ -54,6 +60,7 @@ extension WatchWorkoutState {
   struct TrackingDisplaySegment {
     let content: TrackingSegmentContent
     let kind: TrackingSegmentKind
+    let field: WatchEditableTrackingField?
   }
 
   var displayWorkoutName: String {
@@ -112,28 +119,38 @@ extension WatchWorkoutState {
         var segments = [
           TrackingDisplaySegment(
             content: .text(watchFormatMetricNumber(weightValue)),
-            kind: .value
+            kind: .value,
+            field: .weight
           )
         ]
         if let weightUnit, !weightUnit.isEmpty {
-          segments.append(TrackingDisplaySegment(content: .text(weightUnit), kind: .unit))
+          segments.append(
+            TrackingDisplaySegment(content: .text(weightUnit), kind: .unit, field: .weight)
+          )
         }
         return segments
       case "reps":
         guard let repsValue else { return nil }
-        return [TrackingDisplaySegment(content: .text("\(repsValue)"), kind: .value)]
+        return [
+          TrackingDisplaySegment(content: .text("\(repsValue)"), kind: .value, field: .reps)
+        ]
       case "time":
         guard let timeValue else { return nil }
         if isPerforming && timeOptions == "timer" {
-          return [TrackingDisplaySegment(content: .timer(timerEndDate), kind: .value)]
+          return [
+            TrackingDisplaySegment(content: .timer(timerEndDate), kind: .value, field: nil)
+          ]
         }
         if isPerforming && timeOptions == "stopwatch" {
-          return [TrackingDisplaySegment(content: .stopwatch(timerStartDate), kind: .value)]
+          return [
+            TrackingDisplaySegment(content: .stopwatch(timerStartDate), kind: .value, field: nil)
+          ]
         }
         return [
           TrackingDisplaySegment(
             content: .text(watchFormattedDurationCompact(timeValue)),
-            kind: .value
+            kind: .value,
+            field: nil
           )
         ]
       case "distance":
@@ -141,11 +158,14 @@ extension WatchWorkoutState {
         var segments = [
           TrackingDisplaySegment(
             content: .text(watchFormatMetricNumber(distanceValue)),
-            kind: .value
+            kind: .value,
+            field: .distance
           )
         ]
         if let distanceUnit, !distanceUnit.isEmpty {
-          segments.append(TrackingDisplaySegment(content: .text(distanceUnit), kind: .unit))
+          segments.append(
+            TrackingDisplaySegment(content: .text(distanceUnit), kind: .unit, field: .distance)
+          )
         }
         return segments
       default:
@@ -158,7 +178,7 @@ extension WatchWorkoutState {
     var combined: [TrackingDisplaySegment] = []
     for (index, segments) in fieldSegments.enumerated() {
       if index > 0 {
-        combined.append(TrackingDisplaySegment(content: .text("×"), kind: .separator))
+        combined.append(TrackingDisplaySegment(content: .text("×"), kind: .separator, field: nil))
       }
       combined.append(contentsOf: segments)
     }
@@ -195,8 +215,28 @@ extension WatchWorkoutState {
   }
 }
 
-private func watchFormatMetricNumber(_ value: Double) -> String {
-  value == value.rounded() ? "\(Int(value))" : String(format: "%.1f", value)
+func watchFormatMetricNumber(_ value: Double, precisionFractionDigits: Int? = nil) -> String {
+  let rounded = (value * 100).rounded() / 100
+  if let precisionFractionDigits {
+    return String(
+      format: "%.\(precisionFractionDigits)f",
+      locale: Locale(identifier: "en_US_POSIX"),
+      rounded
+    )
+  }
+
+  if rounded == rounded.rounded() {
+    return "\(Int(rounded))"
+  }
+
+  var text = String(format: "%.2f", locale: Locale(identifier: "en_US_POSIX"), rounded)
+  while text.contains(".") && text.hasSuffix("0") {
+    text.removeLast()
+  }
+  if text.hasSuffix(".") {
+    text.removeLast()
+  }
+  return text
 }
 
 private func watchFormattedDurationCompact(_ seconds: Int) -> String {

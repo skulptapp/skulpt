@@ -31,6 +31,8 @@ export interface WatchCommandPayload {
     setId?: string;
     expectedState?: string;
     eventAtMs?: string;
+    field?: 'weight' | 'reps' | 'distance';
+    value?: string;
 }
 
 type WatchConnectivityEvents = {

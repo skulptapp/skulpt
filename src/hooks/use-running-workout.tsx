@@ -90,6 +90,32 @@ type RunningWorkoutTickerContextType = Pick<
 >;
 
 const TIMER_WARNING_SECONDS = 4;
+type EditableWatchTrackingField = 'weight' | 'reps' | 'distance';
+
+const editableWatchTrackingFields = new Set<EditableWatchTrackingField>([
+    'weight',
+    'reps',
+    'distance',
+]);
+
+const isEditableWatchTrackingField = (value: unknown): value is EditableWatchTrackingField =>
+    typeof value === 'string' &&
+    editableWatchTrackingFields.has(value as EditableWatchTrackingField);
+
+const parseWatchTrackingValue = (
+    field: EditableWatchTrackingField,
+    rawValue: unknown,
+): number | null => {
+    const parsed = Number(rawValue);
+    if (!Number.isFinite(parsed)) return null;
+
+    const nonNegative = Math.max(0, parsed);
+    if (field === 'reps') {
+        return Math.round(nonNegative);
+    }
+
+    return Math.round(nonNegative * 100) / 100;
+};
 
 const staticContext = createContext<RunningWorkoutStaticContextType>(
     {} as RunningWorkoutStaticContextType,
@@ -196,6 +222,7 @@ const useRunningWorkoutProvider = () => {
     const queuedWorkoutCommandIdsRef = useRef<Set<string>>(new Set());
     const watchCommandSequenceRef = useRef<Promise<void>>(Promise.resolve());
     const workoutCommandSequenceRef = useRef<Promise<void>>(Promise.resolve());
+    const lastAppliedWatchTrackingEventRef = useRef<Map<string, number>>(new Map());
     const phoneHealthPermissionsGrantedRef = useRef(false);
     const processWatchCommandRef = useRef<(payload: WatchCommand) => Promise<void>>(
         async () => undefined,
@@ -269,6 +296,7 @@ const useRunningWorkoutProvider = () => {
     }, [data]);
 
     useEffect(() => {
+        lastAppliedWatchTrackingEventRef.current.clear();
         watchManagerRef.current.setCurrentWorkoutId(runningWorkout?.id);
         setIsTrackingOnWatch(watchManagerRef.current.isTrackingOnWatch);
     }, [runningWorkout?.id]);
@@ -1112,7 +1140,58 @@ const useRunningWorkoutProvider = () => {
             const expectedStateMatches =
                 !payload.expectedState || payload.expectedState === currentWorkoutState;
 
-            if (
+            if (payload.command === 'updateSetTracking') {
+                const watchPayload = payload as WatchCommand;
+                const field = watchPayload.field;
+                const parsedValue = isEditableWatchTrackingField(field)
+                    ? parseWatchTrackingValue(field, watchPayload.value)
+                    : null;
+                const targetEntry = payload.setId
+                    ? executionOrderSets.find((entry) => entry.set.id === payload.setId)
+                    : undefined;
+                const isDisplayedEditableSet =
+                    currentWorkoutState === 'performing'
+                        ? payload.setId === runningWorkoutActiveSet?.id
+                        : (currentWorkoutState === 'ready' || currentWorkoutState === 'resting') &&
+                          payload.setId === runningWorkoutNextSet?.id;
+
+                if (
+                    field &&
+                    parsedValue != null &&
+                    targetEntry &&
+                    isDisplayedEditableSet &&
+                    expectedStateMatches &&
+                    !targetEntry.set.completedAt &&
+                    payload.setId
+                ) {
+                    const eventAtMs = Number(watchPayload.eventAtMs ?? 0);
+                    const eventKey = `${payload.setId}:${field}`;
+                    const previousEventAtMs =
+                        lastAppliedWatchTrackingEventRef.current.get(eventKey);
+
+                    if (
+                        !Number.isFinite(eventAtMs) ||
+                        eventAtMs <= 0 ||
+                        previousEventAtMs == null ||
+                        eventAtMs >= previousEventAtMs
+                    ) {
+                        if (Number.isFinite(eventAtMs) && eventAtMs > 0) {
+                            lastAppliedWatchTrackingEventRef.current.set(eventKey, eventAtMs);
+                        }
+
+                        const updates: Partial<ExerciseSetSelect> = {};
+                        if (field === 'weight') {
+                            updates.weight = parsedValue;
+                        } else if (field === 'reps') {
+                            updates.reps = parsedValue;
+                        } else if (field === 'distance') {
+                            updates.distance = parsedValue;
+                        }
+
+                        await updateSet({ id: payload.setId, updates });
+                    }
+                }
+            } else if (
                 payload.command === 'completeSet' &&
                 runningWorkoutActiveSet &&
                 expectedStateMatches &&
@@ -1206,6 +1285,7 @@ const useRunningWorkoutProvider = () => {
         },
         [
             complete,
+            executionOrderSets,
             isWorkoutCommandStateReady,
             maybeShowAppReviewPrompt,
             playTimerEnd,
