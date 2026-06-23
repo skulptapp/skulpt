@@ -1,4 +1,4 @@
-import { FC, useMemo, useCallback, useState } from 'react';
+import { FC, useMemo, useCallback, useRef, useState } from 'react';
 import { StyleSheet } from 'react-native-unistyles';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -295,6 +295,8 @@ const WorkoutScreen: FC = () => {
         workoutId: string | null;
         ids: string[];
     }>({ workoutId: null, ids: [] });
+    const deletingExerciseIdsRef = useRef(new Set<string>());
+    const [deletingExerciseIds, setDeletingExerciseIds] = useState<Set<string>>(() => new Set());
     const selectedIds = useMemo(
         () => (isEditMode && selectedState.workoutId === workoutId ? selectedState.ids : []),
         [isEditMode, selectedState.ids, selectedState.workoutId, workoutId],
@@ -362,10 +364,33 @@ const WorkoutScreen: FC = () => {
     const handleDelete = useCallback(
         (id: string) => {
             if (!workoutId) return;
-            deleteWorkoutExercise.mutate({ id, workoutId });
-            track('workout:exercise_remove', {
-                workoutId,
+            if (deletingExerciseIdsRef.current.has(id)) return;
+
+            deletingExerciseIdsRef.current.add(id);
+            setDeletingExerciseIds((prev) => {
+                const next = new Set(prev);
+                next.add(id);
+                return next;
             });
+
+            deleteWorkoutExercise.mutate(
+                { id, workoutId },
+                {
+                    onSuccess: () => {
+                        track('workout:exercise_remove', {
+                            workoutId,
+                        });
+                    },
+                    onSettled: () => {
+                        deletingExerciseIdsRef.current.delete(id);
+                        setDeletingExerciseIds((prev) => {
+                            const next = new Set(prev);
+                            next.delete(id);
+                            return next;
+                        });
+                    },
+                },
+            );
         },
         [deleteWorkoutExercise, workoutId, track],
     );
@@ -583,6 +608,7 @@ const WorkoutScreen: FC = () => {
                                     item={item}
                                     index={index}
                                     onDelete={handleDelete}
+                                    isDeleting={deletingExerciseIds.has(item.id)}
                                     onPress={handleExercisePress}
                                     activeExerciseId={runningWorkoutActiveExercise?.id ?? null}
                                     activeSetId={runningWorkoutActiveSet?.id ?? null}

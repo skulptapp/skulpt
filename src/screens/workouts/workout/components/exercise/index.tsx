@@ -21,6 +21,7 @@ interface ExerciseProps {
     item: WorkoutItem;
     index: number;
     onDelete: (id: string) => void;
+    isDeleting?: boolean;
     onPress: (id: string) => void;
     activeExerciseId: string | null;
     activeSetId: string | null;
@@ -115,9 +116,10 @@ interface RightActionProps {
     prog: SharedValue<number>;
     drag: SharedValue<number>;
     handleDelete: () => void;
+    disabled?: boolean;
 }
 
-const RightAction: FC<RightActionProps> = ({ drag, handleDelete }) => {
+const RightAction: FC<RightActionProps> = ({ drag, handleDelete, disabled }) => {
     const { theme } = useUnistyles();
 
     const styleAnimation = useAnimatedStyle(() => {
@@ -128,7 +130,12 @@ const RightAction: FC<RightActionProps> = ({ drag, handleDelete }) => {
 
     return (
         <Reanimated.View style={[styles.rightAction, styleAnimation]}>
-            <Pressable style={styles.rightActionPressable} onPress={handleDelete}>
+            <Pressable
+                accessibilityState={{ disabled }}
+                disabled={disabled}
+                style={styles.rightActionPressable}
+                onPress={handleDelete}
+            >
                 <Trash2 color={theme.colors.neutral[50]} size={theme.space(6)} strokeWidth={1.75} />
             </Pressable>
         </Reanimated.View>
@@ -209,6 +216,7 @@ const ExerciseComponent: FC<ExerciseProps> = ({
     item,
     index,
     onDelete,
+    isDeleting,
     onPress,
     activeExerciseId,
     activeSetId,
@@ -275,7 +283,12 @@ const ExerciseComponent: FC<ExerciseProps> = ({
                 rightThreshold={40}
                 simultaneousWithExternalGesture={gesture as unknown as any}
                 renderRightActions={(prog, drag) => (
-                    <RightAction prog={prog} drag={drag} handleDelete={() => onDelete(item.id)} />
+                    <RightAction
+                        prog={prog}
+                        drag={drag}
+                        disabled={isDeleting}
+                        handleDelete={() => onDelete(item.id)}
+                    />
                 )}
             >
                 <Sortable.Touchable
@@ -303,6 +316,7 @@ export const Exercise = memo(ExerciseComponent, (prev, next) => {
         prev.item === next.item &&
         prev.index === next.index &&
         prev.onDelete === next.onDelete &&
+        prev.isDeleting === next.isDeleting &&
         prev.onPress === next.onPress &&
         prev.activeExerciseId === next.activeExerciseId &&
         prev.activeSetId === next.activeSetId &&
