@@ -747,10 +747,26 @@ const sumNullableNumbers = (...values: (number | null)[]): number | null => {
     return hasValue ? sum : null;
 };
 
-const chooseClosestWorkout = async (startDate: Date, endDate: Date) => {
+type HealthKitWorkoutSample = Awaited<ReturnType<typeof queryWorkoutSamples>>[number];
+
+const getWorkoutOverlapMs = (workout: HealthKitWorkoutSample, startDate: Date, endDate: Date) => {
+    const workoutStartMs = workout.startDate.getTime();
+    const workoutEndMs = workout.endDate.getTime();
+
+    if (!Number.isFinite(workoutStartMs) || !Number.isFinite(workoutEndMs)) {
+        return 0;
+    }
+
+    return Math.max(
+        0,
+        Math.min(workoutEndMs, endDate.getTime()) - Math.max(workoutStartMs, startDate.getTime()),
+    );
+};
+
+const readWorkoutsNearInterval = async (startDate: Date, endDate: Date) => {
     const workouts = await queryWorkoutSamples({
-        limit: 10,
-        ascending: false,
+        limit: 50,
+        ascending: true,
         filter: {
             date: {
                 startDate: new Date(startDate.getTime() - 10 * 60 * 1000),
@@ -759,27 +775,59 @@ const chooseClosestWorkout = async (startDate: Date, endDate: Date) => {
         },
     });
 
-    const targetStartMs = startDate.getTime();
-    const targetEndMs = endDate.getTime();
+    return workouts.filter((workout) => getWorkoutOverlapMs(workout, startDate, endDate) > 0);
+};
 
-    return workouts.reduce<(typeof workouts)[number] | null>((best, candidate) => {
-        const candidateDataScore =
-            (candidate.totalDistance ? 1 : 0) + (candidate.metadata?.HKAverageMETs ? 1 : 0);
-        const candidateDelta =
-            Math.abs(candidate.startDate.getTime() - targetStartMs) +
-            Math.abs(candidate.endDate.getTime() - targetEndMs);
+const sumWorkoutQuantity = (
+    workouts: HealthKitWorkoutSample[],
+    resolveValue: (workout: HealthKitWorkoutSample) => number | null,
+) => {
+    let sum = 0;
+    let hasValue = false;
 
-        if (!best) return candidate;
+    for (const workout of workouts) {
+        const value = resolveValue(workout);
+        if (value == null || !Number.isFinite(value)) continue;
 
-        const bestDataScore = (best.totalDistance ? 1 : 0) + (best.metadata?.HKAverageMETs ? 1 : 0);
-        const bestDelta =
-            Math.abs(best.startDate.getTime() - targetStartMs) +
-            Math.abs(best.endDate.getTime() - targetEndMs);
+        sum += value;
+        hasValue = true;
+    }
 
-        if (candidateDataScore > bestDataScore) return candidate;
-        if (candidateDataScore < bestDataScore) return best;
-        return candidateDelta < bestDelta ? candidate : best;
-    }, null);
+    return hasValue ? sum : null;
+};
+
+const resolveAverageMets = (workouts: HealthKitWorkoutSample[], startDate: Date, endDate: Date) => {
+    let weightedSum = 0;
+    let totalWeight = 0;
+
+    for (const workout of workouts) {
+        const avgMets = workout.metadata?.HKAverageMETs?.quantity;
+        if (typeof avgMets !== 'number' || !Number.isFinite(avgMets)) continue;
+
+        const overlapMs = getWorkoutOverlapMs(workout, startDate, endDate);
+        if (overlapMs <= 0) continue;
+
+        weightedSum += avgMets * overlapMs;
+        totalWeight += overlapMs;
+    }
+
+    return totalWeight > 0 ? weightedSum / totalWeight : null;
+};
+
+const resolveWorkoutBounds = (workouts: HealthKitWorkoutSample[]) => {
+    let workoutStartDate: Date | null = null;
+    let workoutEndDate: Date | null = null;
+
+    for (const workout of workouts) {
+        if (!workoutStartDate || workout.startDate < workoutStartDate) {
+            workoutStartDate = workout.startDate;
+        }
+        if (!workoutEndDate || workout.endDate > workoutEndDate) {
+            workoutEndDate = workout.endDate;
+        }
+    }
+
+    return { workoutStartDate, workoutEndDate };
 };
 
 async function readDistanceMeters(startDate: Date, endDate: Date): Promise<number | null> {
@@ -864,36 +912,37 @@ export async function readWorkoutSummaryMetrics(
 ): Promise<WorkoutSummaryMetrics> {
     try {
         if (Platform.OS === 'ios') {
-            const workout = await chooseClosestWorkout(startDate, endDate);
-
-            const metricsStartDate = workout?.startDate ?? startDate;
-            const metricsEndDate = workout?.endDate ?? endDate;
+            const workouts = await readWorkoutsNearInterval(startDate, endDate);
 
             const [distanceMeters, stepCount, activeCaloriesFromQuantitySamples, basalCalories] =
                 await Promise.all([
-                    readDistanceMeters(metricsStartDate, metricsEndDate),
-                    readStepCount(metricsStartDate, metricsEndDate),
-                    readActiveCalories(metricsStartDate, metricsEndDate),
-                    readBasalCalories(metricsStartDate, metricsEndDate),
+                    readDistanceMeters(startDate, endDate),
+                    readStepCount(startDate, endDate),
+                    readActiveCalories(startDate, endDate),
+                    readBasalCalories(startDate, endDate),
                 ]);
 
-            const activeCaloriesFromWorkout = workout?.totalEnergyBurned?.quantity ?? null;
-
-            const resolvedActiveCalories =
-                activeCaloriesFromWorkout ?? activeCaloriesFromQuantitySamples;
-            const resolvedTotalCalories = sumNullableNumbers(
-                activeCaloriesFromQuantitySamples,
-                basalCalories,
+            const activeCaloriesFromWorkouts = sumWorkoutQuantity(
+                workouts,
+                (workout) => workout.totalEnergyBurned?.quantity ?? null,
+            );
+            const distanceMetersFromWorkouts = sumWorkoutQuantity(workouts, (workout) =>
+                quantityToMeters(workout.totalDistance),
             );
 
+            const resolvedActiveCalories =
+                activeCaloriesFromQuantitySamples ?? activeCaloriesFromWorkouts;
+            const resolvedTotalCalories = sumNullableNumbers(resolvedActiveCalories, basalCalories);
+            const workoutBounds = resolveWorkoutBounds(workouts);
+
             return {
-                avgMets: workout?.metadata?.HKAverageMETs?.quantity ?? null,
+                avgMets: resolveAverageMets(workouts, startDate, endDate),
                 activeCalories: resolvedActiveCalories,
                 totalCalories: resolvedTotalCalories,
-                distanceMeters: quantityToMeters(workout?.totalDistance) ?? distanceMeters,
+                distanceMeters: distanceMeters ?? distanceMetersFromWorkouts,
                 stepCount,
-                workoutStartDate: workout?.startDate ?? null,
-                workoutEndDate: workout?.endDate ?? null,
+                workoutStartDate: workoutBounds.workoutStartDate,
+                workoutEndDate: workoutBounds.workoutEndDate,
             };
         }
 

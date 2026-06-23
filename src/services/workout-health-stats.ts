@@ -62,28 +62,23 @@ export async function computeWorkoutStats(
 ): Promise<WorkoutStatsComputationResult> {
     try {
         const summaryMetrics = await readWorkoutSummaryMetrics(startDate, endDate);
-        const effectiveWorkoutStartDate = summaryMetrics.workoutStartDate ?? startDate;
-        const effectiveWorkoutEndDate = summaryMetrics.workoutEndDate ?? endDate;
-        const hrReadStartDate = new Date(effectiveWorkoutStartDate.getTime() - 30 * 1000);
-        const hrReadEndDate = effectiveWorkoutEndDate;
+        const hrReadStartDate = new Date(startDate.getTime() - 30 * 1000);
+        const hrReadEndDate = endDate;
         const workoutDurationSeconds = Math.max(
             0,
-            Math.round(
-                (effectiveWorkoutEndDate.getTime() - effectiveWorkoutStartDate.getTime()) / 1000,
-            ),
+            Math.round((endDate.getTime() - startDate.getTime()) / 1000),
         );
 
         const [hrSamples, activeCaloriesFallback] = await Promise.all([
             readHeartRateSamples(hrReadStartDate, hrReadEndDate),
             summaryMetrics.activeCalories == null
-                ? readActiveCalories(effectiveWorkoutStartDate, effectiveWorkoutEndDate)
+                ? readActiveCalories(startDate, endDate)
                 : Promise.resolve<number | null>(summaryMetrics.activeCalories),
         ]);
 
         const workoutOnlyHeartRateSamples = hrSamples.filter(
             (sample) =>
-                sample.timestamp >= effectiveWorkoutStartDate.getTime() &&
-                sample.timestamp <= effectiveWorkoutEndDate.getTime(),
+                sample.timestamp >= startDate.getTime() && sample.timestamp <= endDate.getTime(),
         );
 
         const stats: WorkoutHealthStats = {
@@ -92,8 +87,8 @@ export async function computeWorkoutStats(
 
         const recoveryWindow = computeHeartRateRecoveryWindow(
             workoutOnlyHeartRateSamples,
-            effectiveWorkoutStartDate,
-            effectiveWorkoutEndDate,
+            startDate,
+            endDate,
         );
 
         if (recoveryWindow) {
@@ -140,12 +135,7 @@ export async function computeWorkoutStats(
         }
 
         if (mhr && hrSamples.length > 0) {
-            const heartStats = computeWorkoutHealthStats(
-                hrSamples,
-                mhr,
-                effectiveWorkoutStartDate,
-                effectiveWorkoutEndDate,
-            );
+            const heartStats = computeWorkoutHealthStats(hrSamples, mhr, startDate, endDate);
 
             if (heartStats) {
                 stats.avgHeartRate = heartStats.avgHeartRate;

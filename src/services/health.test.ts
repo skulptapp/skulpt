@@ -4,6 +4,8 @@ const mockReportError = jest.fn();
 const mockGetDateOfBirth = jest.fn<() => Date | null>();
 const mockGetBiologicalSex = jest.fn<() => number | null>();
 const mockQueryQuantitySamples = jest.fn<(...args: unknown[]) => Promise<unknown[]>>();
+const mockQueryStatisticsForQuantity = jest.fn<(...args: unknown[]) => Promise<unknown>>();
+const mockQueryWorkoutSamples = jest.fn<(...args: unknown[]) => Promise<unknown[]>>();
 
 jest.mock('react-native', () => ({
     Platform: {
@@ -15,8 +17,8 @@ jest.mock('@kingstinct/react-native-healthkit', () => ({
     requestAuthorization: jest.fn(),
     saveWorkoutSample: jest.fn(),
     queryQuantitySamples: (...args: unknown[]) => mockQueryQuantitySamples(...args),
-    queryStatisticsForQuantity: jest.fn(),
-    queryWorkoutSamples: jest.fn(),
+    queryStatisticsForQuantity: (...args: unknown[]) => mockQueryStatisticsForQuantity(...args),
+    queryWorkoutSamples: (...args: unknown[]) => mockQueryWorkoutSamples(...args),
     getBiologicalSex: () => mockGetBiologicalSex(),
     getDateOfBirth: () => mockGetDateOfBirth(),
     BiologicalSex: {
@@ -52,6 +54,8 @@ describe('health benign access errors', () => {
         mockGetDateOfBirth.mockReset();
         mockGetBiologicalSex.mockReset();
         mockQueryQuantitySamples.mockReset();
+        mockQueryStatisticsForQuantity.mockReset();
+        mockQueryWorkoutSamples.mockReset();
     });
 
     test('does not report HealthKit data unavailable errors while reading profile fields', async () => {
@@ -99,5 +103,92 @@ describe('health benign access errors', () => {
             samples: [],
         });
         expect(mockReportError).toHaveBeenCalled();
+    });
+
+    test('reads summary metrics over the full app workout interval when HealthKit has split workouts', async () => {
+        const startDate = new Date('2026-05-29T06:15:00.000Z');
+        const endDate = new Date('2026-05-29T07:50:00.000Z');
+        const firstSegmentStartDate = new Date('2026-05-29T06:15:00.000Z');
+        const firstSegmentEndDate = new Date('2026-05-29T06:35:00.000Z');
+        const secondSegmentStartDate = new Date('2026-05-29T06:40:00.000Z');
+        const secondSegmentEndDate = new Date('2026-05-29T07:50:00.000Z');
+
+        mockQueryWorkoutSamples.mockResolvedValue([
+            {
+                startDate: firstSegmentStartDate,
+                endDate: firstSegmentEndDate,
+                totalEnergyBurned: { quantity: 100 },
+                totalDistance: { unit: 'm', quantity: 900 },
+                metadata: { HKAverageMETs: { quantity: 4 } },
+            },
+            {
+                startDate: secondSegmentStartDate,
+                endDate: secondSegmentEndDate,
+                totalEnergyBurned: { quantity: 220 },
+                totalDistance: { unit: 'm', quantity: 2100 },
+                metadata: { HKAverageMETs: { quantity: 8 } },
+            },
+        ]);
+        mockQueryStatisticsForQuantity.mockImplementation(async (identifier) => {
+            if (identifier === 'HKQuantityTypeIdentifierDistanceWalkingRunning') {
+                return { sumQuantity: { quantity: 3300 } };
+            }
+            if (identifier === 'HKQuantityTypeIdentifierStepCount') {
+                return { sumQuantity: { quantity: 5000 } };
+            }
+            if (identifier === 'HKQuantityTypeIdentifierActiveEnergyBurned') {
+                return { sumQuantity: { quantity: 360 } };
+            }
+            if (identifier === 'HKQuantityTypeIdentifierBasalEnergyBurned') {
+                return { sumQuantity: { quantity: 80 } };
+            }
+
+            return { sumQuantity: null };
+        });
+
+        const { readWorkoutSummaryMetrics } = loadHealthModule();
+        const result = await readWorkoutSummaryMetrics(startDate, endDate);
+
+        expect(result).toMatchObject({
+            activeCalories: 360,
+            totalCalories: 440,
+            distanceMeters: 3300,
+            stepCount: 5000,
+            workoutStartDate: firstSegmentStartDate,
+            workoutEndDate: secondSegmentEndDate,
+        });
+        expect(result.avgMets).toBeCloseTo((4 * 20 + 8 * 70) / 90, 3);
+        expect(mockQueryStatisticsForQuantity).toHaveBeenCalledWith(
+            'HKQuantityTypeIdentifierDistanceWalkingRunning',
+            ['cumulativeSum'],
+            {
+                filter: { date: { startDate, endDate } },
+                unit: 'm',
+            },
+        );
+        expect(mockQueryStatisticsForQuantity).toHaveBeenCalledWith(
+            'HKQuantityTypeIdentifierStepCount',
+            ['cumulativeSum'],
+            {
+                filter: { date: { startDate, endDate } },
+                unit: 'count',
+            },
+        );
+        expect(mockQueryStatisticsForQuantity).toHaveBeenCalledWith(
+            'HKQuantityTypeIdentifierActiveEnergyBurned',
+            ['cumulativeSum'],
+            {
+                filter: { date: { startDate, endDate } },
+                unit: 'kcal',
+            },
+        );
+        expect(mockQueryStatisticsForQuantity).toHaveBeenCalledWith(
+            'HKQuantityTypeIdentifierBasalEnergyBurned',
+            ['cumulativeSum'],
+            {
+                filter: { date: { startDate, endDate } },
+                unit: 'kcal',
+            },
+        );
     });
 });
