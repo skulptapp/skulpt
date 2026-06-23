@@ -582,6 +582,8 @@ const useRunningWorkoutProvider = () => {
     }, [orderedSets]);
 
     useEffect(() => {
+        // Foreground-only sound. Background rest alerts are delivered by scheduled notifications.
+        if (isAppInBackground) return;
         if (isTrackingOnWatch) return;
 
         if (
@@ -597,7 +599,7 @@ const useRunningWorkoutProvider = () => {
         if (restRemainingSeconds === null || restRemainingSeconds > TIMER_WARNING_SECONDS) {
             playedSecondsRef.current.clear();
         }
-    }, [isTrackingOnWatch, restRemainingSeconds, playTimerEnd]);
+    }, [isAppInBackground, isTrackingOnWatch, restRemainingSeconds, playTimerEnd]);
 
     useEffect(() => {
         if (!workoutDetails || !hasPendingAutoRest) {
