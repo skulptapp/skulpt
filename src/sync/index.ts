@@ -31,6 +31,7 @@ import { getCurrentUser } from '@/crud/user';
 import { db } from '@/db';
 import { normalizeSetType } from '@/helpers/set-type';
 import { SKULPT_EXERCISES_USER_ID } from '@/constants/skulpt';
+import { clampExerciseSetReps } from '@/constants/exercise-set';
 
 const TRANSIENT_SYNC_ERRORS = new Set(['NO_INTERNET', 'TIMEOUT']);
 const TRANSIENT_SYNC_STATUSES = new Set([408, 429, 502, 503, 504]);
@@ -229,6 +230,9 @@ export const normalizeOutgoingExerciseSetSyncRecord = (
     const normalized = { ...record };
     if ('type' in normalized) {
         normalized.type = normalizeSetType(normalized.type);
+    }
+    if (typeof normalized.reps === 'number') {
+        normalized.reps = clampExerciseSetReps(normalized.reps);
     }
     return normalized;
 };

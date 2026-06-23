@@ -132,6 +132,17 @@ describe('exercise set sync record normalization', () => {
         );
     });
 
+    test('clamps impossible outgoing reps values', () => {
+        const { normalizeOutgoingExerciseSetSyncRecord } = loadSyncModule();
+
+        const outgoing = normalizeOutgoingExerciseSetSyncRecord({
+            ...exerciseSetPayload,
+            reps: 100000000000000020,
+        });
+
+        expect(outgoing.reps).toBe(9999);
+    });
+
     test('keeps completion and rest fields in incoming payload', () => {
         const { normalizeIncomingExerciseSetSyncRecord } = loadSyncModule();
 

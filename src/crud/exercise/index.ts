@@ -20,6 +20,7 @@ import { normalizeSetType } from '@/helpers/set-type';
 import { reportError } from '@/services/error-reporting';
 import { SKULPT_EXERCISES_USER_ID, isSkulptExerciseUserId } from '@/constants/skulpt';
 import { expandMuscleValues } from '@/constants/muscles';
+import { clampExerciseSetReps } from '@/constants/exercise-set';
 
 import { withSync, withSyncDelete, handleCrudError } from '../shared';
 import { queueSyncOperation } from '../sync';
@@ -45,7 +46,19 @@ export type ExerciseListSelect = Pick<
 const normalizeExerciseSetRecord = (row: ExerciseSetSelect): ExerciseSetSelect => ({
     ...row,
     type: normalizeSetType(row.type) as ExerciseSetSelect['type'],
+    reps: row.reps == null ? row.reps : clampExerciseSetReps(row.reps),
 });
+
+const normalizeExerciseSetRepsInput = <T extends { reps?: number | null }>(data: T): T => {
+    if (!Object.prototype.hasOwnProperty.call(data, 'reps') || data.reps == null) {
+        return data;
+    }
+
+    return {
+        ...data,
+        reps: clampExerciseSetReps(data.reps),
+    };
+};
 
 const getParentWorkoutForWorkoutExercise = async (
     workoutExerciseId: string,
@@ -616,7 +629,7 @@ export const deleteExerciseSet = async (id: string): Promise<void> => {
 export const createExerciseSetWithAutoStart = async (
     data: Omit<ExerciseSetInsert, 'id'>,
 ): Promise<ExerciseSetSelect> => {
-    let setData = data;
+    let setData = normalizeExerciseSetRepsInput(data);
 
     try {
         const parentWorkout = await getParentWorkoutForWorkoutExercise(setData.workoutExerciseId);
@@ -808,7 +821,7 @@ export const updateExerciseSetWithRestCalculation = async (
 ): Promise<ExerciseSetSelect> => {
     const rows = await db.select().from(exerciseSet).where(eq(exerciseSet.id, id)).limit(1);
     const existingSet = rows[0];
-    let updatedData = { ...updates };
+    let updatedData = normalizeExerciseSetRepsInput({ ...updates });
     let normalizedCompletedWorkoutRestUpdate = false;
 
     if (existingSet?.completedAt) {

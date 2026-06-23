@@ -5,6 +5,7 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { Box } from '@/components/primitives/box';
 import { Text } from '@/components/primitives/text';
 import { Input } from '@/components/primitives/input';
+import { clampExerciseSetReps } from '@/constants/exercise-set';
 
 type Selection = { start: number; end: number };
 
@@ -56,7 +57,13 @@ const formatReps = (reps: number) => {
 const parseRepsInput = (input: string) => {
     if (!input || input.trim() === '') return 0;
     const n = parseInt(input.replace(/[^0-9]/g, ''), 10);
-    return Number.isNaN(n) ? 0 : n;
+    return Number.isNaN(n) ? 0 : clampExerciseSetReps(n);
+};
+
+const normalizeRepsInputText = (input: string) => {
+    const digits = input.replace(/[^0-9]/g, '');
+    if (!digits) return '';
+    return String(parseRepsInput(digits));
 };
 
 export const RepsInput: FC<RepsInputProps> = ({
@@ -69,7 +76,7 @@ export const RepsInput: FC<RepsInputProps> = ({
     const { theme } = useUnistyles();
     const inputRef = useRef<TextInput | null>(null);
 
-    const baseValue = Math.max(0, value ?? 0);
+    const baseValue = clampExerciseSetReps(value ?? 0);
     const fallbackText = useMemo(() => formatReps(baseValue), [baseValue]);
 
     const [focused, setFocused] = useState(false);
@@ -79,8 +86,7 @@ export const RepsInput: FC<RepsInputProps> = ({
     const editableText = focused ? text : fallbackText;
 
     const repsDigits = useMemo(() => {
-        const normalized = editableText.replace(/[^0-9]/g, '');
-        return normalized;
+        return normalizeRepsInputText(editableText);
     }, [editableText]);
 
     const formatted = useMemo(() => formatReps(parseRepsInput(repsDigits)), [repsDigits]);
@@ -102,7 +108,7 @@ export const RepsInput: FC<RepsInputProps> = ({
 
     const handleChangeText = (t: string) => {
         if (!editable) return;
-        const normalized = t.replace(/[^0-9]/g, '');
+        const normalized = normalizeRepsInputText(t);
         setText(normalized);
         const end = normalized.length;
         setSelection({ start: end, end });
