@@ -124,6 +124,12 @@ const isHealthServiceUnavailableError = (error: unknown) => {
     );
 };
 
+const isHealthDataUnavailableError = (error: unknown) => {
+    const message = getErrorMessage(error);
+
+    return message.includes('health data is unavailable on this device');
+};
+
 // iOS Guided Access locks the device to a single app. When HealthKit tries to
 // open com.apple.HealthPrivacyService for the permissions dialog it gets denied
 // with FBSOpenApplicationErrorDomain "Guided Access active". This is a device
@@ -139,6 +145,7 @@ const isBenignHealthAccessError = (error: unknown) =>
     isHealthProtectedDataInaccessibleError(error) ||
     isHealthNotAuthorizedError(error) ||
     isHealthServiceUnavailableError(error) ||
+    isHealthDataUnavailableError(error) ||
     isGuidedAccessHealthError(error);
 
 const IOS_HEALTH_READ_TYPES = [
