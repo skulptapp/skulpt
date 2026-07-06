@@ -37,7 +37,9 @@
         },
         "install": {
             "exclude": [
-                "@sentry/react-native"
+                "@sentry/react-native",
+                "react-native-reanimated",
+                "react-native-worklets"
             ]
         }
     },
@@ -114,14 +116,14 @@
         "react-native-nitro-modules": "^0.36.1",
         "react-native-pager-view": "8.0.2",
         "react-native-permissions": "^5.6.0",
-        "react-native-reanimated": "4.5.0",
+        "react-native-reanimated": "4.5.1",
         "react-native-safe-area-context": "~5.7.0",
         "react-native-screens": "~4.25.2",
         "react-native-sortables": "^1.9.4",
         "react-native-svg": "15.15.4",
         "react-native-unistyles": "^3.2.5",
         "react-native-web": "^0.21.2",
-        "react-native-worklets": "0.10.0",
+        "react-native-worklets": "0.10.1",
         "react-number-format": "^5.4.5",
         "zod": "^4.4.3",
         "zustand": "^5.0.14"
