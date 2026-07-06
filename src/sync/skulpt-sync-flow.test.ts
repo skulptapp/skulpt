@@ -10,6 +10,11 @@ const mockUpdateSkulptLastSyncTimestamp = jest.fn();
 const mockCleanupSyncedOperations = jest.fn();
 const mockGetCurrentUser = jest.fn();
 const mockTxInsertValues = jest.fn(async () => undefined);
+const mockStorage = {
+    getNumber: jest.fn(),
+    set: jest.fn(),
+    remove: jest.fn(),
+};
 
 const mockExerciseTable = {
     __name: 'exercise',
@@ -71,6 +76,10 @@ jest.mock('@/crud/sync', () => ({
 
 jest.mock('@/crud/user', () => ({
     getCurrentUser: (...args: unknown[]) => mockGetCurrentUser(...args),
+}));
+
+jest.mock('@/storage', () => ({
+    storage: mockStorage,
 }));
 
 jest.mock('@/db', () => ({
@@ -165,6 +174,9 @@ describe('dataset sync flow', () => {
         mockTxInsertValues.mockClear();
         mockTx.update.mockClear();
         mockTx.delete.mockClear();
+        mockStorage.getNumber.mockReset();
+        mockStorage.set.mockClear();
+        mockStorage.remove.mockClear();
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         require('@sentry/react-native').withScope.mockClear();
 
@@ -172,6 +184,7 @@ describe('dataset sync flow', () => {
             id: 'user_1',
             lng: 'en',
         });
+        mockStorage.getNumber.mockReturnValue(1);
     });
 
     test('runs incremental dataset sync with scoped pull and dataset cursor update', async () => {
@@ -206,6 +219,81 @@ describe('dataset sync flow', () => {
         expect(mockUpdateLastSyncTimestamp).not.toHaveBeenCalled();
         expect(mockGetPendingSyncOperations).not.toHaveBeenCalled();
         expect(mockMarkSyncOperationAsDone).not.toHaveBeenCalled();
+    });
+
+    test('runs non-destructive dataset backfill from epoch when exercise dataset marker is missing', async () => {
+        const { performSkulptSync } = loadSyncModule();
+
+        mockStorage.getNumber.mockReturnValue(undefined);
+        mockGetSkulptLastSyncTimestamp.mockResolvedValue(new Date(1000));
+        mockGetServerChanges.mockResolvedValue({
+            success: true,
+            data: {
+                exercise: {
+                    records: [],
+                    deletedIds: [],
+                    timestamp: 4444,
+                },
+            },
+        });
+
+        const result = await performSkulptSync();
+
+        expect(result).toBe(true);
+        expect(mockGetSkulptLastSyncTimestamp).not.toHaveBeenCalled();
+        expect(mockGetServerChanges).toHaveBeenCalledWith(0, 'user_1', {
+            syncType: 'skulpt',
+            locale: 'en',
+        });
+        expect(mockTx.delete).not.toHaveBeenCalledWith(mockExerciseTable);
+        expect(mockUpdateSkulptLastSyncTimestamp.mock.calls[0][1].getTime()).toBe(4444);
+        expect(mockStorage.set).toHaveBeenCalledWith('skulpt.dataset.exercise.version.en', 1);
+    });
+
+    test('runs non-destructive dataset backfill when exercise dataset marker is outdated', async () => {
+        const { performSkulptSync } = loadSyncModule();
+
+        mockStorage.getNumber.mockReturnValue(0);
+        mockGetServerChanges.mockResolvedValue({
+            success: true,
+            data: {
+                exercise: {
+                    records: [],
+                    deletedIds: [],
+                    timestamp: 5555,
+                },
+            },
+        });
+
+        const result = await performSkulptSync();
+
+        expect(result).toBe(true);
+        expect(mockGetServerChanges).toHaveBeenCalledWith(0, 'user_1', {
+            syncType: 'skulpt',
+            locale: 'en',
+        });
+        expect(mockTx.delete).not.toHaveBeenCalledWith(mockExerciseTable);
+        expect(mockStorage.set).toHaveBeenCalledWith('skulpt.dataset.exercise.version.en', 1);
+    });
+
+    test('does not update exercise dataset marker when backfill pull fails', async () => {
+        const { performSkulptSync } = loadSyncModule();
+
+        mockStorage.getNumber.mockReturnValue(undefined);
+        mockGetServerChanges.mockResolvedValue({
+            success: false,
+            error: 'SERVER_ERROR',
+            status: 504,
+        });
+
+        const result = await performSkulptSync();
+
+        expect(result).toBe(false);
+        expect(mockGetServerChanges).toHaveBeenCalledWith(0, 'user_1', {
+            syncType: 'skulpt',
+            locale: 'en',
+        });
+        expect(mockStorage.set).not.toHaveBeenCalled();
     });
 
     test('runs full dataset reload with since=0 and locale normalization', async () => {

@@ -32,9 +32,24 @@ import { db } from '@/db';
 import { normalizeSetType } from '@/helpers/set-type';
 import { SKULPT_EXERCISES_USER_ID } from '@/constants/skulpt';
 import { clampExerciseSetReps } from '@/constants/exercise-set';
+import { storage } from '@/storage';
 
 const TRANSIENT_SYNC_ERRORS = new Set(['NO_INTERNET', 'TIMEOUT']);
 const TRANSIENT_SYNC_STATUSES = new Set([408, 429, 502, 503, 504]);
+const SKULPT_EXERCISE_DATASET_VERSION = 1;
+const SKULPT_EXERCISE_DATASET_VERSION_KEY_PREFIX = 'skulpt.dataset.exercise.version';
+
+const getSkulptExerciseDatasetVersionKey = (locale: string) =>
+    `${SKULPT_EXERCISE_DATASET_VERSION_KEY_PREFIX}.${locale}`;
+
+const getLocalSkulptExerciseDatasetVersion = (locale: string): number => {
+    const version = storage.getNumber(getSkulptExerciseDatasetVersionKey(locale));
+    return typeof version === 'number' && Number.isFinite(version) ? version : 0;
+};
+
+const markSkulptExerciseDatasetVersionSynced = (locale: string) => {
+    storage.set(getSkulptExerciseDatasetVersionKey(locale), SKULPT_EXERCISE_DATASET_VERSION);
+};
 
 const summarizeBatchData = (batchData: SyncBatchRequest) =>
     Object.fromEntries(
@@ -872,10 +887,15 @@ const pullSkulptChanges = async (
         if (!currentUser) return { success: true };
 
         const locale = normalizeSyncLocale(options.locale ?? currentUser.lng ?? 'en');
-        const previousSyncTime = options.full
-            ? new Date(0)
-            : await getSkulptLastSyncTimestamp(locale);
-        const since = options.full ? 0 : previousSyncTime.getTime();
+        const shouldBackfillSkulptExercises =
+            options.full !== true &&
+            getLocalSkulptExerciseDatasetVersion(locale) < SKULPT_EXERCISE_DATASET_VERSION;
+        const previousSyncTime =
+            options.full || shouldBackfillSkulptExercises
+                ? new Date(0)
+                : await getSkulptLastSyncTimestamp(locale);
+        const since =
+            options.full || shouldBackfillSkulptExercises ? 0 : previousSyncTime.getTime();
 
         const result = await getServerChanges(since, currentUser.id, {
             syncType: 'skulpt',
@@ -888,6 +908,7 @@ const pullSkulptChanges = async (
             });
             const maxTimestamp = resolveMaxPackTimestamp(result.data, since);
             await updateSkulptLastSyncTimestamp(locale, new Date(maxTimestamp));
+            markSkulptExerciseDatasetVersionSynced(locale);
             return { success: true };
         }
 
@@ -903,6 +924,7 @@ const pullSkulptChanges = async (
             userId: currentUser.id,
             locale,
             full: options.full === true,
+            shouldBackfillSkulptExercises,
             response: result,
         });
         return { success: false };

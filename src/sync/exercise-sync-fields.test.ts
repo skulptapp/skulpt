@@ -6,13 +6,22 @@ jest.mock('@/api', () => ({
 }));
 jest.mock('@/crud/sync', () => ({
     getLastSyncTimestamp: jest.fn(),
+    getSkulptLastSyncTimestamp: jest.fn(),
     getPendingSyncOperations: jest.fn(),
     markSyncOperationAsDone: jest.fn(),
     updateLastSyncTimestamp: jest.fn(),
+    updateSkulptLastSyncTimestamp: jest.fn(),
     cleanupSyncedOperations: jest.fn(),
 }));
 jest.mock('@/crud/user', () => ({
     getCurrentUser: jest.fn(),
+}));
+jest.mock('@/storage', () => ({
+    storage: {
+        getNumber: jest.fn(),
+        set: jest.fn(),
+        remove: jest.fn(),
+    },
 }));
 jest.mock('@sentry/react-native', () => ({
     withScope: jest.fn(),
