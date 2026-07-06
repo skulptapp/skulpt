@@ -69,6 +69,8 @@ module.exports = {
         'expo-asset',
         'expo-mail-composer',
         'expo-image',
+        'expo-sharing',
+        'expo-status-bar',
         '@bacons/apple-targets',
         [
             '@kingstinct/react-native-healthkit',

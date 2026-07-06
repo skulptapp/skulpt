@@ -26,11 +26,7 @@ import { ControlledInputType } from '../types';
 export type ChoicesType = 'radio' | 'checkbox';
 
 export type ValueType =
-    | string
-    | number
-    | boolean
-    | null
-    | (string | number | boolean | (string | number)[])[];
+    string | number | boolean | null | (string | number | boolean | (string | number)[])[];
 
 export interface ChoiceType {
     value: string | number | boolean | null | (string | number)[];

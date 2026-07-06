@@ -994,13 +994,7 @@ export interface WorkoutDaySummary {
 }
 
 export type StrengthRadarMuscleKey =
-    | 'chest'
-    | 'back'
-    | 'legs'
-    | 'shoulders'
-    | 'core'
-    | 'arms'
-    | 'neck';
+    'chest' | 'back' | 'legs' | 'shoulders' | 'core' | 'arms' | 'neck';
 
 export type StrengthRadarMetricMap = Record<StrengthRadarMuscleKey, number>;
 
