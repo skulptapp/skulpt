@@ -17,7 +17,7 @@ import { nanoid } from '@/helpers/nanoid';
 import { reportError } from '@/services/error-reporting';
 import { computeWorkoutStats } from '@/services/workout-health-stats';
 import { HealthStats } from '@/types/health-stats';
-import { getTopLevelMuscleValues } from '@/constants/muscles';
+import { getTopLevelMuscleValue, getTopLevelMuscleValues } from '@/constants/muscles';
 import { isRestFinalized } from '@/helpers/rest';
 
 import { queueSyncOperation, queueSyncOperations } from '../sync';
@@ -1018,6 +1018,7 @@ export const strengthRadarMuscleOrder: readonly StrengthRadarMuscleKey[] = [
     'shoulders',
     'core',
     'arms',
+    'neck',
 ] as const;
 
 const createEmptyStrengthRadarMetricMap = (): StrengthRadarMetricMap => ({
@@ -1065,16 +1066,60 @@ const mapTopLevelMuscleToRadar = (
 };
 
 const PRIMARY_MUSCLE_WEIGHT = 1;
-const SECONDARY_MUSCLE_WEIGHT = 0.5;
+const MUSCLE_LOAD_MUSCLE_KEYS = ['muscle', 'muscleGroup', 'muscle_group', 'value', 'key', 'name'];
+const MUSCLE_LOAD_WEIGHT_KEYS = ['percentage', 'percent', 'load', 'share', 'weight', 'value'];
 
-const resolveRadarMuscleWeightsFromExercise = ({
+type RadarMuscleWeightMap = Map<StrengthRadarMuscleKey, number>;
+
+const readStringValue = (record: Record<string, unknown>, keys: string[]): string | null => {
+    for (const key of keys) {
+        const value = record[key];
+        if (typeof value === 'string' && value.trim().length > 0) {
+            return value.trim();
+        }
+    }
+
+    return null;
+};
+
+const readNumberValue = (record: Record<string, unknown>, keys: string[]): number | null => {
+    for (const key of keys) {
+        const value = record[key];
+        if (typeof value === 'number' && Number.isFinite(value)) {
+            return value;
+        }
+
+        if (typeof value === 'string' && value.trim().length > 0) {
+            const parsed = Number(value);
+            if (Number.isFinite(parsed)) {
+                return parsed;
+            }
+        }
+    }
+
+    return null;
+};
+
+const addRadarMuscleWeight = (
+    weights: RadarMuscleWeightMap,
+    muscleValue: string | null,
+    muscleWeight: number | null,
+) => {
+    if (!muscleValue || muscleWeight == null || muscleWeight <= 0) return;
+
+    const topLevelMuscle = getTopLevelMuscleValue(muscleValue);
+    const radarMuscle = mapTopLevelMuscleToRadar(topLevelMuscle);
+    if (!radarMuscle) return;
+
+    weights.set(radarMuscle, (weights.get(radarMuscle) || 0) + muscleWeight);
+};
+
+const resolveRadarMuscleWeightsFromPrimary = ({
     primaryMuscleGroups,
-    secondaryMuscleGroups,
 }: {
     primaryMuscleGroups: ExerciseSelect['primaryMuscleGroups'];
-    secondaryMuscleGroups: ExerciseSelect['secondaryMuscleGroups'];
-}): Map<StrengthRadarMuscleKey, number> => {
-    const resolved = new Map<StrengthRadarMuscleKey, number>();
+}): RadarMuscleWeightMap => {
+    const resolved: RadarMuscleWeightMap = new Map();
 
     for (const topLevelMuscle of getTopLevelMuscleValues(primaryMuscleGroups) || []) {
         const radarMuscle = mapTopLevelMuscleToRadar(topLevelMuscle);
@@ -1083,16 +1128,53 @@ const resolveRadarMuscleWeightsFromExercise = ({
         }
     }
 
-    for (const topLevelMuscle of getTopLevelMuscleValues(secondaryMuscleGroups) || []) {
-        const radarMuscle = mapTopLevelMuscleToRadar(topLevelMuscle);
-        if (!radarMuscle) continue;
+    return resolved;
+};
 
-        const currentWeight = resolved.get(radarMuscle) || 0;
-        // Primary should always dominate when a muscle appears in both lists.
-        resolved.set(radarMuscle, Math.max(currentWeight, SECONDARY_MUSCLE_WEIGHT));
+const resolveRadarMuscleWeightsFromProfile = (
+    muscleLoad: ExerciseSelect['muscleLoad'],
+): RadarMuscleWeightMap => {
+    const resolved: RadarMuscleWeightMap = new Map();
+    if (!Array.isArray(muscleLoad)) return resolved;
+
+    for (const entry of muscleLoad) {
+        if (Array.isArray(entry)) {
+            const muscleValue = entry.find(
+                (value): value is string => typeof value === 'string' && value.trim().length > 0,
+            );
+            const muscleWeight = entry.find(
+                (value): value is number => typeof value === 'number' && Number.isFinite(value),
+            );
+
+            addRadarMuscleWeight(resolved, muscleValue ?? null, muscleWeight ?? null);
+            continue;
+        }
+
+        if (!entry || typeof entry !== 'object') continue;
+
+        const record = entry as Record<string, unknown>;
+        const muscleValue = readStringValue(record, MUSCLE_LOAD_MUSCLE_KEYS);
+        const muscleWeight = readNumberValue(record, MUSCLE_LOAD_WEIGHT_KEYS);
+
+        addRadarMuscleWeight(resolved, muscleValue, muscleWeight);
     }
 
     return resolved;
+};
+
+const resolveRadarMuscleWeightsForLoad = ({
+    muscleLoad,
+    primaryMuscleGroups,
+}: {
+    muscleLoad: ExerciseSelect['muscleLoad'];
+    primaryMuscleGroups: ExerciseSelect['primaryMuscleGroups'];
+}): RadarMuscleWeightMap => {
+    const profileWeights = resolveRadarMuscleWeightsFromProfile(muscleLoad);
+    if (profileWeights.size > 0) {
+        return profileWeights;
+    }
+
+    return resolveRadarMuscleWeightsFromPrimary({ primaryMuscleGroups });
 };
 
 const coerceNumber = (value: unknown): number => {
@@ -1748,7 +1830,7 @@ export const fetchStrengthRadarStats = async (
         .select({
             workoutId: workout.id,
             primaryMuscleGroups: exercise.primaryMuscleGroups,
-            secondaryMuscleGroups: exercise.secondaryMuscleGroups,
+            muscleLoad: exercise.muscleLoad,
             weightDoubleInStats: exercise.weightDoubleInStats,
             setWeight: exerciseSet.weight,
             setWeightUnits: exerciseSet.weightUnits,
@@ -1777,13 +1859,11 @@ export const fetchStrengthRadarStats = async (
     const sessionsByMuscle = createStrengthRadarSessionsMap();
 
     for (const row of rows) {
-        const radarMuscleWeights = resolveRadarMuscleWeightsFromExercise({
+        const sessionMuscleWeights = resolveRadarMuscleWeightsFromPrimary({
             primaryMuscleGroups: row.primaryMuscleGroups,
-            secondaryMuscleGroups: row.secondaryMuscleGroups,
         });
-        if (radarMuscleWeights.size === 0) continue;
 
-        for (const muscle of radarMuscleWeights.keys()) {
+        for (const muscle of sessionMuscleWeights.keys()) {
             sessionsByMuscle[muscle].add(row.workoutId);
         }
 
@@ -1795,14 +1875,18 @@ export const fetchStrengthRadarStats = async (
             row.setWeightUnits === 'lb' ? convertWeight(weight, 'lb', 'kg') : weight;
 
         const setVolumeKg = convertedWeightKg * reps * (row.weightDoubleInStats ? 2 : 1);
+        const loadMuscleWeights = resolveRadarMuscleWeightsForLoad({
+            muscleLoad: row.muscleLoad,
+            primaryMuscleGroups: row.primaryMuscleGroups,
+        });
 
-        const totalMuscleWeight = Array.from(radarMuscleWeights.values()).reduce(
+        const totalMuscleWeight = Array.from(loadMuscleWeights.values()).reduce(
             (sum, muscleWeight) => sum + muscleWeight,
             0,
         );
         if (totalMuscleWeight <= 0) continue;
 
-        for (const [muscle, muscleWeight] of radarMuscleWeights.entries()) {
+        for (const [muscle, muscleWeight] of loadMuscleWeights.entries()) {
             totalVolumeKgByMuscle[muscle] += setVolumeKg * (muscleWeight / totalMuscleWeight);
         }
     }

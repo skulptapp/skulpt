@@ -21,6 +21,7 @@ import m0016 from './0016_faulty_rocket_racer.sql';
 import m0017 from './0017_curved_morlocks.sql';
 import m0018 from './0018_legal_cerebro.sql';
 import m0019 from './0019_nebulous_shape.sql';
+import m0020 from './0020_blue_lady_ursula.sql';
 
 export default {
     journal,
@@ -45,5 +46,6 @@ export default {
         m0017,
         m0018,
         m0019,
+        m0020,
     },
 };

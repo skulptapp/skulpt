@@ -141,6 +141,13 @@
             "when": 1780573492746,
             "tag": "0019_nebulous_shape",
             "breakpoints": true
+        },
+        {
+            "idx": 20,
+            "version": "6",
+            "when": 1783322351654,
+            "tag": "0020_blue_lady_ursula",
+            "breakpoints": true
         }
     ]
 }

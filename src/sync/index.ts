@@ -122,6 +122,8 @@ const EXERCISE_SYNC_RECORD_FIELDS = [
     'description',
     'difficulty',
     'gifFilename',
+    'muscleLoad',
+    'confidence',
     'userId',
     'createdAt',
     'updatedAt',

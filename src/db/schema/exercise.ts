@@ -7,6 +7,8 @@ export type ExerciseInsert = typeof exercise.$inferInsert;
 export type ExerciseSetSelect = typeof exerciseSet.$inferSelect;
 export type ExerciseSetInsert = typeof exerciseSet.$inferInsert;
 
+export type ExerciseMuscleLoadProfile = Record<string, unknown>[];
+
 export const exercise = sqliteTable('exercise', {
     id: text('id', { length: 21 }).primaryKey(),
     name: text('name').notNull(),
@@ -47,6 +49,8 @@ export const exercise = sqliteTable('exercise', {
     description: text('description'),
     difficulty: text('difficulty'),
     gifFilename: text('gif_filename'),
+    muscleLoad: text('muscle_load', { mode: 'json' }).$type<ExerciseMuscleLoadProfile>(),
+    confidence: text('confidence', { enum: ['high', 'medium', 'low'] }),
     userId: text('user_id', { length: 21 }).notNull(),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })
         .notNull()

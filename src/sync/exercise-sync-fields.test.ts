@@ -45,6 +45,11 @@ describe('exercise sync record normalization', () => {
             description: 'Strong baseline movement',
             difficulty: 'intermediate',
             gifFilename: 'sk001-12345',
+            muscleLoad: [
+                { muscle: 'quads', percentage: 70 },
+                { muscle: 'glutes', percentage: 30 },
+            ],
+            confidence: 'high',
             primaryMuscleGroups: ['quads'],
             secondaryMuscleGroups: ['glutes'],
         });
@@ -59,6 +64,11 @@ describe('exercise sync record normalization', () => {
                 description: 'Strong baseline movement',
                 difficulty: 'intermediate',
                 gifFilename: 'sk001-12345',
+                muscleLoad: [
+                    { muscle: 'quads', percentage: 70 },
+                    { muscle: 'glutes', percentage: 30 },
+                ],
+                confidence: 'high',
             }),
         );
     });
@@ -79,6 +89,11 @@ describe('exercise sync record normalization', () => {
             description: 'Posterior chain staple',
             difficulty: 'advanced',
             gifFilename: 'sk002-777',
+            muscleLoad: [
+                { muscle: 'hamstrings', percentage: 80 },
+                { muscle: 'lower_back', percentage: 20 },
+            ],
+            confidence: 'medium',
             primaryMuscleGroups: ['hamstrings'],
             secondaryMuscleGroups: ['lower_back'],
             unknownField: 'must_be_removed',
@@ -95,6 +110,11 @@ describe('exercise sync record normalization', () => {
                 description: 'Posterior chain staple',
                 difficulty: 'advanced',
                 gifFilename: 'sk002-777',
+                muscleLoad: [
+                    { muscle: 'hamstrings', percentage: 80 },
+                    { muscle: 'lower_back', percentage: 20 },
+                ],
+                confidence: 'medium',
             }),
         );
         expect(incoming).not.toHaveProperty('unknownField');

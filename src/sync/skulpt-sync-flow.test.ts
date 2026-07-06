@@ -238,6 +238,69 @@ describe('dataset sync flow', () => {
         expect(mockTx.delete).toHaveBeenCalledWith(mockExerciseTable);
     });
 
+    test('preserves dataset exercise muscle load fields during skulpt pull', async () => {
+        const { performSkulptSync } = loadSyncModule();
+
+        mockGetServerChanges.mockResolvedValue({
+            success: true,
+            data: {
+                exercise: {
+                    records: [
+                        {
+                            id: 'exercise_1',
+                            name: 'Dataset Squat',
+                            category: 'strength',
+                            tracking: ['weight', 'reps'],
+                            userId: 'skulpt',
+                            source: 'system',
+                            createdAt: '2026-06-23T10:00:00Z',
+                            updatedAt: '2026-06-23T10:01:00Z',
+                            serverCreatedAt: '2026-06-23T10:00:01Z',
+                            serverUpdatedAt: '2026-06-23T10:01:01Z',
+                            primaryMuscleGroups: ['quads'],
+                            secondaryMuscleGroups: ['glutes'],
+                            muscleLoad: [
+                                { muscle: 'quads', percentage: 70 },
+                                { muscle: 'glutes', percentage: 30 },
+                            ],
+                            confidence: 'high',
+                            unknownField: 'must be dropped',
+                        },
+                    ],
+                    deletedIds: [],
+                    timestamp: 4444,
+                },
+            },
+        });
+
+        const result = await performSkulptSync({
+            locale: 'en',
+            full: true,
+        });
+
+        expect(result).toBe(true);
+        expect(mockTx.insert).toHaveBeenCalledWith(mockExerciseTable);
+
+        const payload = mockTxInsertValues.mock.calls[0][0];
+        expect(payload).toEqual(
+            expect.objectContaining({
+                id: 'exercise_1',
+                muscleLoad: [
+                    { muscle: 'quads', percentage: 70 },
+                    { muscle: 'glutes', percentage: 30 },
+                ],
+                confidence: 'high',
+                primaryMuscleGroups: ['quads'],
+                secondaryMuscleGroups: ['glutes'],
+            }),
+        );
+        expect(payload.createdAt).toBeInstanceOf(Date);
+        expect(payload.updatedAt).toBeInstanceOf(Date);
+        expect(payload.serverCreatedAt).toBeUndefined();
+        expect(payload.serverUpdatedAt).toBeUndefined();
+        expect(payload.unknownField).toBeUndefined();
+    });
+
     test('pullServerChanges keeps user and dataset scopes isolated', async () => {
         const { pullServerChanges } = loadSyncModule();
 
