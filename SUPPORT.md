@@ -1,6 +1,6 @@
 # Support
 
-Use the route that matches the question.
+Choose the contact that matches your question.
 
 | Need                                | Contact                                                                |
 | ----------------------------------- | ---------------------------------------------------------------------- |
@@ -14,4 +14,4 @@ Use the route that matches the question.
 
 For an application problem, include the Skulpt version, platform version, device model, and the shortest sequence that reproduces it.
 
-Do not post workout records, health samples, email addresses, authentication tokens, signing files, credentials, or unredacted diagnostics in a public Issue or Discussion. Send private account, deletion, SyncLayer, and data questions by email.
+Do not post workout records, health samples, email addresses, authentication tokens, signing files, credentials, or unredacted diagnostics in a public Issue or Discussion. Email us about private account, deletion, SyncLayer, or data questions.

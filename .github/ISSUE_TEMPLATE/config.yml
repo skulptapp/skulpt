@@ -4,8 +4,8 @@ contact_links:
       url: https://github.com/skulptapp/skulpt/discussions
       about: Ask for setup help or discuss an idea before it becomes scoped work.
     - name: App support
-      url: https://skulpt.app
-      about: Use the support addresses in the app or SUPPORT.md for private help.
+      url: https://github.com/skulptapp/skulpt/blob/main/SUPPORT.md
+      about: Use the support contacts for setup help, the released app, or private questions.
     - name: Security report
       url: https://github.com/skulptapp/skulpt/security/policy
       about: Follow the security policy to report a vulnerability privately.

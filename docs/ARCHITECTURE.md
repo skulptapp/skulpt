@@ -26,13 +26,13 @@ Workout operations commit to SQLite before any optional network work. The normal
 
 `src/routes/` contains Expo Router entry points and provider composition. Product screens live under `src/screens/`; reusable UI lives under `src/components/`.
 
-`src/routes/_layout.tsx` starts database migrations and assembles the user, analytics, notifications, audio, health import, workout, review, and sync providers.
+`src/routes/_layout.tsx` starts database migrations and assembles the application's providers, including user state, analytics, notifications, audio, health import, workouts, reviews, and sync.
 
 ### Local data
 
 `src/db/schema/` defines the SQLite schema with Drizzle ORM. Generated migrations live under `drizzle/` and run when the application starts.
 
-Product writes belong in `src/crud/`. This keeps screens away from ad hoc SQL and gives the optional sync queue a consistent boundary.
+Product writes belong in `src/crud/`. Screens do not need ad hoc SQL, and the optional sync queue has one consistent boundary.
 
 The main local domains include:
 
@@ -46,7 +46,7 @@ The main local domains include:
 
 ### Optional SyncLayer
 
-`EXPO_PUBLIC_SYNC_HOST` selects a provider at build time. When the variable is absent, the regular application path does not mount the active sync provider, authenticate, or add new CRUD operations to `sync_queue`.
+`EXPO_PUBLIC_SYNC_HOST` selects a provider at build time. Without it, the app does not mount the active sync provider, authenticate with a provider, or add new CRUD operations to `sync_queue`.
 
 When the variable is present:
 
@@ -59,7 +59,7 @@ When the variable is present:
 
 Authentication uses `POST /auth/token` with the local user ID and a persistent device ID. The client stores the returned token in MMKV, with an in-memory fallback for the current launch.
 
-The client contract is not tied to one server implementation. Store builds can use the Skulpt-operated provider, while a custom build can use another compatible provider. See [SYNC_PROTOCOL.md](SYNC_PROTOCOL.md).
+The HTTP contract works with any compatible implementation. Store builds can use the Skulpt-operated provider, while a custom build can use another provider. See [SYNC_PROTOCOL.md](SYNC_PROTOCOL.md).
 
 ### Exercise catalogue
 
@@ -69,7 +69,7 @@ The catalogue is not currently bundled with the client. A clean build without a 
 
 ### Health integrations
 
-The iOS client reads authorised HealthKit data and can write completed workouts. Android uses Health Connect. Both integrations must handle missing services and denied permissions without breaking the local workout flow.
+The iOS client reads authorised HealthKit data and can write completed workouts. Android uses Health Connect. Missing services or denied permissions must not break the local workout flow.
 
 Authorised body measurements copied into Skulpt are stored in the local `measurement` table. Rows with `source: "health"` are currently eligible for optional SyncLayer in the same way as manual measurement rows.
 
@@ -83,7 +83,7 @@ Authorised body measurements copied into Skulpt are stored in the local `measure
 
 PostHog and AppMetrica are initialised only when their public keys are configured. Sentry uses `EXPO_PUBLIC_SENTRY_DSN`. Expo Updates uses the EAS project ID from the build configuration.
 
-These services are separate from SyncLayer. A local-first build may still use one of them if its corresponding variable is configured.
+These services are separate from SyncLayer. A local-first build can still use any service whose variable is configured.
 
 ## State boundaries
 
@@ -93,7 +93,7 @@ These services are separate from SyncLayer. A local-first build may still use on
 - MMKV stores small persistent values such as auth and sync metadata fallbacks.
 - HealthKit and Health Connect remain external platform stores accessed through user permissions.
 
-Avoid storing the same persistent product fact in several state systems. Prefer a SQLite query for history and durable records.
+Do not store the same persistent product fact in several state systems. Use SQLite for history and other durable records.
 
 ## Tests
 

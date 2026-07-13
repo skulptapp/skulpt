@@ -40,14 +40,14 @@ The iOS project includes an Apple Watch target, so use your own Apple Developer 
 
 ## Behaviour without SyncLayer
 
-In the regular application flow, an empty `EXPO_PUBLIC_SYNC_HOST` means:
+With an empty `EXPO_PUBLIC_SYNC_HOST`, the regular application flow behaves as follows:
 
-- no provider token request;
-- no active sync provider;
-- no new CRUD entries in `sync_queue`;
-- no user-data push or pull;
-- no `skulpt` exercise-catalogue pull;
-- workouts, custom exercises, sets, measurements, and settings remain in SQLite.
+- The app does not request a provider token.
+- The app does not mount the active sync provider.
+- CRUD operations do not add new entries to `sync_queue`.
+- The app does not push or pull user data.
+- The app does not pull the `skulpt` exercise catalogue.
+- Workouts, custom exercises, sets, measurements, and settings remain in SQLite.
 
 Local records do not depend on enabling a provider later. If a later build enables SyncLayer, the existing backfill logic can queue eligible records before sync.
 
@@ -55,7 +55,7 @@ Local records do not depend on enabling a provider later. If a later build enabl
 
 The maintained Skulpt catalogue is currently delivered through the provider's separate `skulpt` scope. It is not bundled with this repository. A new local-only installation therefore starts without the system catalogue.
 
-Users can create custom exercises and complete workouts locally. This catalogue limitation does not make personal-data sync mandatory, but it does affect the first-run experience of a provider-free build.
+Users can create custom exercises and complete workouts locally. Personal data does not need sync, but a provider-free build has a more limited first-run experience because the catalogue is missing.
 
 ## Verify the boundary
 

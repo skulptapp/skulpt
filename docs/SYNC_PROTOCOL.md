@@ -12,7 +12,7 @@ Sync requests include:
 x-skulpt-sync-schema: 2
 ```
 
-A provider should reject an unsupported schema version instead of silently accepting an incompatible payload.
+A provider should reject an unsupported schema version rather than accept an incompatible payload silently.
 
 ## Authentication
 
@@ -39,7 +39,7 @@ Expected response:
 
 `expiresAt` is Unix time in milliseconds. Sync requests send `Authorization: Bearer <token>`. After a `401`, the client clears the stored token, requests another token, and retries the failed request once.
 
-This endpoint describes client compatibility, not a complete security design. A provider is responsible for authenticating or provisioning users, isolating tenants, validating tokens, limiting abuse, and protecting stored data.
+This endpoint is part of the client contract, not a complete security design. The provider must authenticate or provision users, isolate tenants, validate tokens, limit abuse, and protect stored data.
 
 ## Push local changes
 
@@ -172,7 +172,7 @@ A compatible implementation must still define and enforce:
 - backups and restore behaviour;
 - privacy disclosures for the service it operates.
 
-The client does not make an arbitrary incoming payload safe. Validate all writes and reads at the provider boundary.
+The client assumes that the provider has validated incoming data. Validate every write and read at the provider boundary.
 
 ## Changing the contract
 

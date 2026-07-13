@@ -5,17 +5,11 @@
 </p>
 
 <p align="center">
-  <a href="https://apps.apple.com/us/app/skulpt-gym-workout-tracker/id6749158262">
-    <img src="https://img.shields.io/badge/App_Store-Download-0A84FF?style=flat&logo=apple&logoColor=white" alt="Download Skulpt on the App Store" />
-  </a>
+  <a href="https://apps.apple.com/us/app/skulpt-gym-workout-tracker/id6749158262"><img src="https://img.shields.io/badge/App_Store-Download-0A84FF?style=flat&logo=apple&logoColor=white" alt="Download Skulpt on the App Store" /></a>
   &nbsp;
-  <a href="https://play.google.com/store/apps/details?id=app.skulpt">
-    <img src="https://img.shields.io/badge/Google_Play-Download-34A853?style=flat&logo=googleplay&logoColor=white" alt="Download Skulpt on Google Play" />
-  </a>
+  <a href="https://play.google.com/store/apps/details?id=app.skulpt"><img src="https://img.shields.io/badge/Google_Play-Download-34A853?style=flat&logo=googleplay&logoColor=white" alt="Download Skulpt on Google Play" /></a>
   &nbsp;
-  <a href="https://github.com/skulptapp/skulpt/actions/workflows/ci.yml">
-    <img src="https://github.com/skulptapp/skulpt/actions/workflows/ci.yml/badge.svg" alt="CI status" />
-  </a>
+  <a href="https://github.com/skulptapp/skulpt/actions/workflows/ci.yml"><img src="https://github.com/skulptapp/skulpt/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
   &nbsp;
   <img src="https://img.shields.io/github/license/skulptapp/skulpt?style=flat&color=22c55e" alt="GPL-3.0 license" />
   &nbsp;
@@ -53,9 +47,8 @@ The repository contains the mobile client that ships through the stores. It is l
 - [Download Skulpt on the App Store](https://apps.apple.com/us/app/skulpt-gym-workout-tracker/id6749158262)
 - [Download Skulpt on Google Play](https://play.google.com/store/apps/details?id=app.skulpt)
 - [Privacy policy](https://skulpt.app/privacy)
-- [Terms of use](https://skulpt.app/terms)
 
-The store builds are free and do not require a subscription. Their current configuration includes the Skulpt SyncLayer; analytics and diagnostics depend on the release configuration. Developers can build the same client without those services.
+The store builds are free and do not require a subscription. They include the Skulpt SyncLayer. Analytics and diagnostics depend on the release configuration, and developers can build the same client without any of these services.
 
 ## Features
 
@@ -87,7 +80,7 @@ Provider selection is currently a build-time setting. The public app does not ex
 
 SyncLayer is separate from other optional network integrations. PostHog, AppMetrica, and Sentry each have their own environment variable. Leave those variables unset when building without analytics or diagnostics. See [Build a local-only client](docs/LOCAL_ONLY.md) for the exact configuration and current exercise-catalogue limitation.
 
-Skulpt can copy authorised body measurements from HealthKit or Health Connect into its own `measurement` table. Those imported rows currently follow the same optional sync path as manually entered measurements when SyncLayer is enabled. Skulpt does not copy or upload the complete contents of either health store.
+Skulpt can copy authorised body measurements from HealthKit or Health Connect into its own `measurement` table. When SyncLayer is enabled, imported measurements follow the same optional sync path as measurements entered by hand. Skulpt does not copy or upload the complete contents of either health store.
 
 ## SyncLayer
 
@@ -113,11 +106,11 @@ The current request and response shapes are documented in [Sync provider protoco
 
 ### ① Stable workout core
 
-Polish and harden the end-to-end workout experience — from planning through logging to history review. This is the foundation everything else builds on.
+Polish and harden the full workout experience, from planning and logging to reviewing workout history. This is the foundation everything else builds on.
 
 ### ② Whoop-level health intelligence
 
-Deep tracking of recovery, readiness, and training load on par with dedicated wearables. Metrics are sourced from Apple Health (iOS) and Google Health Connect (Android), which aggregate data from any connected device — Apple Watch, Garmin, Whoop, Oura, Polar, and others — so Skulpt works with whatever hardware the user already owns.
+Deep tracking of recovery, readiness, and training load on par with dedicated wearables. Metrics come from Apple Health on iOS and Google Health Connect on Android. Both collect data from connected devices such as Apple Watch, Garmin, Whoop, Oura, and Polar, so Skulpt works with the hardware the user already owns.
 
 ### ③ AI-ready tool layer
 
@@ -125,11 +118,11 @@ A set of composable, privacy-first tools designed for AI agents: each tool compu
 
 ### ④ Agentic protocol
 
-An open, vendor-neutral protocol for connecting AI agents to Skulpt. Any agent — regardless of the underlying model or platform — can be plugged in, query the tool layer, reason over computed metrics, and surface personalised recommendations. The protocol is deliberately model-agnostic: it defines a contract, not an implementation, so it works equally well with a local on-device model, a self-hosted LLM, or any cloud AI service.
+An open, vendor-neutral protocol for connecting AI agents to Skulpt. An agent can query the tool layer, reason over computed metrics, and surface personalised recommendations regardless of its model or platform. The protocol is deliberately model-agnostic: it defines a contract rather than an implementation, so it can work with a local on-device model, a self-hosted LLM, or a cloud AI service.
 
 ### ⑤ First-class agent UI
 
-A native interface for managing and interacting with connected agents directly inside the app — configure which agents have access, inspect what they see, and have natural conversations grounded in your actual training data, all without leaving Skulpt.
+A native interface for managing and interacting with connected agents inside the app. Users will be able to configure agent access, inspect what each agent can see, and have conversations grounded in their training data without leaving Skulpt.
 
 ## Architecture
 
@@ -242,7 +235,7 @@ Maintainer steps are documented in [Release process](docs/RELEASING.md).
 
 ## Contributing
 
-Contributions can include code, tests, documentation, translations, accessibility fixes, and reproducible bug reports. Start with [CONTRIBUTING.md](CONTRIBUTING.md).
+You can contribute code, tests, documentation, translations, accessibility fixes, or reproducible bug reports. Start with [CONTRIBUTING.md](CONTRIBUTING.md).
 
 - Use [GitHub Issues](https://github.com/skulptapp/skulpt/issues) for reproducible bugs and scoped work.
 - Use [GitHub Discussions](https://github.com/skulptapp/skulpt/discussions) for questions, ideas, and architecture proposals.

@@ -53,7 +53,7 @@ bun run release:ios
 bun run release:android
 ```
 
-The scripts run EAS production builds with automatic submission. App Store and Google Play review and rollout remain separate, so verify each public listing before announcing availability.
+The scripts run EAS production builds with automatic submission. Store review and rollout happen separately on App Store and Google Play. Check each public listing before announcing the release.
 
 ## OTA updates
 
@@ -72,6 +72,6 @@ git tag -a v8.0 -m "Skulpt 8.0"
 git push origin v8.0
 ```
 
-Replace the example version. Create the GitHub release from the same tag and include user-visible changes, technical notes where useful, known limitations, and contributor credit.
+Replace the example version with the version being released. Create the GitHub release from the same tag. Include user-visible changes, useful technical notes, known limitations, and contributor credit.
 
 Do not move a published version tag to another commit. Publish a correction through a new version if the tagged source is wrong.

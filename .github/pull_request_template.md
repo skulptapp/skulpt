@@ -8,7 +8,7 @@
 
 ## Verification
 
-<!-- List commands, devices, OS versions, and manual flows actually tested. -->
+<!-- List the commands, devices, OS versions, and manual flows you tested. -->
 
 - [ ] `bun run verify` passes.
 - [ ] I added or updated tests, or explained why automated coverage is not practical.
