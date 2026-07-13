@@ -1,0 +1,32 @@
+title: '[Question] '
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Ask about local setup, the codebase, or the documented provider contract. Do not post credentials or private user data.
+
+    - type: textarea
+      id: goal
+      attributes:
+          label: What are you trying to do?
+      validations:
+          required: true
+
+    - type: textarea
+      id: tried
+      attributes:
+          label: What have you tried?
+          description: Include the command and a short redacted error when relevant.
+      validations:
+          required: true
+
+    - type: input
+      id: environment
+      attributes:
+          label: Environment
+          placeholder: 'Operating system, Bun version, and target platform'
+
+    - type: textarea
+      id: context
+      attributes:
+          label: Additional context

@@ -1,0 +1,98 @@
+name: Bug report
+description: Report a reproducible problem in the Skulpt client
+title: '[Bug]: '
+labels:
+    - bug
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Thanks for taking the time to report a problem. Do not include real workout records, health samples, tokens, credentials, or unredacted diagnostics.
+
+    - type: checkboxes
+      id: checks
+      attributes:
+          label: Before submitting
+          options:
+              - label: I searched existing Issues and Discussions for the same problem.
+                required: true
+              - label: I removed private data from this report.
+                required: true
+              - label: This is a product or code bug, not a private account or security report.
+                required: true
+
+    - type: input
+      id: version
+      attributes:
+          label: Skulpt version
+          description: Find the version in the app or store listing.
+          placeholder: '8.0'
+      validations:
+          required: true
+
+    - type: dropdown
+      id: source
+      attributes:
+          label: Installation source
+          options:
+              - App Store
+              - Google Play
+              - Local development build
+              - EAS development or preview build
+              - Other
+      validations:
+          required: true
+
+    - type: input
+      id: device
+      attributes:
+          label: Device and OS
+          placeholder: 'iPhone model and iOS version, or Android device and OS version'
+      validations:
+          required: true
+
+    - type: textarea
+      id: description
+      attributes:
+          label: What happened?
+          description: Describe the observed result and why it is a problem.
+      validations:
+          required: true
+
+    - type: textarea
+      id: steps
+      attributes:
+          label: Steps to reproduce
+          placeholder: |
+              1. Open ...
+              2. Tap ...
+              3. Observe ...
+      validations:
+          required: true
+
+    - type: textarea
+      id: expected
+      attributes:
+          label: Expected behaviour
+      validations:
+          required: true
+
+    - type: textarea
+      id: evidence
+      attributes:
+          label: Screenshots or redacted logs
+          description: Add only synthetic or redacted data. Drag files into this field if useful.
+
+    - type: textarea
+      id: context
+      attributes:
+          label: Additional context
+          description: Include sync mode, health permissions, Watch state, or network state only when relevant.
+
+    - type: checkboxes
+      id: conduct
+      attributes:
+          label: Code of Conduct
+          options:
+              - label: I agree to follow the project's Code of Conduct.
+                required: true

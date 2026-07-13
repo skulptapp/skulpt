@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+    - name: Questions and ideas
+      url: https://github.com/skulptapp/skulpt/discussions
+      about: Ask for setup help or discuss an idea before it becomes scoped work.
+    - name: App support
+      url: https://skulpt.app
+      about: Use the support addresses in the app or SUPPORT.md for private help.
+    - name: Security report
+      url: https://github.com/skulptapp/skulpt/security/policy
+      about: Follow the security policy to report a vulnerability privately.

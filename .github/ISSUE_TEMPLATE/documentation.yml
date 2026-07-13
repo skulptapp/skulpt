@@ -1,0 +1,33 @@
+name: Documentation problem
+description: Report missing, incorrect, or unclear project documentation
+title: '[Docs]: '
+labels:
+    - documentation
+body:
+    - type: input
+      id: location
+      attributes:
+          label: Document or link
+          placeholder: 'README.md#development'
+      validations:
+          required: true
+
+    - type: textarea
+      id: problem
+      attributes:
+          label: What is wrong or unclear?
+      validations:
+          required: true
+
+    - type: textarea
+      id: correction
+      attributes:
+          label: Suggested correction
+
+    - type: checkboxes
+      id: conduct
+      attributes:
+          label: Code of Conduct
+          options:
+              - label: I agree to follow the project's Code of Conduct.
+                required: true

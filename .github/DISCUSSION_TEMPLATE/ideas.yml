@@ -1,0 +1,39 @@
+title: '[Idea] '
+labels:
+    - enhancement
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Use this category to discuss a product or architecture idea before it becomes scoped work. Check the README roadmap first.
+
+    - type: textarea
+      id: problem
+      attributes:
+          label: Problem
+          description: Who has the problem, and what are they trying to do?
+      validations:
+          required: true
+
+    - type: textarea
+      id: outcome
+      attributes:
+          label: Desired outcome
+      validations:
+          required: true
+
+    - type: textarea
+      id: constraints
+      attributes:
+          label: Relevant constraints
+          description: Note local-first, SyncLayer, privacy, health, native-platform, or maintenance constraints.
+
+    - type: textarea
+      id: alternatives
+      attributes:
+          label: Alternatives and workarounds
+
+    - type: textarea
+      id: context
+      attributes:
+          label: Additional context

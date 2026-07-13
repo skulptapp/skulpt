@@ -1,0 +1,61 @@
+name: Feature request
+description: Propose a change that is already clear enough to discuss as repository work
+title: '[Feature]: '
+labels:
+    - enhancement
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Check the roadmap in README first. Broad product and architecture ideas belong in Discussions before implementation.
+
+    - type: checkboxes
+      id: checks
+      attributes:
+          label: Before submitting
+          options:
+              - label: I checked the README roadmap and existing Issues and Discussions.
+                required: true
+              - label: I describe a user or contributor problem instead of only proposing an implementation.
+                required: true
+
+    - type: textarea
+      id: problem
+      attributes:
+          label: Problem
+          description: Who has this problem, and when does it occur?
+      validations:
+          required: true
+
+    - type: textarea
+      id: outcome
+      attributes:
+          label: Desired outcome
+          description: Describe the behaviour that would solve the problem.
+      validations:
+          required: true
+
+    - type: textarea
+      id: alternatives
+      attributes:
+          label: Alternatives considered
+          description: Include current workarounds when they exist.
+
+    - type: textarea
+      id: impact
+      attributes:
+          label: Data and platform impact
+          description: Note any effect on SQLite, SyncLayer, health data, permissions, Watch, stores, or privacy.
+
+    - type: textarea
+      id: context
+      attributes:
+          label: Additional context
+
+    - type: checkboxes
+      id: conduct
+      attributes:
+          label: Code of Conduct
+          options:
+              - label: I agree to follow the project's Code of Conduct.
+                required: true

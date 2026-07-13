@@ -1,0 +1,39 @@
+title: '[Show and tell] '
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Share a fork, compatible SyncLayer provider, integration, translation, experiment, or lesson from working with Skulpt.
+
+    - type: textarea
+      id: project
+      attributes:
+          label: What did you make or learn?
+      validations:
+          required: true
+
+    - type: textarea
+      id: connection
+      attributes:
+          label: How does it relate to Skulpt?
+      validations:
+          required: true
+
+    - type: input
+      id: link
+      attributes:
+          label: Link
+          description: Link only to material you are allowed to share.
+
+    - type: textarea
+      id: notes
+      attributes:
+          label: Implementation notes
+
+    - type: checkboxes
+      id: privacy
+      attributes:
+          label: Privacy
+          options:
+              - label: Shared screenshots, logs, and examples contain no private workout or health data.
+                required: true
