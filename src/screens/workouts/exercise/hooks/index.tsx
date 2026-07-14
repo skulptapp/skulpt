@@ -1,4 +1,4 @@
-import { router, useGlobalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useUnistyles } from 'react-native-unistyles';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -10,7 +10,7 @@ import { useActionsStore } from '@/stores/actions';
 const useWorkoutExerciseScreen = () => {
     const { options } = useScreen();
     const { theme } = useUnistyles();
-    const { workoutId, workoutExerciseId } = useGlobalSearchParams<{
+    const { workoutId, workoutExerciseId } = useLocalSearchParams<{
         workoutId: string;
         workoutExerciseId: string;
     }>();
@@ -40,6 +40,7 @@ const useWorkoutExerciseScreen = () => {
             presentation: 'card' as const,
             animationTypeForReplace: 'pop' as const,
             cardOverlayEnabled: false,
+            headerMode: 'screen' as const,
             animation: 'slide_from_bottom' as const,
             headerShown: true,
             headerTitle: () => null,

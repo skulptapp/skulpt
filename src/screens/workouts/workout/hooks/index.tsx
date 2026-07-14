@@ -1,4 +1,4 @@
-import { useGlobalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useUnistyles } from 'react-native-unistyles';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -14,7 +14,7 @@ const useWorkoutScreen = () => {
     const { theme } = useUnistyles();
     const router = useRouter();
 
-    const { workoutId } = useGlobalSearchParams<{ workoutId: string }>();
+    const { workoutId } = useLocalSearchParams<{ workoutId: string }>();
 
     const { actionsOpen } = useActionsStore(
         useShallow((state) => ({
@@ -41,6 +41,7 @@ const useWorkoutScreen = () => {
         name: '[workoutId]',
         options: {
             ...options,
+            headerMode: 'screen' as const,
             headerShown: true,
             headerTitle: () => null,
             headerTransparent: true,
