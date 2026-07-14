@@ -15,8 +15,8 @@
         "prebuild:android": "expo prebuild -p android --clean",
         "build:ios": "eas build --platform ios --profile development",
         "build:android": "eas build --platform android --profile development",
-        "release:ios": "eas build --platform ios --auto-submit",
-        "release:android": "eas build --platform android --auto-submit",
+        "release:ios": "eas build --platform ios --profile production --clear-cache --auto-submit",
+        "release:android": "eas build --platform android --profile production --clear-cache --auto-submit",
         "update:all": "eas update --channel production --environment production && npx sentry-expo-upload-sourcemaps dist",
         "locale": "tsx ./scripts/translations.ts"
     },
@@ -128,7 +128,7 @@
         "react-native-svg": "15.15.4",
         "react-native-unistyles": "^3.3.0",
         "react-native-web": "^0.21.2",
-        "react-native-worklets": "0.10.2",
+        "react-native-worklets": "0.10.1",
         "react-number-format": "^5.4.5",
         "zod": "^4.4.3",
         "zustand": "^5.0.14"
