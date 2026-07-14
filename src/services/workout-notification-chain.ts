@@ -5,6 +5,11 @@ import { isRestActive, isRestFinalized } from '@/helpers/rest';
 import { toMs } from '@/helpers/times';
 import { getExecutionOrderSets } from '@/helpers/execution-order';
 
+export const TIMER_WARNING_SECONDS = 4;
+
+const getTimerWarningAtMs = (timerStartMs: number, timerEndMs: number) =>
+    Math.max(timerStartMs, timerEndMs - TIMER_WARNING_SECONDS * 1000);
+
 export type WorkoutDetailsLike = {
     workout: WorkoutSelect;
     exercises: {
@@ -107,6 +112,7 @@ export const buildWorkoutTimerChainIdentifier = (args: {
  * - Only timer sets (`timeOptions === 'timer'`) produce `work-timer` notifications.
  * - Rest notifications (`rest-timer`) are produced for timer sets that have `restTime > 0`.
  * - The chain stops as soon as the next set belongs to a non-timer exercise.
+ * - Events fire shortly before timer completion so the alert sound ends with the timer.
  * - Events are returned only if they are strictly in the future (`fireAtMs > nowMs`).
  */
 export const buildTimerChainEvents = ({
@@ -153,16 +159,17 @@ export const buildTimerChainEvents = ({
         const completedAtMs = toMs(activeRestSet.completedAt);
         if (completedAtMs == null) return [];
         const restEndMs = completedAtMs + activeRestSet.restTime! * 1000;
+        const restWarningAtMs = getTimerWarningAtMs(completedAtMs, restEndMs);
         cursorIdx = idxOf(activeRestSet.id) + 1; // next set after the resting one
         cursorStartAtMs = restEndMs;
 
-        if (restEndMs > nowMs) {
+        if (restWarningAtMs > nowMs) {
             const nextSet = flattenedSets[cursorIdx] ?? null;
             const nextWeId = nextSet ? (setToWorkoutExerciseId.get(nextSet.id) ?? null) : null;
             events.push({
                 kind: 'rest-timer',
                 fromSetId: activeRestSet.id,
-                fireAtMs: restEndMs,
+                fireAtMs: restWarningAtMs,
                 nextSetId: nextSet?.id ?? null,
                 nextWorkoutExerciseId: nextWeId,
             });
@@ -173,18 +180,18 @@ export const buildTimerChainEvents = ({
         if (startedAtMs == null || plannedSec <= 0) return [];
 
         const workEndMs = startedAtMs + plannedSec * 1000;
+        const workWarningAtMs = getTimerWarningAtMs(startedAtMs, workEndMs);
         cursorIdx = idxOf(activeSet.id) + 1;
         cursorStartAtMs = workEndMs + Math.max(0, activeSet.restTime ?? 0) * 1000;
 
-        // Work end notification (strictly at end)
-        if (workEndMs > nowMs) {
+        if (workWarningAtMs > nowMs) {
             const weId = setToWorkoutExerciseId.get(activeSet.id);
             if (weId) {
                 events.push({
                     kind: 'work-timer',
                     setId: activeSet.id,
                     workoutExerciseId: weId,
-                    fireAtMs: workEndMs,
+                    fireAtMs: workWarningAtMs,
                 });
             }
         }
@@ -193,13 +200,14 @@ export const buildTimerChainEvents = ({
         const restSec = Math.max(0, activeSet.restTime ?? 0);
         if (restSec > 0) {
             const restEndMs = workEndMs + restSec * 1000;
-            if (restEndMs > nowMs) {
+            const restWarningAtMs = getTimerWarningAtMs(workEndMs, restEndMs);
+            if (restWarningAtMs > nowMs) {
                 const nextSet = flattenedSets[cursorIdx] ?? null;
                 const nextWeId = nextSet ? (setToWorkoutExerciseId.get(nextSet.id) ?? null) : null;
                 events.push({
                     kind: 'rest-timer',
                     fromSetId: activeSet.id,
-                    fireAtMs: restEndMs,
+                    fireAtMs: restWarningAtMs,
                     nextSetId: nextSet?.id ?? null,
                     nextWorkoutExerciseId: nextWeId,
                 });
@@ -233,25 +241,27 @@ export const buildTimerChainEvents = ({
         if (plannedSec <= 0) continue;
 
         const workEndMs = startAtMs + plannedSec * 1000;
-        if (workEndMs > nowMs) {
+        const workWarningAtMs = getTimerWarningAtMs(startAtMs, workEndMs);
+        if (workWarningAtMs > nowMs) {
             events.push({
                 kind: 'work-timer',
                 setId: set.id,
                 workoutExerciseId: weId,
-                fireAtMs: workEndMs,
+                fireAtMs: workWarningAtMs,
             });
         }
 
         const restSec = Math.max(0, set.restTime ?? 0);
         if (restSec > 0) {
             const restEndMs = workEndMs + restSec * 1000;
-            if (restEndMs > nowMs) {
+            const restWarningAtMs = getTimerWarningAtMs(workEndMs, restEndMs);
+            if (restWarningAtMs > nowMs) {
                 const nextSet = flattenedSets[i + 1] ?? null;
                 const nextWeId = nextSet ? (setToWorkoutExerciseId.get(nextSet.id) ?? null) : null;
                 events.push({
                     kind: 'rest-timer',
                     fromSetId: set.id,
-                    fireAtMs: restEndMs,
+                    fireAtMs: restWarningAtMs,
                     nextSetId: nextSet?.id ?? null,
                     nextWorkoutExerciseId: nextWeId,
                 });

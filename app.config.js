@@ -120,6 +120,7 @@ module.exports = {
             'expo-notifications',
             {
                 enableBackgroundRemoteNotifications: true,
+                sounds: ['./assets/sounds/timer-end.wav'],
             },
         ],
         [

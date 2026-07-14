@@ -46,6 +46,7 @@ import { useNotifications } from '@/hooks/use-notifications';
 import {
     buildTimerChainEvents,
     buildWorkoutTimerChainIdentifier,
+    TIMER_WARNING_SECONDS,
     WorkoutDetailsLike,
 } from '@/services/workout-notification-chain';
 import { useUser } from './use-user';
@@ -89,7 +90,6 @@ type RunningWorkoutTickerContextType = Pick<
     | 'nowMs'
 >;
 
-const TIMER_WARNING_SECONDS = 4;
 type EditableWatchTrackingField = 'weight' | 'reps' | 'distance';
 
 const editableWatchTrackingFields = new Set<EditableWatchTrackingField>([
@@ -750,7 +750,7 @@ const useRunningWorkoutProvider = () => {
                     continue;
                 }
 
-                // rest-timer (rest ended)
+                // rest-timer warning
                 const identifier = buildWorkoutTimerChainIdentifier({
                     workoutId,
                     kind: 'rest-timer',

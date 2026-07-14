@@ -43,6 +43,8 @@ interface UpdateUserNotificationDevice {
 
 type WorkoutTimerKind = 'rest-timer' | 'work-timer';
 
+const IOS_TIMER_END_NOTIFICATION_SOUND = 'timer-end.wav';
+
 const NOTIFICATION_CHANNEL_CONFIG = {
     importance: Notifications.AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250] as [number, number, number, number],
@@ -492,7 +494,7 @@ const useNotificationsProvider = () => {
                 const notificationContent: Notifications.NotificationContentInput = {
                     title: args.message.title,
                     body: args.message.body,
-                    sound: Platform.OS === 'ios' ? 'default' : undefined,
+                    sound: Platform.OS === 'ios' ? IOS_TIMER_END_NOTIFICATION_SOUND : undefined,
                     vibrate: [0, 250, 250, 250],
                     data: args.deepLinkUrl
                         ? { url: args.deepLinkUrl, kind: args.kind }
