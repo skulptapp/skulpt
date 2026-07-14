@@ -1,4 +1,4 @@
-import { describe, expect, test } from '@jest/globals';
+import { describe, expect, jest, test } from '@jest/globals';
 
 import type { ExerciseListSelect } from '@/crud/exercise';
 
@@ -95,5 +95,44 @@ describe('exercise fuzzy search', () => {
         );
 
         expect(getExerciseNames(result)).toEqual(['杠铃卧推', '杠铃窄握卧推', '哑铃卧推']);
+    });
+
+    test('keeps exact Han substrings when Fuse returns no results for a filtered list', () => {
+        const grouped = groupExercises([
+            makeExercise('band-straight-leg-deadlift', '弹力带直腿硬拉', ['hamstrings']),
+            makeExercise('barbell-side-deadlift', '杠铃单臂侧向硬拉', ['glutes']),
+            makeExercise('barbell-deadlift', '杠铃硬拉', ['glutes']),
+            makeExercise('barbell-romanian-deadlift', '杠铃罗马尼亚硬拉', ['hamstrings']),
+            makeExercise('barbell-rack-pull', '杠铃架上拉', ['glutes']),
+            makeExercise('barbell-good-morning', '杠铃早安式体前屈', ['hamstrings']),
+            makeExercise('barbell-single-leg-deadlift', '杠铃单腿硬拉', ['hamstrings']),
+            makeExercise('barbell-straight-leg-deadlift', '杠铃直腿硬拉', ['hamstrings']),
+        ]);
+        const searchIndex = createExerciseSearchIndex(grouped)!;
+        jest.spyOn(searchIndex.fuse, 'search').mockReturnValue([]);
+
+        const result = filterGroupedExercisesByName(grouped, '硬拉', searchIndex);
+
+        expect(getExerciseNames(result)).toEqual([
+            '弹力带直腿硬拉',
+            '杠铃单臂侧向硬拉',
+            '杠铃硬拉',
+            '杠铃罗马尼亚硬拉',
+            '杠铃单腿硬拉',
+            '杠铃直腿硬拉',
+        ]);
+    });
+
+    test('uses Chinese search rules from locale before inspecting the query characters', () => {
+        const grouped = groupExercises([
+            makeExercise('barbell-rdl', '杠铃RDL', ['hamstrings']),
+            makeExercise('barbell-deadlift', '杠铃硬拉', ['glutes']),
+        ]);
+        const searchIndex = createExerciseSearchIndex(grouped)!;
+        jest.spyOn(searchIndex.fuse, 'search').mockReturnValue([]);
+
+        const result = filterGroupedExercisesByName(grouped, 'RDL', searchIndex, 'zh-CN');
+
+        expect(getExerciseNames(result)).toEqual(['杠铃RDL']);
     });
 });

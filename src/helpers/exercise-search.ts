@@ -54,7 +54,29 @@ const normalizeSearchText = (value: string) =>
         .replace(/[\u0300-\u036f]/g, '')
         .toLocaleLowerCase();
 
-const containsHanCharacters = (value: string) => /\p{Script=Han}/u.test(value);
+const containsHanCharacters = (value: string) => {
+    for (const character of value) {
+        const codePoint = character.codePointAt(0);
+        if (codePoint === undefined) continue;
+
+        if (
+            (codePoint >= 0x3400 && codePoint <= 0x4dbf) ||
+            (codePoint >= 0x4e00 && codePoint <= 0x9fff) ||
+            (codePoint >= 0xf900 && codePoint <= 0xfaff) ||
+            (codePoint >= 0x20000 && codePoint <= 0x2fa1f) ||
+            (codePoint >= 0x30000 && codePoint <= 0x323af)
+        ) {
+            return true;
+        }
+    }
+
+    return false;
+};
+
+const isChineseLocale = (locale?: string) => {
+    if (!locale) return false;
+    return locale.toLowerCase().split(/[-_]/, 1)[0] === 'zh';
+};
 
 const tokenizeSearchText = (value: string): string[] => {
     return normalizeSearchText(value).match(/[\p{L}\p{N}]+/gu) ?? [];
@@ -176,14 +198,35 @@ const getSearchRank = (
 const createSearchRanks = (
     searchIndex: ExerciseSearchIndex | null,
     query: string,
+    locale?: string,
 ): Map<string, SearchRank> => {
     if (!searchIndex) return new Map();
 
     const fuseResults = searchIndex.fuse.search(query);
-    if (containsHanCharacters(query)) {
-        return new Map(
-            fuseResults.map((result, index) => [result.item.id, { score: 0, order: index }]),
+    if (isChineseLocale(locale) || containsHanCharacters(query)) {
+        const normalizedQuery = normalizeSearchText(query);
+        const fuseOrder = new Map(
+            fuseResults.map((result, index) => [result.item.id, index] as const),
         );
+        const ranks = new Map<string, SearchRank>();
+
+        searchIndex.documents.forEach((document, index) => {
+            const phraseIndex = normalizeSearchText(document.name).indexOf(normalizedQuery);
+            if (phraseIndex < 0) return;
+
+            ranks.set(document.id, {
+                score: phraseIndex === 0 ? 0 : 0.1,
+                order: fuseOrder.get(document.id) ?? index,
+            });
+        });
+
+        fuseResults.forEach((result, index) => {
+            if (!ranks.has(result.item.id)) {
+                ranks.set(result.item.id, { score: 1, order: index });
+            }
+        });
+
+        return ranks;
     }
 
     const fuseOrder = new Map<string, number>();
@@ -296,11 +339,12 @@ export const filterGroupedExercisesByName = (
     items: ExerciseListItem[],
     query: string,
     searchIndex = createExerciseSearchIndex(items),
+    locale?: string,
 ): ExerciseListItem[] => {
     const q = query.trim();
     if (!q) return items;
 
-    const searchRanks = createSearchRanks(searchIndex, q);
+    const searchRanks = createSearchRanks(searchIndex, q, locale);
 
     type RankedExercise = {
         item: ExerciseCard;

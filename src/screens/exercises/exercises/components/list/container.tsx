@@ -3,6 +3,7 @@ import { StyleProp, ViewStyle } from 'react-native';
 import { ViewToken } from '@shopify/flash-list';
 import { router } from 'expo-router';
 import { StyleSheet } from 'react-native-unistyles';
+import { useTranslation } from 'react-i18next';
 
 import { PreviewThumbnail } from '@/components/layout/preview';
 
@@ -65,6 +66,7 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
     contentContainerStyle,
     ...rest
 }) => {
+    const { i18n } = useTranslation();
     const [stickyHeaderState, setStickyHeaderState] = useState<StickyHeaderState>({});
 
     const deleteExercise = useDeleteExercise();
@@ -84,8 +86,13 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
             return groupedData;
         }
 
-        return filterGroupedExercisesByName(groupedData, trimmedQuery, exerciseSearchIndex);
-    }, [exerciseSearchIndex, groupedData, query]);
+        return filterGroupedExercisesByName(
+            groupedData,
+            trimmedQuery,
+            exerciseSearchIndex,
+            i18n.resolvedLanguage || i18n.language,
+        );
+    }, [exerciseSearchIndex, groupedData, i18n.language, i18n.resolvedLanguage, query]);
 
     const stickyLookup = useMemo(() => {
         const categoryByIndex: (string | undefined)[] = [];
