@@ -54,6 +54,8 @@ const normalizeSearchText = (value: string) =>
         .replace(/[\u0300-\u036f]/g, '')
         .toLocaleLowerCase();
 
+const containsHanCharacters = (value: string) => /\p{Script=Han}/u.test(value);
+
 const tokenizeSearchText = (value: string): string[] => {
     return normalizeSearchText(value).match(/[\p{L}\p{N}]+/gu) ?? [];
 };
@@ -177,8 +179,15 @@ const createSearchRanks = (
 ): Map<string, SearchRank> => {
     if (!searchIndex) return new Map();
 
+    const fuseResults = searchIndex.fuse.search(query);
+    if (containsHanCharacters(query)) {
+        return new Map(
+            fuseResults.map((result, index) => [result.item.id, { score: 0, order: index }]),
+        );
+    }
+
     const fuseOrder = new Map<string, number>();
-    searchIndex.fuse.search(query).forEach((result, index) => {
+    fuseResults.forEach((result, index) => {
         fuseOrder.set(result.item.id, index);
     });
 

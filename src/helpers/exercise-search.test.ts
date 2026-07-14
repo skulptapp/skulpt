@@ -79,4 +79,21 @@ describe('exercise fuzzy search', () => {
 
         expect(names).toEqual(['Barbell Bench Press', 'Barbell Incline Press']);
     });
+
+    test('uses Fuse matches for short Han substrings', () => {
+        const grouped = groupExercises([
+            makeExercise('barbell-bench', '杠铃卧推', ['pectoralis_major']),
+            makeExercise('barbell-close-grip', '杠铃窄握卧推', ['pectoralis_major']),
+            makeExercise('dumbbell-bench', '哑铃卧推', ['pectoralis_major']),
+            makeExercise('barbell-deadlift', '杠铃硬拉', ['glutes']),
+        ]);
+
+        const result = filterGroupedExercisesByName(
+            grouped,
+            '卧推',
+            createExerciseSearchIndex(grouped),
+        );
+
+        expect(getExerciseNames(result)).toEqual(['杠铃卧推', '杠铃窄握卧推', '哑铃卧推']);
+    });
 });
