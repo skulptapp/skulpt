@@ -9,7 +9,7 @@ import {
 } from 'react';
 import { Platform, AppState, AppStateStatus } from 'react-native';
 import * as Notifications from 'expo-notifications';
-import { router, Href } from 'expo-router';
+import { router, Href, usePathname } from 'expo-router';
 import * as Linking from 'expo-linking';
 import * as Device from 'expo-device';
 import {
@@ -26,6 +26,7 @@ import { UserInsert } from '@/db/schema';
 import Constants from 'expo-constants';
 import { useShallow } from 'zustand/react/shallow';
 import { reportError, runInBackground } from '@/services/error-reporting';
+import { getNotificationNavigation } from '@/helpers/notification-navigation';
 
 interface HandleNotificationStatus {
     status: PermissionStatus;
@@ -115,8 +116,15 @@ export const useNotifications = () => {
 const useNotificationsProvider = () => {
     const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
     const { user, updateUser } = useUser();
+    const pathname = usePathname();
+    const pathnameRef = useRef(pathname);
+    const lastHandledNotificationResponseKeyRef = useRef<string | null>(null);
 
     const isAppInBackground = appState === 'background' || appState === 'inactive';
+
+    useEffect(() => {
+        pathnameRef.current = pathname;
+    }, [pathname]);
 
     const { permissions, setPermissions } = usePermissionsStore(
         useShallow((state) => ({
@@ -421,7 +429,12 @@ const useNotificationsProvider = () => {
                     return;
                 }
 
-                const redirect = (notification: Notifications.Notification) => {
+                const redirect = (response: Notifications.NotificationResponse) => {
+                    const { notification } = response;
+                    const responseKey = `${notification.request.identifier}:${notification.date}:${response.actionIdentifier}`;
+                    if (lastHandledNotificationResponseKeyRef.current === responseKey) return;
+                    lastHandledNotificationResponseKeyRef.current = responseKey;
+
                     const url = notification.request.content.data?.url;
                     if (typeof url === 'string') {
                         // The stored URL is a full deep link (e.g. skulpt:///workout/id/exerciseId).
@@ -429,20 +442,27 @@ const useNotificationsProvider = () => {
                         // which fails when the app is already in the foreground (iOS won't re-open
                         // its own URL scheme). Extract just the path and navigate within the app.
                         const parsed = Linking.parse(url);
-                        const path = parsed.path ? `/${parsed.path}` : null;
-                        if (path) {
-                            router.push(path as Href);
+                        const navigation = getNotificationNavigation(
+                            parsed.path,
+                            pathnameRef.current,
+                        );
+                        if (navigation?.action === 'replace') {
+                            router.replace(navigation.path as Href);
+                        } else if (navigation) {
+                            router.navigate(navigation.path as Href);
                         }
                     }
+
+                    Notifications.clearLastNotificationResponse();
                 };
 
                 const response = Notifications.getLastNotificationResponse();
-                if (response?.notification) {
-                    redirect(response.notification);
+                if (response) {
+                    redirect(response);
                 }
 
                 subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-                    redirect(response.notification);
+                    redirect(response);
                 });
             } catch (error) {
                 reportError(error, 'Failed to set up notification observer:');
