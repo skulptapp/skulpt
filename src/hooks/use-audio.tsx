@@ -12,7 +12,7 @@ import { reportError, runInBackground } from '@/services/error-reporting';
 
 const workoutStartSound = require('../../assets/sounds/workout-start.wav');
 const workoutStopSound = require('../../assets/sounds/workout-stop.wav');
-const timerEndSound = require('../../assets/sounds/timer-end.wav');
+const timerEndSound = require('../../assets/sounds/timer_end.wav');
 
 type AudioContextType = ReturnType<typeof useAudioProvider>;
 

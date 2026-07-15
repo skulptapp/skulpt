@@ -16,7 +16,6 @@ module.exports = {
         package: process.env.APP_BUNDLE_IDENTIFIER || '',
         playStoreUrl: process.env.PLAY_STORE_URL,
         softwareKeyboardLayoutMode: 'pan',
-        edgeToEdgeEnabled: true,
         adaptiveIcon: {
             foregroundImage: './assets/images/adaptive-icon.png',
             backgroundColor: '#a3e635',
@@ -120,7 +119,7 @@ module.exports = {
             'expo-notifications',
             {
                 enableBackgroundRemoteNotifications: true,
-                sounds: ['./assets/sounds/timer-end.wav'],
+                sounds: ['./assets/sounds/timer_end.wav'],
             },
         ],
         [

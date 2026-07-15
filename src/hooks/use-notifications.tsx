@@ -44,7 +44,7 @@ interface UpdateUserNotificationDevice {
 
 type WorkoutTimerKind = 'rest-timer' | 'work-timer';
 
-const IOS_TIMER_END_NOTIFICATION_SOUND = 'timer-end.wav';
+const IOS_TIMER_END_NOTIFICATION_SOUND = 'timer_end.wav';
 
 const NOTIFICATION_CHANNEL_CONFIG = {
     importance: Notifications.AndroidImportance.HIGH,
