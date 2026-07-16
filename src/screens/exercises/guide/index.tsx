@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, useEffect, useRef } from 'react';
 import { StyleSheet } from 'react-native-unistyles';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ScrollView } from 'react-native';
@@ -8,6 +8,8 @@ import { useExercise } from '@/hooks/use-exercises';
 import { Guide } from '@/screens/exercises/exercise/components/guide';
 
 import { Header } from './components/header';
+import { useAnalytics } from '@/hooks/use-analytics';
+import { isSkulptExerciseUserId } from '@/constants/skulpt';
 
 const styles = StyleSheet.create((theme) => ({
     container: {
@@ -25,6 +27,18 @@ const styles = StyleSheet.create((theme) => ({
 const GuideScreen: FC = () => {
     const { exerciseId } = useLocalSearchParams<{ exerciseId: string }>();
     const { data: exercise } = useExercise(exerciseId ?? '');
+    const { track } = useAnalytics();
+    const trackedRef = useRef(false);
+
+    useEffect(() => {
+        if (!exercise || trackedRef.current) return;
+        trackedRef.current = true;
+        track('exercise:guide_viewed', {
+            surface: 'active_workout',
+            ownership: isSkulptExerciseUserId(exercise.userId) ? 'system' : 'custom',
+            category: exercise.category,
+        });
+    }, [exercise, track]);
 
     const handleClose = () => {
         router.back();

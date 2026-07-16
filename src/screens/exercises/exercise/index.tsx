@@ -9,6 +9,8 @@ import { useExercise, useExerciseHistory } from '@/hooks/use-exercises';
 import { Header, History, Guide, Tabs, Statistics } from './components';
 import { LoadingState } from '../exercises/components/loading';
 import { EmptyState } from '../exercises/components/empty';
+import { useAnalytics } from '@/hooks/use-analytics';
+import { isSkulptExerciseUserId } from '@/constants/skulpt';
 
 const styles = StyleSheet.create((theme) => ({
     container: {
@@ -26,6 +28,7 @@ const ExerciseScreen: FC = () => {
     const { exerciseId } = useLocalSearchParams<{ exerciseId: string }>();
     const { t } = useTranslation(['screens']);
     const [activeTab, setActiveTab] = useState(0);
+    const { track } = useAnalytics();
 
     const {
         data: exercise,
@@ -50,11 +53,22 @@ const ExerciseScreen: FC = () => {
         t('exercise.tabs.guide', { ns: 'screens' }),
     ];
 
+    const handleTabChange = (index: number) => {
+        setActiveTab(index);
+        if (index === 2 && activeTab !== 2) {
+            track('exercise:guide_viewed', {
+                surface: 'exercise_detail',
+                ownership: isSkulptExerciseUserId(exercise.userId) ? 'system' : 'custom',
+                category: exercise.category,
+            });
+        }
+    };
+
     return (
         <Box style={styles.container}>
             <ScrollView contentContainerStyle={styles.content}>
                 <Header exercise={exercise} />
-                <Tabs tabs={tabs} activeIndex={activeTab} onTabChange={setActiveTab} />
+                <Tabs tabs={tabs} activeIndex={activeTab} onTabChange={handleTabChange} />
                 {activeTab === 0 && <History history={history || []} exercise={exercise} />}
                 {activeTab === 1 && <Statistics history={history || []} exercise={exercise} />}
                 {activeTab === 2 && <Guide exercise={exercise} />}

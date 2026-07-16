@@ -6,6 +6,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { Pressable } from '@/components/primitives/pressable';
 import { buildExerciseGifUrl, EXERCISE_GIF_THUMBNAIL_RESOLUTION } from '@/constants/skulpt';
 import { BoxProps } from '@/components/primitives/box';
+import { useAnalytics } from '@/hooks/use-analytics';
 
 const styles = StyleSheet.create((theme) => ({
     gifPreviewPressable: {
@@ -29,6 +30,7 @@ interface PreviewThumbnailProps {
     gifFilename?: string | null;
     onOpen?: (name: string, gifFilename: string) => void;
     containerStyle?: BoxProps['style'];
+    analyticsSurface?: 'exercise_library' | 'workout_select' | 'active_workout';
 }
 
 const PreviewThumbnailComponent: FC<PreviewThumbnailProps> = ({
@@ -36,7 +38,9 @@ const PreviewThumbnailComponent: FC<PreviewThumbnailProps> = ({
     gifFilename,
     onOpen,
     containerStyle,
+    analyticsSurface,
 }) => {
+    const { track } = useAnalytics();
     const gifThumbnailUrl = useMemo(() => {
         if (!gifFilename) return '';
         return buildExerciseGifUrl(gifFilename, EXERCISE_GIF_THUMBNAIL_RESOLUTION);
@@ -46,9 +50,12 @@ const PreviewThumbnailComponent: FC<PreviewThumbnailProps> = ({
         (event: GestureResponderEvent) => {
             if (!gifFilename) return;
             event.stopPropagation();
+            if (analyticsSurface) {
+                track('exercise:preview_opened', { surface: analyticsSurface });
+            }
             onOpen?.(name, gifFilename);
         },
-        [name, gifFilename, onOpen],
+        [analyticsSurface, gifFilename, name, onOpen, track],
     );
 
     if (!gifThumbnailUrl) return null;

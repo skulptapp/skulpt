@@ -27,6 +27,7 @@ import { WorkoutItem } from '@/screens/workouts/workout/types';
 import { useAudio } from './use-audio';
 import {
     useCompleteWorkout,
+    useCompleteExerciseSet,
     useStartWorkout,
     useUpdateExerciseSet,
     useWorkoutExercises,
@@ -38,7 +39,6 @@ import { formatSet, getOrderedExercisesFromDetails } from '@/helpers/workouts';
 import { getExecutionOrderSets } from '@/helpers/execution-order';
 import {
     checkAndStartAfterRest,
-    completeSet as completeSetTransition,
     finalizeRestNow,
     startNextSetOrExercise,
 } from '@/services/set-transitions';
@@ -61,6 +61,7 @@ import {
 } from '@/services/health';
 import { reportError, runInBackground } from '@/services/error-reporting';
 import { usePostWorkoutAppReviewPrompt } from '@/hooks/use-app-review-prompt';
+import { useAnalytics } from '@/hooks/use-analytics';
 
 type ProviderReturn = ReturnType<typeof useRunningWorkoutProvider>;
 
@@ -222,6 +223,10 @@ const useRunningWorkoutProvider = () => {
     const nativeWorkoutCommandSequenceRef = useRef<Promise<void>>(Promise.resolve());
     const lastAppliedWatchTrackingEventRef = useRef<Map<string, number>>(new Map());
     const phoneHealthPermissionsGrantedRef = useRef(false);
+    const lastHealthReadinessRef = useRef<string | null>(null);
+    const trackedWatchWorkoutIdsRef = useRef(new Set<string>());
+    const trackedLiveActivityWorkoutIdsRef = useRef(new Set<string>());
+    const liveActivityUsedWorkoutIdsRef = useRef(new Set<string>());
     const processWatchCommandRef = useRef<(payload: WatchCommand) => Promise<void>>(
         async () => undefined,
     );
@@ -244,6 +249,8 @@ const useRunningWorkoutProvider = () => {
     const start = useStartWorkout();
 
     const complete = useCompleteWorkout();
+    const { mutateAsync: completeExerciseSet } = useCompleteExerciseSet();
+    const { track } = useAnalytics();
 
     const { nowMs } = useRestTicker(!!data[0]?.id, 1000);
 
@@ -293,11 +300,45 @@ const useRunningWorkoutProvider = () => {
         return null;
     }, [data]);
 
+    const recoverLiveActivity = useCallback(
+        async (
+            currentWorkout: WorkoutSelect,
+            state: Parameters<LiveActivityManager['recover']>[1],
+        ) => {
+            const result = await liveActivityRef.current.recover(currentWorkout, state);
+            if (!result || Platform.OS !== 'ios') return;
+
+            if (result === 'started' || result === 'recovered') {
+                liveActivityUsedWorkoutIdsRef.current.add(currentWorkout.id);
+            }
+
+            if (trackedLiveActivityWorkoutIdsRef.current.has(currentWorkout.id)) return;
+            trackedLiveActivityWorkoutIdsRef.current.add(currentWorkout.id);
+            track('live_activity:started', { result });
+        },
+        [track],
+    );
+
+    const trackWatchWorkoutStart = useCallback(
+        (workoutId?: string) => {
+            if (!workoutId || trackedWatchWorkoutIdsRef.current.has(workoutId)) return;
+
+            trackedWatchWorkoutIdsRef.current.add(workoutId);
+            track('watch:workout_started', {
+                supported: watchManagerRef.current.isSupported(),
+                paired: watchManagerRef.current.hasPairedWatch(),
+            });
+        },
+        [track],
+    );
+
     useEffect(() => {
         lastAppliedWatchTrackingEventRef.current.clear();
         watchManagerRef.current.setCurrentWorkoutId(runningWorkout?.id);
-        setIsTrackingOnWatch(watchManagerRef.current.isTrackingOnWatch);
-    }, [runningWorkout?.id]);
+        const isTracking = watchManagerRef.current.isTrackingOnWatch;
+        setIsTrackingOnWatch(isTracking);
+        if (isTracking) trackWatchWorkoutStart(runningWorkout?.id);
+    }, [runningWorkout?.id, trackWatchWorkoutStart]);
 
     const orderedExercises = useMemo(
         () => getOrderedExercisesFromDetails(workoutDetails),
@@ -461,11 +502,18 @@ const useRunningWorkoutProvider = () => {
             // For timer: if user stops early we store remaining in time (handled elsewhere).
             // If timer finishes naturally, keep planned time as-is (do not overwrite with 0).
             runInBackground(
-                () => updateSet({ id: activeSet.id, updates: { completedAt } }),
+                () =>
+                    completeExerciseSet({
+                        id: activeSet.id,
+                        workoutExerciseId: activeSet.workoutExerciseId,
+                        setType: activeSet.type,
+                        source: 'auto_timer',
+                        updates: { completedAt },
+                    }),
                 'Failed to auto-complete active timer set:',
             );
         }
-    }, [nowMs, runningWorkoutActiveSet, updateSet, workoutDetails?.exercises]);
+    }, [completeExerciseSet, nowMs, runningWorkoutActiveSet, workoutDetails?.exercises]);
 
     const activeWorkTimerRemainingSeconds = useMemo(() => {
         if (!workoutDetails?.exercises || !runningWorkoutActiveSet) return null;
@@ -873,10 +921,25 @@ const useRunningWorkoutProvider = () => {
                 birthday: resolvedBirthday,
             });
 
-            return {
+            const readiness = {
                 permissionsGranted: granted,
                 hasResolvedMhr: resolvedMhr != null,
             };
+
+            if (Platform.OS === 'ios' || Platform.OS === 'android') {
+                const readinessKey = `${readiness.permissionsGranted}:${readiness.hasResolvedMhr}`;
+                if (lastHealthReadinessRef.current !== readinessKey) {
+                    lastHealthReadinessRef.current = readinessKey;
+                    track('health:permission_result', {
+                        platform: Platform.OS,
+                        trigger: 'workout_start',
+                        granted: readiness.permissionsGranted,
+                        hasResolvedMhr: readiness.hasResolvedMhr,
+                    });
+                }
+            }
+
+            return readiness;
         } catch (error) {
             reportError(error, 'Failed to prepare workout health access:');
         }
@@ -885,7 +948,7 @@ const useRunningWorkoutProvider = () => {
             permissionsGranted: false,
             hasResolvedMhr: false,
         };
-    }, [hydrateHealthProfileFromPermissions, runtimeBirthday, user]);
+    }, [hydrateHealthProfileFromPermissions, runtimeBirthday, track, user]);
 
     const syncCompletedWorkoutHealth = useCallback(
         async (
@@ -910,15 +973,26 @@ const useRunningWorkoutProvider = () => {
                 await new Promise((resolve) => setTimeout(resolve, 1_200));
             }
 
-            if (!shouldSkipPhoneHealthSave) {
-                await saveWorkoutToHealth({
+            if (Platform.OS !== 'ios' && Platform.OS !== 'android') return;
+
+            if (shouldSkipPhoneHealthSave) {
+                track('health:workout_export_result', {
+                    platform: Platform.OS,
+                    outcome: 'skipped_watch',
+                });
+            } else {
+                const outcome = await saveWorkoutToHealth({
                     name: completedWorkout.name,
                     startDate: completedWorkout.startedAt,
                     endDate: completedWorkout.completedAt,
                 });
+                track('health:workout_export_result', {
+                    platform: Platform.OS,
+                    outcome,
+                });
             }
         },
-        [isTrackingOnWatch],
+        [isTrackingOnWatch, track],
     );
 
     useEffect(() => {
@@ -954,7 +1028,7 @@ const useRunningWorkoutProvider = () => {
 
                 if (!la.hasActivity()) {
                     runInBackground(
-                        () => la.recover(runningWorkout, completedState),
+                        () => recoverLiveActivity(runningWorkout, completedState),
                         'Failed to recover Live Activity state:',
                     );
                 } else {
@@ -965,7 +1039,7 @@ const useRunningWorkoutProvider = () => {
                 }
             } else if (!la.hasActivity()) {
                 runInBackground(
-                    () => la.recover(runningWorkout, null),
+                    () => recoverLiveActivity(runningWorkout, null),
                     'Failed to recover Live Activity state:',
                 );
             }
@@ -1004,7 +1078,7 @@ const useRunningWorkoutProvider = () => {
 
         if (!la.hasActivity()) {
             runInBackground(
-                () => la.recover(runningWorkout, state),
+                () => recoverLiveActivity(runningWorkout, state),
                 'Failed to recover Live Activity state:',
             );
         } else {
@@ -1042,6 +1116,7 @@ const useRunningWorkoutProvider = () => {
         runningWorkoutCompletedExercises,
         executionOrderSets,
         currentHeartRateMhr,
+        recoverLiveActivity,
         user?.playSounds,
     ]);
 
@@ -1106,6 +1181,7 @@ const useRunningWorkoutProvider = () => {
     const processNativeWorkoutCommand = useCallback(
         async (
             payload: WatchCommand | WorkoutCommand,
+            commandSource: 'phone' | 'watch',
             ackCommand: (commandId: string) => Promise<void>,
         ) => {
             if (!isWorkoutCommandStateReady) {
@@ -1197,7 +1273,12 @@ const useRunningWorkoutProvider = () => {
                 expectedStateMatches &&
                 (!payload.setId || payload.setId === runningWorkoutActiveSet.id)
             ) {
-                await completeSetTransition(runningWorkoutActiveSet.id, updateSet);
+                await completeExerciseSet({
+                    id: runningWorkoutActiveSet.id,
+                    workoutExerciseId: runningWorkoutActiveSet.workoutExerciseId,
+                    setType: runningWorkoutActiveSet.type,
+                    source: commandSource,
+                });
                 const restTime = runningWorkoutActiveSet.restTime;
                 if ((!restTime || restTime <= 0) && workoutDetails) {
                     await startNextSetOrExercise(
@@ -1269,15 +1350,31 @@ const useRunningWorkoutProvider = () => {
                     );
                 }
             } else if (payload.command === 'finishWorkout') {
-                const completedWorkout = await complete.mutateAsync(runningWorkout.id);
+                watchManagerRef.current.hydrateLifecycleState();
+                const preferWatchSave =
+                    commandSource === 'watch' || watchManagerRef.current.isTrackingOnWatch;
+                const watchUsed =
+                    commandSource === 'watch' ||
+                    watchManagerRef.current.wasWorkoutTracked(runningWorkout.id);
+                const completion = await complete.mutateAsync({
+                    workoutId: runningWorkout.id,
+                    completionSource: commandSource,
+                    watchUsed,
+                    liveActivityUsed: liveActivityUsedWorkoutIdsRef.current.has(runningWorkout.id),
+                });
+                if (!completion.didComplete) {
+                    await ack();
+                    return;
+                }
+                const completedWorkout = completion.workout;
                 await playWorkoutStop();
                 runInBackground(
                     () => watchManagerRef.current.end(completedWorkout.id),
-                    'Failed to end watch session after watch workout completion:',
+                    'Failed to end watch session after native workout completion:',
                 );
-                await maybeShowAppReviewPrompt(completedWorkout, 'watch');
+                await maybeShowAppReviewPrompt(completedWorkout, commandSource);
                 await syncCompletedWorkoutHealth(completedWorkout, {
-                    preferWatchSave: true,
+                    preferWatchSave,
                 });
             }
 
@@ -1285,6 +1382,7 @@ const useRunningWorkoutProvider = () => {
         },
         [
             complete,
+            completeExerciseSet,
             executionOrderSets,
             isWorkoutCommandStateReady,
             maybeShowAppReviewPrompt,
@@ -1303,7 +1401,7 @@ const useRunningWorkoutProvider = () => {
 
     const processWatchCommand = useCallback(
         async (payload: WatchCommand) => {
-            await processNativeWorkoutCommand(payload, (commandId) =>
+            await processNativeWorkoutCommand(payload, 'watch', (commandId) =>
                 watchManagerRef.current.ackCommand(commandId),
             );
         },
@@ -1312,7 +1410,7 @@ const useRunningWorkoutProvider = () => {
 
     const processWorkoutCommand = useCallback(
         async (payload: WorkoutCommand) => {
-            await processNativeWorkoutCommand(payload, (commandId) =>
+            await processNativeWorkoutCommand(payload, 'phone', (commandId) =>
                 workoutCommandManagerRef.current.ackCommand(commandId),
             );
         },
@@ -1450,6 +1548,10 @@ const useRunningWorkoutProvider = () => {
                 payload.command === 'watchSessionEnded'
             ) {
                 setIsTrackingOnWatch(watchManagerRef.current.isTrackingOnWatch);
+                const workoutId = payload.workoutId ?? runningWorkout?.id;
+                if (payload.command === 'watchSessionStarted') {
+                    trackWatchWorkoutStart(workoutId);
+                }
                 return;
             }
 
@@ -1460,7 +1562,7 @@ const useRunningWorkoutProvider = () => {
         return () => {
             sub?.remove();
         };
-    }, [enqueueWatchCommand]);
+    }, [enqueueWatchCommand, runningWorkout?.id, trackWatchWorkoutStart]);
 
     useEffect(() => {
         const sub = workoutCommandManagerRef.current.onCommand(enqueueWorkoutCommand);
@@ -1471,7 +1573,7 @@ const useRunningWorkoutProvider = () => {
     }, [enqueueWorkoutCommand]);
 
     const startWorkout = useCallback(
-        async (workoutId: string) => {
+        async (workoutId: string, source: 'new' | 'planned' = 'planned') => {
             if (runningWorkout || start.isPending) return;
 
             watchManagerRef.current.reset();
@@ -1493,7 +1595,7 @@ const useRunningWorkoutProvider = () => {
             }
 
             try {
-                await start.mutateAsync(workoutId);
+                await start.mutateAsync({ workoutId, source });
                 playWorkoutStart();
             } catch (error) {
                 reportError(error, 'Failed to start workout:');
@@ -1517,27 +1619,42 @@ const useRunningWorkoutProvider = () => {
                     onPress: () => {
                         watchManagerRef.current.hydrateLifecycleState();
                         const preferWatchSave = watchManagerRef.current.isTrackingOnWatch;
+                        const watchUsed = watchManagerRef.current.wasWorkoutTracked(
+                            runningWorkout.id,
+                        );
                         setIsTrackingOnWatch(preferWatchSave);
-                        complete.mutate(runningWorkout.id, {
-                            onSuccess: (data) => {
-                                playWorkoutStop();
-                                runInBackground(
-                                    () =>
-                                        syncCompletedWorkoutHealth(data, {
-                                            preferWatchSave,
-                                        }),
-                                    'Failed to sync completed workout health after workout completion:',
-                                );
-                                runInBackground(
-                                    () => watchManagerRef.current.end(data.id),
-                                    'Failed to end watch session after workout completion:',
-                                );
-                                runInBackground(
-                                    () => maybeShowAppReviewPrompt(data, 'phone'),
-                                    'Failed to show post-workout app review prompt:',
-                                );
+                        complete.mutate(
+                            {
+                                workoutId: runningWorkout.id,
+                                completionSource: 'phone',
+                                watchUsed,
+                                liveActivityUsed: liveActivityUsedWorkoutIdsRef.current.has(
+                                    runningWorkout.id,
+                                ),
                             },
-                        });
+                            {
+                                onSuccess: (completion) => {
+                                    if (!completion.didComplete) return;
+                                    const data = completion.workout;
+                                    playWorkoutStop();
+                                    runInBackground(
+                                        () =>
+                                            syncCompletedWorkoutHealth(data, {
+                                                preferWatchSave,
+                                            }),
+                                        'Failed to sync completed workout health after workout completion:',
+                                    );
+                                    runInBackground(
+                                        () => watchManagerRef.current.end(data.id),
+                                        'Failed to end watch session after workout completion:',
+                                    );
+                                    runInBackground(
+                                        () => maybeShowAppReviewPrompt(data, 'phone'),
+                                        'Failed to show post-workout app review prompt:',
+                                    );
+                                },
+                            },
+                        );
                     },
                 },
             ],

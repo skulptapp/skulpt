@@ -18,6 +18,7 @@ import { Box } from '@/components/primitives/box';
 import { HStack } from '@/components/primitives/hstack';
 import {
     useCreateExerciseSet,
+    useCompleteExerciseSet,
     useUpdateExerciseSet,
     useWorkoutWithDetails,
 } from '@/hooks/use-workouts';
@@ -28,7 +29,6 @@ import { getWorkoutState, getButtonIcon } from '@/helpers/workout-simple';
 import { getOrderedExercisesFromDetails } from '@/helpers/workouts';
 import { getExecutionOrderSets } from '@/helpers/execution-order';
 import { startNextSetOrExercise } from '@/services/set-transitions';
-import { useAnalytics } from '@/hooks/use-analytics';
 import { useRunningWorkoutStatic } from '@/hooks/use-running-workout';
 import { addWorkoutExerciseSet } from '../../helpers/add-set';
 
@@ -102,7 +102,6 @@ export const Actions: FC<ActionsProps> = ({
     setActionsHeight,
 }) => {
     const { theme } = useUnistyles();
-    const { track } = useAnalytics();
     const { startWorkout } = useRunningWorkoutStatic();
 
     const [isMainActionPending, setIsMainActionPending] = useState(false);
@@ -114,6 +113,7 @@ export const Actions: FC<ActionsProps> = ({
     );
 
     const { mutateAsync: createSet } = useCreateExerciseSet();
+    const { mutateAsync: completeSet } = useCompleteExerciseSet();
     const { mutateAsync: updateSet } = useUpdateExerciseSet();
 
     const orderedExercises = useMemo(
@@ -212,6 +212,8 @@ export const Actions: FC<ActionsProps> = ({
                 case 'performing':
                     // Complete the set
                     if (workoutInfo.currentSet) {
+                        let completionUpdates: Partial<ExerciseSetSelect> = {};
+
                         if (currentExercise?.timeOptions === 'stopwatch') {
                             const startedAtMs =
                                 workoutInfo.currentSet.startedAt instanceof Date
@@ -229,10 +231,7 @@ export const Actions: FC<ActionsProps> = ({
                                     ? Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000))
                                     : Math.max(0, workoutInfo.currentSet.time ?? 0);
 
-                            await updateSet({
-                                id: workoutInfo.currentSet.id,
-                                updates: { completedAt: new Date(), time: elapsedSec },
-                            });
+                            completionUpdates = { time: elapsedSec };
                         } else if (currentExercise?.timeOptions === 'timer') {
                             const plannedSec = Math.max(0, workoutInfo.currentSet.time ?? 0);
                             const startedAtMs =
@@ -254,20 +253,15 @@ export const Actions: FC<ActionsProps> = ({
                             const remainingSec =
                                 plannedSec > 0 ? Math.max(0, plannedSec - elapsedSec) : plannedSec;
 
-                            await updateSet({
-                                id: workoutInfo.currentSet.id,
-                                updates: { completedAt: new Date(), time: remainingSec },
-                            });
-                        } else {
-                            await updateSet({
-                                id: workoutInfo.currentSet.id,
-                                updates: { completedAt: new Date() },
-                            });
+                            completionUpdates = { time: remainingSec };
                         }
 
-                        track('workout:exercise_set_complete', {
+                        await completeSet({
+                            id: workoutInfo.currentSet.id,
                             workoutExerciseId,
                             setType: workoutInfo.currentSet.type,
+                            source: 'phone',
+                            updates: completionUpdates,
                         });
 
                         // If this set has no rest time, auto-start the next set
@@ -377,11 +371,11 @@ export const Actions: FC<ActionsProps> = ({
         workoutExerciseId,
         workoutInfo,
         startWorkout,
+        completeSet,
         updateSet,
         currentExercise?.timeOptions,
         isMainActionPending,
         workoutDetails,
-        track,
     ]);
 
     const mainIcon = useMemo(() => {

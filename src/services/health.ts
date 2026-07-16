@@ -560,11 +560,14 @@ export async function readHealthMeasurementSamples(
     };
 }
 
+export type HealthWorkoutExportOutcome =
+    'saved' | 'permission_missing' | 'service_unavailable' | 'error';
+
 export async function saveWorkoutToHealth(params: {
     name: string;
     startDate: Date;
     endDate: Date;
-}): Promise<void> {
+}): Promise<HealthWorkoutExportOutcome> {
     const { name, startDate, endDate } = params;
 
     try {
@@ -575,17 +578,17 @@ export async function saveWorkoutToHealth(params: {
                 startDate,
                 endDate,
             );
-            return;
+            return 'saved';
         }
 
         if (Platform.OS === 'android') {
             if (!(await requireHealthConnectReady('saveWorkoutToHealth'))) {
-                return;
+                return 'service_unavailable';
             }
             if (
                 !(await hasGrantedHealthWritePermission('ExerciseSession', 'saveWorkoutToHealth'))
             ) {
-                return;
+                return 'permission_missing';
             }
             await insertRecords([
                 {
@@ -596,10 +599,18 @@ export async function saveWorkoutToHealth(params: {
                     endTime: endDate.toISOString(),
                 },
             ]);
+            return 'saved';
         }
     } catch (error) {
         logHealthError('saveWorkoutToHealth', error);
+        if (isHealthNotAuthorizedError(error)) return 'permission_missing';
+        if (isHealthServiceUnavailableError(error) || isHealthDataUnavailableError(error)) {
+            return 'service_unavailable';
+        }
+        return 'error';
     }
+
+    return 'service_unavailable';
 }
 
 export async function readHeartRateSamples(

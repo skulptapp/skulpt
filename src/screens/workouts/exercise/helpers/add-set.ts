@@ -1,6 +1,6 @@
-import { ExerciseSetInsert, ExerciseSetSelect } from '@/db/schema';
+import { ExerciseSetSelect } from '@/db/schema';
 import { getOrderedExercisesFromDetails } from '@/helpers/workouts';
-import { type useWorkoutWithDetails } from '@/hooks/use-workouts';
+import { type CreateExerciseSetInput, type useWorkoutWithDetails } from '@/hooks/use-workouts';
 
 type WorkoutDetails = ReturnType<typeof useWorkoutWithDetails>['data'];
 type SetType = ExerciseSetSelect['type'];
@@ -10,7 +10,7 @@ type AddWorkoutExerciseSetParams = {
     workoutExerciseId: string;
     sets?: ExerciseSetSelect[];
     setType?: SetType;
-    createSet: (data: Omit<ExerciseSetInsert, 'id'>) => Promise<ExerciseSetSelect>;
+    createSet: (data: CreateExerciseSetInput) => Promise<ExerciseSetSelect>;
 };
 
 const sortSets = (sets: ExerciseSetSelect[]) => sets.slice().sort((a, b) => a.order - b.order);
@@ -62,6 +62,7 @@ const addWorkoutExerciseSet = async ({
                 const prev = exerciseSets[exerciseSets.length - 1];
 
                 return createSet({
+                    analyticsSource: 'manual',
                     workoutExerciseId: groupExercise.id,
                     order: nextOrder,
                     type: setType ?? prev?.type ?? 'working',
@@ -83,6 +84,7 @@ const addWorkoutExerciseSet = async ({
     const prev = sortedSets[sortedSets.length - 1];
 
     await createSet({
+        analyticsSource: 'manual',
         workoutExerciseId,
         order: nextOrder,
         type: setType ?? prev?.type ?? 'working',

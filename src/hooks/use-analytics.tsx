@@ -1,7 +1,26 @@
-import { createContext, FC, PropsWithChildren, useContext, useEffect, useState } from 'react';
+import {
+    createContext,
+    FC,
+    PropsWithChildren,
+    useCallback,
+    useContext,
+    useEffect,
+    useState,
+} from 'react';
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
+import * as Application from 'expo-application';
+import * as Updates from 'expo-updates';
 import { createAnalyticsManager, AnalyticsManager } from '@/analytics/manager';
 import { createPostHogProvider, createAppMetricaProvider } from '@/analytics/providers';
+import {
+    AnalyticsEventMap,
+    AnalyticsEventName,
+    AnalyticsScreenName,
+    IAnalyticsProvider,
+} from '@/analytics';
 import { reportError, runInBackground } from '@/services/error-reporting';
+import { isSyncEnabled } from '@/sync/config';
 import { useUser } from './use-user';
 
 type AnalyticsContextType = {
@@ -18,42 +37,57 @@ const analyticsContext = createContext<AnalyticsContextType>({
  * Analytics provider that initializes and manages multiple analytics services
  */
 const AnalyticsProvider: FC<PropsWithChildren> = ({ children }) => {
-    const [analytics, setAnalytics] = useState<AnalyticsManager | null>(null);
+    const [analytics] = useState<AnalyticsManager | null>(() => {
+        const environment = String(Constants.expoConfig?.extra?.appVariant ?? 'development');
+        const explicitlyEnabled = process.env.EXPO_PUBLIC_ANALYTICS_ENABLED === 'true';
+        const enabled = environment === 'production' || explicitlyEnabled;
+        if (!enabled) return null;
+
+        const providers: IAnalyticsProvider[] = [];
+
+        const posthogKey = process.env.EXPO_PUBLIC_POSTHOG_API_KEY;
+        const posthogHost = process.env.EXPO_PUBLIC_POSTHOG_HOST;
+        if (posthogKey && posthogHost) {
+            providers.push(createPostHogProvider(posthogKey, posthogHost));
+        }
+
+        const appMetricaKey = process.env.EXPO_PUBLIC_APPMETRICA_API_KEY;
+        if (appMetricaKey) {
+            providers.push(createAppMetricaProvider(appMetricaKey));
+        }
+
+        if (providers.length === 0) return null;
+
+        return createAnalyticsManager({
+            providers,
+            enabled,
+            debug: environment !== 'production',
+            context: {
+                environment,
+                buildProfile: String(Constants.expoConfig?.extra?.buildProfile ?? environment),
+                updateChannel: Updates.channel ?? 'embedded',
+                platform: Platform.OS,
+                appVersion:
+                    Application.nativeApplicationVersion ??
+                    Constants.expoConfig?.version ??
+                    'unknown',
+                buildNumber: Application.nativeBuildVersion ?? 'unknown',
+                syncEnabled: isSyncEnabled(),
+            },
+        });
+    });
     const [isReady, setIsReady] = useState(false);
     const { user } = useUser();
 
     useEffect(() => {
         const initializeAnalytics = async () => {
-            const providers = [];
-
-            // PostHog
-            const posthogKey = process.env.EXPO_PUBLIC_POSTHOG_API_KEY;
-            const posthogHost = process.env.EXPO_PUBLIC_POSTHOG_HOST;
-            if (posthogKey && posthogHost) {
-                providers.push(createPostHogProvider(posthogKey, posthogHost));
-            }
-
-            // AppMetrica
-            const appMetricaKey = process.env.EXPO_PUBLIC_APPMETRICA_API_KEY;
-            if (appMetricaKey) {
-                providers.push(createAppMetricaProvider(appMetricaKey));
-            }
-
-            if (providers.length === 0) {
-                console.warn('[Analytics] No analytics providers configured');
+            if (!analytics) {
                 setIsReady(true);
                 return;
             }
 
-            const manager = createAnalyticsManager({
-                providers,
-                enabled: true,
-                debug: process.env.EXPO_PUBLIC_IS_PRODUCTION !== 'true',
-            });
-
             try {
-                await manager.initialize();
-                setAnalytics(manager);
+                await analytics.initialize();
             } catch (error) {
                 reportError(error, '[Analytics] Failed to initialize:');
             } finally {
@@ -62,7 +96,7 @@ const AnalyticsProvider: FC<PropsWithChildren> = ({ children }) => {
         };
 
         runInBackground(initializeAnalytics, '[Analytics] Failed to bootstrap analytics:');
-    }, []);
+    }, [analytics]);
 
     // Auto-identify user when logged in
     useEffect(() => {
@@ -76,6 +110,8 @@ const AnalyticsProvider: FC<PropsWithChildren> = ({ children }) => {
                 deviceSystemVersion: user.deviceSystemVersion,
                 lng: user.lng,
                 theme: user.theme,
+                environment: String(Constants.expoConfig?.extra?.appVariant ?? 'development'),
+                syncEnabled: isSyncEnabled(),
             });
         }
     }, [analytics, user]);
@@ -95,10 +131,10 @@ const AnalyticsProvider: FC<PropsWithChildren> = ({ children }) => {
  * const { track, screen, identify } = useAnalytics();
  *
  * // Track an event
- * track('workout_started', { type: 'strength' });
+ * track('workout:start', { workoutId: 'workout-id', source: 'planned' });
  *
  * // Track a screen
- * screen('workout_details', { workout_id: '123' });
+ * screen('workout');
  *
  * // Identify a user
  * identify('user-123', { email: 'user@example.com' });
@@ -113,20 +149,30 @@ const useAnalytics = () => {
 
     const { analytics } = context;
 
+    const track = useCallback(
+        <Event extends AnalyticsEventName>(event: Event, properties?: AnalyticsEventMap[Event]) => {
+            analytics?.track(event, properties);
+        },
+        [analytics],
+    );
+
+    const screen = useCallback(
+        (screenName: AnalyticsScreenName) => {
+            analytics?.screen(screenName);
+        },
+        [analytics],
+    );
+
     return {
         /**
          * Track an event
          */
-        track: (event: string, properties?: Record<string, any>) => {
-            analytics?.track(event, properties);
-        },
+        track,
 
         /**
          * Track a screen view
          */
-        screen: (screenName: string, properties?: Record<string, any>) => {
-            analytics?.screen(screenName, properties);
-        },
+        screen,
 
         /**
          * Identify a user
@@ -172,6 +218,9 @@ const useAnalytics = () => {
          * Check if analytics is ready
          */
         isReady: context.isReady,
+
+        /** Whether at least one analytics provider is configured for this build. */
+        isEnabled: analytics !== null,
     };
 };
 

@@ -23,7 +23,7 @@ import { CreateButton } from '@/components/buttons/create';
 import { FilterButton } from '@/components/buttons/filter';
 import { useEditor } from '@/hooks/use-editor';
 import { useAnalytics } from '@/hooks/use-analytics';
-import { useFilterStore, hasActiveFilters } from '@/stores/filter';
+import { useFilterStore, hasActiveFilters, countActiveFilters } from '@/stores/filter';
 import { useShallow } from 'zustand/shallow';
 
 type SelectedList = string[];
@@ -128,6 +128,7 @@ const SelectExercisesScreen: FC = () => {
             filterState.primaryMuscle,
         ],
     );
+    const activeFilterCount = countActiveFilters(filters);
 
     const { data: rawExercises, isLoading, isFetching, error } = useExercisesList(filters);
     const { data: existingGroups } = useWorkoutGroups(workoutId || '');
@@ -249,6 +250,7 @@ const SelectExercisesScreen: FC = () => {
                     await Promise.all(
                         prevSets.map((s, orderIndex) =>
                             createExerciseSet.mutateAsync({
+                                analyticsSource: 'copied',
                                 workoutExerciseId: created.id,
                                 order: orderIndex,
                                 type: s.type,
@@ -267,6 +269,7 @@ const SelectExercisesScreen: FC = () => {
                     const ex = exerciseMap.get(exerciseId);
                     const tracks = ex?.tracking || [];
                     await createExerciseSet.mutateAsync({
+                        analyticsSource: 'exercise_seed',
                         workoutExerciseId: created.id,
                         order: 0,
                         type: 'working',
@@ -364,6 +367,7 @@ const SelectExercisesScreen: FC = () => {
                 mode="select"
                 rawExercises={filteredExercises}
                 query={deferredQuery}
+                activeFilterCount={activeFilterCount}
                 isLoading={isLoading || isFetching}
                 error={error}
                 extraData={selected}

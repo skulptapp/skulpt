@@ -3,8 +3,11 @@ import { StyleSheet } from 'react-native-unistyles';
 
 import { Box } from '@/components/primitives/box';
 import { Text } from '@/components/primitives/text';
+import { useAnalyticsScreen } from '@/hooks/use-analytics-screen';
 
 export default function NotFoundScreen() {
+    useAnalyticsScreen('not_found');
+
     return (
         <>
             <Stack.Screen options={{ title: 'Oops!' }} />

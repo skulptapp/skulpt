@@ -186,15 +186,20 @@ export class LiveActivityManager {
         return areActivitiesEnabled();
     }
 
-    async start(workoutName: string, workoutId: string, state: LiveActivityState): Promise<void> {
-        if (!isIOS) return;
+    async start(
+        workoutName: string,
+        workoutId: string,
+        state: LiveActivityState,
+    ): Promise<'started' | 'unavailable'> {
+        if (!isIOS || !this.isEnabled()) return 'unavailable';
 
         // End any stale activities from previous sessions
         await endAllActivities();
 
         const id = await startWorkoutActivity(workoutName, workoutId, state);
         this.activityId = id;
-        this.lastStateKey = stateKey(state);
+        this.lastStateKey = id ? stateKey(state) : null;
+        return id ? 'started' : 'unavailable';
     }
 
     async update(state: LiveActivityState): Promise<void> {
@@ -219,8 +224,12 @@ export class LiveActivityManager {
      * Recover from app restart: if there's a running activity but we lost the ref,
      * re-attach to it. If no activity is running but workout is active, start one.
      */
-    async recover(runningWorkout: WorkoutSelect, state: LiveActivityState | null): Promise<void> {
-        if (!isIOS || this.recovering) return;
+    async recover(
+        runningWorkout: WorkoutSelect,
+        state: LiveActivityState | null,
+    ): Promise<'started' | 'recovered' | 'unavailable' | null> {
+        if (!isIOS) return 'unavailable';
+        if (this.recovering) return null;
 
         this.recovering = true;
         try {
@@ -228,11 +237,12 @@ export class LiveActivityManager {
             if (existingId) {
                 this.activityId = existingId;
                 if (state) await this.update(state);
-                return;
+                return 'recovered';
             }
 
             // No running activity — start a fresh one (only if we have state to display)
-            if (state) await this.start(runningWorkout.name, runningWorkout.id, state);
+            if (!state) return null;
+            return await this.start(runningWorkout.name, runningWorkout.id, state);
         } finally {
             this.recovering = false;
         }

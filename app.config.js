@@ -161,6 +161,8 @@ module.exports = {
         policy: 'appVersion',
     },
     extra: {
+        appVariant: process.env.APP_VARIANT || process.env.EAS_BUILD_PROFILE || 'development',
+        buildProfile: process.env.EAS_BUILD_PROFILE || process.env.APP_VARIANT || 'development',
         eas: {
             projectId: process.env.APP_EAS_PROJECT_ID,
         },

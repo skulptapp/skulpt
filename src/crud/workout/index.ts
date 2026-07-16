@@ -12,7 +12,13 @@ import {
     WorkoutGroupInsert,
     WorkoutGroupSelect,
 } from '@/db/schema';
-import { exercise, exerciseSet, ExerciseSelect, ExerciseSetInsert } from '@/db/schema/exercise';
+import {
+    exercise,
+    exerciseSet,
+    ExerciseSelect,
+    ExerciseSetInsert,
+    ExerciseSetSelect,
+} from '@/db/schema/exercise';
 import { nanoid } from '@/helpers/nanoid';
 import { reportError } from '@/services/error-reporting';
 import { computeWorkoutStats } from '@/services/workout-health-stats';
@@ -684,20 +690,50 @@ export const startWorkout = async (workoutId: string): Promise<WorkoutSelect> =>
     return startedWorkout;
 };
 
-export const completeWorkout = async (workoutId: string): Promise<WorkoutSelect> => {
+export interface CompleteWorkoutResult {
+    workout: WorkoutSelect;
+    didComplete: boolean;
+    newlyCompletedSets: Pick<ExerciseSetSelect, 'id' | 'workoutExerciseId' | 'type'>[];
+    completedSetCount: number;
+    exerciseCount: number;
+    activeDurationSec: number;
+}
+
+const getActiveSetDurationSeconds = (sets: ExerciseSetSelect[]): number =>
+    sets.reduce((total, set) => {
+        const startedAtMs = getDateMs(set.startedAt);
+        const completedAtMs = getDateMs(set.completedAt);
+        if (startedAtMs == null || completedAtMs == null || completedAtMs < startedAtMs) {
+            return total;
+        }
+        return total + Math.floor((completedAtMs - startedAtMs) / 1000);
+    }, 0);
+
+export const completeWorkout = async (workoutId: string): Promise<CompleteWorkoutResult> => {
     const workout = await getWorkoutById(workoutId);
     if (!workout) {
         throw new Error('Workout not found');
+    }
+
+    const workoutExercises = await getWorkoutExercises(workoutId);
+    const setsArrays = await Promise.all(workoutExercises.map((we) => getExerciseSets(we.id)));
+    let allSets = setsArrays.flat();
+
+    if (workout.status === 'completed') {
+        return {
+            workout,
+            didComplete: false,
+            newlyCompletedSets: [],
+            completedSetCount: allSets.filter((set) => set.completedAt != null).length,
+            exerciseCount: workoutExercises.length,
+            activeDurationSec: getActiveSetDurationSeconds(allSets),
+        };
     }
 
     const completionTime = new Date();
 
     // Complete only the set that has actually been started and finalize pending rest periods.
     // Unstarted sets remain incomplete so ending a workout midway doesn't pollute stats.
-    const workoutExercises = await getWorkoutExercises(workoutId);
-    const setsArrays = await Promise.all(workoutExercises.map((we) => getExerciseSets(we.id)));
-
-    let allSets = setsArrays.flat();
 
     const startedUnfinishedSets = allSets.filter((s) => s.startedAt && !s.completedAt);
     if (startedUnfinishedSets.length > 0) {
@@ -744,11 +780,24 @@ export const completeWorkout = async (workoutId: string): Promise<WorkoutSelect>
         ? Math.floor((completionTime.getTime() - workout.startedAt.getTime()) / 1000)
         : 0;
 
-    return await updateWorkout(workoutId, {
+    const completedWorkout = await updateWorkout(workoutId, {
         status: 'completed',
         completedAt: completionTime,
         duration,
     });
+
+    return {
+        workout: completedWorkout,
+        didComplete: true,
+        newlyCompletedSets: startedUnfinishedSets.map((set) => ({
+            id: set.id,
+            workoutExerciseId: set.workoutExerciseId,
+            type: set.type,
+        })),
+        completedSetCount: allSets.filter((set) => set.completedAt != null).length,
+        exerciseCount: workoutExercises.length,
+        activeDurationSec: getActiveSetDurationSeconds(allSets),
+    };
 };
 
 export const duplicateWorkout = async (

@@ -34,6 +34,7 @@ import { useUser } from '@/hooks/use-user';
 import { useRunningWorkoutStatic } from '@/hooks/use-running-workout';
 import { reportError } from '@/services/error-reporting';
 import { requestStoreReviewIfAvailable } from '@/services/store-review';
+import { useAnalytics } from '@/hooks/use-analytics';
 
 const styles = StyleSheet.create((theme, rt) => ({
     container: {
@@ -103,6 +104,7 @@ const SettingsScreen = () => {
     const { resetWatchSync } = useRunningWorkoutStatic();
     const { t } = useTranslation(['common', 'screens']);
     const { theme } = useUnistyles();
+    const { track } = useAnalytics();
 
     const [isMailAvailable, setIsMailAvailable] = useState(false);
 
@@ -119,6 +121,32 @@ const SettingsScreen = () => {
             : Constants.expoConfig?.android?.versionCode;
 
     const shareUrl = 'https://skulpt.app';
+
+    const handleShare = () => {
+        track('app:share_requested', { surface: 'settings' });
+        Share.share({
+            message: t('settings.supportSkulpt.items.reviewAppStore.message', {
+                ns: 'screens',
+                url: shareUrl,
+            }),
+        }).catch((error) => {
+            reportError(error, 'Failed to share Skulpt from settings:');
+        });
+    };
+
+    const handleManualReviewRequest = () => {
+        requestStoreReviewIfAvailable()
+            .then((attempt) => {
+                track('app_review:manual_request', {
+                    surface: 'settings',
+                    storeReviewAvailable: attempt.isAvailable,
+                    storeReviewHasAction: attempt.hasAction,
+                });
+            })
+            .catch((error) => {
+                reportError(error, 'Failed to request store review from settings:');
+            });
+    };
 
     const handleComposeEmail = (options: MailComposer.MailComposerOptions) => {
         MailComposer.composeAsync(options).catch(() => {});
@@ -235,21 +263,12 @@ const SettingsScreen = () => {
         {
             icon: MessageCircle,
             title: t('settings.supportSkulpt.items.tellFriend.title', { ns: 'screens' }),
-            onPress: () =>
-                Share.share({
-                    message: t('settings.supportSkulpt.items.reviewAppStore.message', {
-                        ns: 'screens',
-                        url: shareUrl,
-                    }),
-                }),
+            onPress: handleShare,
         },
         {
             icon: Star,
             title: t('settings.supportSkulpt.items.reviewAppStore.title', { ns: 'screens' }),
-            onPress: () =>
-                requestStoreReviewIfAvailable().catch((error) => {
-                    reportError(error, 'Failed to request store review from settings:');
-                }),
+            onPress: handleManualReviewRequest,
         },
     ];
 

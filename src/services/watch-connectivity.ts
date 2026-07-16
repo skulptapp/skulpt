@@ -138,6 +138,10 @@ export class WatchManager {
         return this._isTrackingOnWatch;
     }
 
+    wasWorkoutTracked(workoutId?: string): boolean {
+        return this.wasWorkoutTrackedOnWatch(workoutId);
+    }
+
     private applyLifecyclePayload(payload: WatchCommand): boolean {
         if (payload.command !== 'watchSessionStarted' && payload.command !== 'watchSessionEnded') {
             return false;

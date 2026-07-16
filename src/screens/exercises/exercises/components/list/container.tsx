@@ -1,4 +1,4 @@
-import { FC, useCallback, useMemo, useState } from 'react';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleProp, ViewStyle } from 'react-native';
 import { ViewToken } from '@shopify/flash-list';
 import { router } from 'expo-router';
@@ -20,6 +20,8 @@ import {
 import type { ExerciseListSelect } from '@/crud/exercise';
 import { StickyHeaderState } from '../header';
 import { isSkulptExerciseUserId } from '@/constants/skulpt';
+import { useAnalytics } from '@/hooks/use-analytics';
+import { getSearchRankBucket, getSearchScriptGroup } from '@/analytics';
 
 type ModeBrowse = {
     mode: 'browse';
@@ -39,6 +41,7 @@ type BaseProps = {
     error?: unknown;
     extraData?: unknown;
     contentContainerStyle?: StyleProp<ViewStyle>;
+    activeFilterCount?: number;
 };
 
 type ExercisesListContainerProps = BaseProps & (ModeBrowse | ModeSelect);
@@ -64,10 +67,13 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
     error,
     extraData,
     contentContainerStyle,
+    activeFilterCount = 0,
     ...rest
 }) => {
     const { i18n } = useTranslation();
+    const { track } = useAnalytics();
     const [stickyHeaderState, setStickyHeaderState] = useState<StickyHeaderState>({});
+    const lastTrackedSearchRef = useRef<string | null>(null);
 
     const deleteExercise = useDeleteExercise();
 
@@ -93,6 +99,38 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
             i18n.resolvedLanguage || i18n.language,
         );
     }, [exerciseSearchIndex, groupedData, i18n.language, i18n.resolvedLanguage, query]);
+
+    const exerciseResults = useMemo(
+        () => data.filter((item): item is ExerciseCard => item.type === 'exercise'),
+        [data],
+    );
+
+    const searchContext = rest.mode === 'browse' ? 'library' : 'workout_select';
+
+    useEffect(() => {
+        const trimmedQuery = query.trim();
+        if (!trimmedQuery) {
+            lastTrackedSearchRef.current = null;
+            return;
+        }
+        if (isLoading || error) return;
+
+        const signature = `${searchContext}:${trimmedQuery}:${exerciseResults.length}:${activeFilterCount}`;
+        const timeout = setTimeout(() => {
+            if (lastTrackedSearchRef.current === signature) return;
+            lastTrackedSearchRef.current = signature;
+            track('exercise_search:completed', {
+                context: searchContext,
+                queryLength: Array.from(trimmedQuery).length,
+                scriptGroup: getSearchScriptGroup(trimmedQuery),
+                resultCount: exerciseResults.length,
+                hasResults: exerciseResults.length > 0,
+                activeFilterCount,
+            });
+        }, 500);
+
+        return () => clearTimeout(timeout);
+    }, [activeFilterCount, error, exerciseResults.length, isLoading, query, searchContext, track]);
 
     const stickyLookup = useMemo(() => {
         const categoryByIndex: (string | undefined)[] = [];
@@ -133,6 +171,26 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
     const onToggle = mode === 'select' ? rest.onToggle : undefined;
     const onExercisePress = mode === 'browse' ? rest.onExercisePress : undefined;
 
+    const trackSearchSelection = useCallback(
+        (exerciseItem: ExerciseCard) => {
+            if (!query.trim()) return;
+            const rank = exerciseResults.findIndex(
+                (candidate) => candidate.exercise.id === exerciseItem.exercise.id,
+            );
+            if (rank < 0) return;
+
+            track('exercise_search:result_selected', {
+                context: searchContext,
+                rankBucket: getSearchRankBucket(rank + 1),
+                ownership: isSkulptExerciseUserId(exerciseItem.exercise.userId)
+                    ? 'system'
+                    : 'custom',
+                category: exerciseItem.exercise.category,
+            });
+        },
+        [exerciseResults, query, searchContext, track],
+    );
+
     const handleGifPreviewOpen = useCallback((name: string, gifFilename: string) => {
         router.navigate({
             pathname: '/preview',
@@ -147,11 +205,12 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
                     name={exerciseItem.exercise.name}
                     gifFilename={exerciseItem.exercise.gifFilename}
                     onOpen={handleGifPreviewOpen}
+                    analyticsSurface={mode === 'browse' ? 'exercise_library' : 'workout_select'}
                     containerStyle={styles.previewThumbContainer}
                 />
             );
         },
-        [handleGifPreviewOpen],
+        [handleGifPreviewOpen, mode],
     );
 
     const renderItem = useCallback(
@@ -170,7 +229,10 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
                         onDelete={canDelete ? handleDelete : undefined}
                         selectable
                         selected={selectedList.includes(item.exercise.id)}
-                        onSelectToggle={onToggle}
+                        onSelectToggle={(exerciseId) => {
+                            if (!selectedList.includes(exerciseId)) trackSearchSelection(item);
+                            onToggle(exerciseId);
+                        }}
                         selectionPosition="left"
                         renderRightAccessory={renderGifAccessory}
                     />
@@ -185,7 +247,10 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
                         index={index}
                         data={data}
                         onDelete={canDelete ? handleDelete : undefined}
-                        onPress={() => onExercisePress?.(item.exercise.id)}
+                        onPress={() => {
+                            trackSearchSelection(item);
+                            onExercisePress?.(item.exercise.id);
+                        }}
                         renderRightAccessory={renderGifAccessory}
                     />
                 );
@@ -193,7 +258,16 @@ export const ExercisesListContainer: FC<ExercisesListContainerProps> = ({
 
             return <></>;
         },
-        [data, mode, selectedList, onToggle, onExercisePress, handleDelete, renderGifAccessory],
+        [
+            data,
+            mode,
+            selectedList,
+            onToggle,
+            onExercisePress,
+            handleDelete,
+            renderGifAccessory,
+            trackSearchSelection,
+        ],
     );
 
     const getItemType = useCallback((item: ExerciseListItem) => item.type, []);

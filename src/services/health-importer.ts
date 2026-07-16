@@ -11,6 +11,7 @@ export interface MeasurementHealthImportSummary {
     importedCount: number;
     skippedCount: number;
     sampledCount: number;
+    metricTypes: string[];
 }
 
 const isHealthServiceUnavailableError = (error: unknown): boolean => {
@@ -45,6 +46,7 @@ export const importLatestHealthForUser = async (
                 importedCount: 0,
                 skippedCount: 0,
                 sampledCount: 0,
+                metricTypes: [],
             };
         }
 
@@ -54,6 +56,7 @@ export const importLatestHealthForUser = async (
                 importedCount: 0,
                 skippedCount: 0,
                 sampledCount: 0,
+                metricTypes: [],
             };
         }
 
@@ -64,6 +67,9 @@ export const importLatestHealthForUser = async (
             importedCount: importResult.inserted,
             skippedCount: importResult.skipped,
             sampledCount: readResult.samples.length,
+            metricTypes: Array.from(
+                new Set(readResult.samples.map((sample) => sample.metric)),
+            ).sort(),
         };
     } catch (error) {
         if (!isHealthServiceUnavailableError(error)) {
@@ -74,6 +80,7 @@ export const importLatestHealthForUser = async (
             importedCount: 0,
             skippedCount: 0,
             sampledCount: 0,
+            metricTypes: [],
         };
     }
 };

@@ -484,6 +484,11 @@ export const getExerciseSets = async (workoutExerciseId: string): Promise<Exerci
     }
 };
 
+export const getExerciseSetById = async (id: string): Promise<ExerciseSetSelect | null> => {
+    const rows = await db.select().from(exerciseSet).where(eq(exerciseSet.id, id)).limit(1);
+    return rows[0] ? normalizeExerciseSetRecord(rows[0]) : null;
+};
+
 export const getExerciseSetsByWorkoutExerciseIds = async (
     workoutExerciseIds: string[],
 ): Promise<ExerciseSetSelect[]> => {

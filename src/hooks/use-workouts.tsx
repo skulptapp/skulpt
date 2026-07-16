@@ -43,6 +43,7 @@ import { useAnalytics } from './use-analytics';
 import {
     createExerciseSet,
     deleteExerciseSet,
+    getExerciseSetById,
     getExerciseSets,
     updateExerciseSet,
 } from '@/crud/exercise';
@@ -51,6 +52,17 @@ import { getWorkoutOverviewExerciseMetaRows } from '@/crud/workout/home';
 import { waitForIdle } from '@/helpers/idle';
 
 export const deleteWorkoutMutationKey = ['delete-workout'] as const;
+
+type WorkoutStartSource = 'new' | 'planned' | 'repeat';
+type WorkoutCompletionSource = 'phone' | 'watch';
+type SetCompletionSource = 'phone' | 'watch' | 'auto_timer';
+type SetCreationSource = 'manual' | 'exercise_seed' | 'copied';
+
+const completingWorkoutPromises = new Map<string, ReturnType<typeof completeWorkout>>();
+const completingSetPromises = new Map<
+    string,
+    Promise<{ set: ExerciseSetSelect; didComplete: boolean }>
+>();
 
 export const useWorkouts = () => {
     const { user } = useUser();
@@ -233,8 +245,10 @@ export const useStartWorkout = () => {
     const { track } = useAnalytics();
 
     return useMutation({
-        mutationFn: (workoutId: string) => startWorkout(workoutId),
-        onSuccess: (data) => {
+        mutationFn: (input: string | { workoutId: string; source: WorkoutStartSource }) =>
+            startWorkout(typeof input === 'string' ? input : input.workoutId),
+        onSuccess: (data, input) => {
+            const source = typeof input === 'string' ? 'planned' : input.source;
             queryClient.invalidateQueries({ queryKey: ['workouts'] });
             queryClient.invalidateQueries({ queryKey: ['workout', data.id] });
             queryClient.invalidateQueries({ queryKey: ['workout-details', data.id] });
@@ -242,6 +256,8 @@ export const useStartWorkout = () => {
             queryClient.invalidateQueries({ queryKey: ['active-workout'] });
             track('workout:start', {
                 workoutId: data.id,
+                source,
+                $insert_id: `workout:${data.id}:start`,
             });
         },
     });
@@ -252,17 +268,55 @@ export const useCompleteWorkout = () => {
     const { track } = useAnalytics();
 
     return useMutation({
-        mutationFn: (workoutId: string) => completeWorkout(workoutId),
-        onSuccess: (data) => {
+        mutationFn: async (input: {
+            workoutId: string;
+            completionSource: WorkoutCompletionSource;
+            watchUsed: boolean;
+            liveActivityUsed: boolean;
+        }) => {
+            const existing = completingWorkoutPromises.get(input.workoutId);
+            if (existing) {
+                const result = await existing;
+                return { ...result, didComplete: false };
+            }
+
+            const promise = completeWorkout(input.workoutId).finally(() => {
+                completingWorkoutPromises.delete(input.workoutId);
+            });
+            completingWorkoutPromises.set(input.workoutId, promise);
+            return await promise;
+        },
+        onSuccess: (result, input) => {
+            const data = result.workout;
             queryClient.invalidateQueries({ queryKey: ['workouts'] });
             queryClient.invalidateQueries({ queryKey: ['workout', data.id] });
             queryClient.invalidateQueries({ queryKey: ['workout-details', data.id] });
             queryClient.invalidateQueries({ queryKey: ['exercise-sets'] });
             queryClient.invalidateQueries({ queryKey: ['active-workout'] });
             invalidateWorkoutSetDerivedQueries(queryClient);
+
+            if (!result.didComplete) return;
+
+            result.newlyCompletedSets.forEach((set) => {
+                track('workout:exercise_set_complete', {
+                    workoutExerciseId: set.workoutExerciseId,
+                    setType: set.type,
+                    source: input.completionSource,
+                    $insert_id: `set:${set.id}:complete`,
+                });
+            });
+
             track('workout:complete', {
                 workoutId: data.id,
                 duration: data.duration,
+                wallDurationSec: Math.max(0, data.duration ?? 0),
+                activeDurationSec: result.activeDurationSec,
+                completedSetCount: result.completedSetCount,
+                exerciseCount: result.exerciseCount,
+                completionSource: input.completionSource,
+                watchUsed: input.watchUsed,
+                liveActivityUsed: input.liveActivityUsed,
+                $insert_id: `workout:${data.id}:complete`,
             });
         },
     });
@@ -385,19 +439,27 @@ export const useExerciseSets = (workoutExerciseId: string) => {
     });
 };
 
+export type CreateExerciseSetInput = Omit<ExerciseSetInsert, 'id'> & {
+    analyticsSource?: SetCreationSource;
+};
+
 export const useCreateExerciseSet = () => {
     const queryClient = useQueryClient();
     const { track } = useAnalytics();
 
     return useMutation({
-        mutationFn: (data: Omit<ExerciseSetInsert, 'id'>) => createExerciseSet(data),
-        onSuccess: (data) => {
+        mutationFn: (input: CreateExerciseSetInput) => {
+            const { analyticsSource: _analyticsSource, ...data } = input;
+            return createExerciseSet(data);
+        },
+        onSuccess: (data, input) => {
             queryClient.invalidateQueries({ queryKey: ['exercise-sets', data.workoutExerciseId] });
             queryClient.invalidateQueries({ queryKey: ['workout-details'] });
             invalidateWorkoutSetDerivedQueries(queryClient);
             track('workout:exercise_set_add', {
                 workoutExerciseId: data.workoutExerciseId,
                 setType: data.type,
+                source: input.analyticsSource ?? 'manual',
             });
         },
     });
@@ -413,6 +475,61 @@ export const useUpdateExerciseSet = () => {
             queryClient.invalidateQueries({ queryKey: ['exercise-sets', data.workoutExerciseId] });
             queryClient.invalidateQueries({ queryKey: ['workout-details'] });
             invalidateWorkoutSetDerivedQueries(queryClient);
+        },
+    });
+};
+
+export const useCompleteExerciseSet = () => {
+    const queryClient = useQueryClient();
+    const { track } = useAnalytics();
+
+    return useMutation({
+        mutationFn: async (input: {
+            id: string;
+            workoutExerciseId: string;
+            setType: ExerciseSetSelect['type'];
+            source: SetCompletionSource;
+            updates?: Partial<ExerciseSetSelect>;
+        }) => {
+            const existingPromise = completingSetPromises.get(input.id);
+            if (existingPromise) {
+                const result = await existingPromise;
+                return { ...result, didComplete: false };
+            }
+
+            const promise = (async () => {
+                const existingSet = await getExerciseSetById(input.id);
+                if (!existingSet) throw new Error('Exercise set not found');
+                if (existingSet.completedAt) {
+                    return { set: existingSet, didComplete: false };
+                }
+
+                const set = await updateExerciseSet(input.id, {
+                    ...(input.updates ?? {}),
+                    completedAt: input.updates?.completedAt ?? new Date(),
+                });
+                return { set, didComplete: true };
+            })().finally(() => {
+                completingSetPromises.delete(input.id);
+            });
+
+            completingSetPromises.set(input.id, promise);
+            return await promise;
+        },
+        onSuccess: (result, input) => {
+            queryClient.invalidateQueries({
+                queryKey: ['exercise-sets', input.workoutExerciseId],
+            });
+            queryClient.invalidateQueries({ queryKey: ['workout-details'] });
+            invalidateWorkoutSetDerivedQueries(queryClient);
+
+            if (!result.didComplete) return;
+            track('workout:exercise_set_complete', {
+                workoutExerciseId: input.workoutExerciseId,
+                setType: input.setType,
+                source: input.source,
+                $insert_id: `set:${input.id}:complete`,
+            });
         },
     });
 };
@@ -451,6 +568,7 @@ export const useActiveWorkout = () => {
 
 export const useDuplicateWorkout = () => {
     const queryClient = useQueryClient();
+    const { track } = useAnalytics();
 
     return useMutation({
         mutationFn: ({
@@ -460,12 +578,20 @@ export const useDuplicateWorkout = () => {
             workoutId: string;
             mode: 'now' | 'planned' | 'completed';
         }) => duplicateWorkout(workoutId, mode),
-        onSuccess: () => {
+        onSuccess: (data, variables) => {
             queryClient.invalidateQueries({ queryKey: ['workouts'] });
             queryClient.invalidateQueries({ queryKey: ['workout'] });
             queryClient.invalidateQueries({ queryKey: ['workout-details'] });
             queryClient.invalidateQueries({ queryKey: ['active-workout'] });
             queryClient.invalidateQueries({ queryKey: ['workouts-overview-meta'] });
+            track('workout:duplicate', { mode: variables.mode });
+            if (variables.mode === 'now') {
+                track('workout:start', {
+                    workoutId: data.id,
+                    source: 'repeat',
+                    $insert_id: `workout:${data.id}:start`,
+                });
+            }
         },
     });
 };

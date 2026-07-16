@@ -38,3 +38,9 @@ export const hasActiveFilters = (state: FilterState): boolean =>
     (state.category !== null && state.category.length > 0) ||
     (state.tracking !== null && state.tracking.length > 0) ||
     (state.primaryMuscle !== null && state.primaryMuscle.length > 0);
+
+export const countActiveFilters = (state: FilterState): number =>
+    Number(state.ownership !== 'all') +
+    Number(state.category !== null && state.category.length > 0) +
+    Number(state.tracking !== null && state.tracking.length > 0) +
+    Number(state.primaryMuscle !== null && state.primaryMuscle.length > 0);

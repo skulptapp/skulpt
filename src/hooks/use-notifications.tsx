@@ -27,6 +27,7 @@ import Constants from 'expo-constants';
 import { useShallow } from 'zustand/react/shallow';
 import { reportError, runInBackground } from '@/services/error-reporting';
 import { getNotificationNavigation } from '@/helpers/notification-navigation';
+import { useAnalytics } from './use-analytics';
 
 interface HandleNotificationStatus {
     status: PermissionStatus;
@@ -116,6 +117,7 @@ export const useNotifications = () => {
 const useNotificationsProvider = () => {
     const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
     const { user, updateUser } = useUser();
+    const { track } = useAnalytics();
     const pathname = usePathname();
     const pathnameRef = useRef(pathname);
     const lastHandledNotificationResponseKeyRef = useRef<string | null>(null);
@@ -349,7 +351,14 @@ const useNotificationsProvider = () => {
                     return;
                 }
 
+                const trigger =
+                    lastStatusRef.current === null ? 'initial_check' : 'settings_change';
                 lastStatusRef.current = status;
+                track('notification:permission_result', {
+                    trigger,
+                    status,
+                    granted: status === RESULTS.GRANTED,
+                });
 
                 switch (status) {
                     case RESULTS.UNAVAILABLE:
@@ -382,6 +391,16 @@ const useNotificationsProvider = () => {
                 }
             } else {
                 setPermissions({ notifications: RESULTS.UNAVAILABLE });
+                if (lastStatusRef.current !== RESULTS.UNAVAILABLE) {
+                    const trigger =
+                        lastStatusRef.current === null ? 'initial_check' : 'settings_change';
+                    lastStatusRef.current = RESULTS.UNAVAILABLE;
+                    track('notification:permission_result', {
+                        trigger,
+                        status: RESULTS.UNAVAILABLE,
+                        granted: false,
+                    });
+                }
             }
         } catch (error) {
             reportError(error, 'Failed to check notification permissions:');
@@ -392,6 +411,7 @@ const useNotificationsProvider = () => {
         updateUserDevice,
         setPermissions,
         isDelayActive,
+        track,
     ]);
 
     const userLoadedRef = useRef(false);
@@ -487,6 +507,12 @@ const useNotificationsProvider = () => {
         if (permissions === RESULTS.DENIED || permissions === RESULTS.UNAVAILABLE) {
             requestNotifications(['alert', 'sound', 'badge'])
                 .then(async ({ status, settings }) => {
+                    lastStatusRef.current = status;
+                    track('notification:permission_result', {
+                        trigger: 'request',
+                        status,
+                        granted: status === RESULTS.GRANTED,
+                    });
                     if (status === RESULTS.GRANTED) {
                         await handleGrantedStatus({ status, settings });
                     } else if (status === RESULTS.BLOCKED) {
@@ -497,7 +523,7 @@ const useNotificationsProvider = () => {
                     reportError(error, 'Failed to request notification permissions:');
                 });
         }
-    }, [permissions, handleGrantedStatus, handleBlockedStatus]);
+    }, [permissions, handleGrantedStatus, handleBlockedStatus, track]);
 
     const scheduleWorkoutTimerNotification = useCallback(
         async (args: {

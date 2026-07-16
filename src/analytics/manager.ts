@@ -1,12 +1,15 @@
 import { IAnalyticsConfig } from './types';
+import { AnalyticsEventMap, AnalyticsEventName, AnalyticsScreenName } from './events';
 import { reportError } from '@/services/error-reporting';
 
 /**
  * Unified analytics manager that delegates to multiple providers
  */
 export const createAnalyticsManager = (config: IAnalyticsConfig) => {
-    const { providers, enabled = true, debug = false } = config;
+    const { providers, enabled = true, debug = false, context = {} } = config;
     let initialized = false;
+    let initializing: Promise<void> | null = null;
+    const pendingOperations: (() => void)[] = [];
 
     const log = (...args: any[]) => {
         if (debug) {
@@ -17,27 +20,37 @@ export const createAnalyticsManager = (config: IAnalyticsConfig) => {
     return {
         async initialize() {
             if (initialized) return;
+            if (initializing) return initializing;
 
             if (!enabled) {
                 log('Analytics is disabled');
                 return;
             }
 
-            const results = await Promise.allSettled(
-                providers.map((provider) => provider.initialize()),
-            );
+            initializing = (async () => {
+                const results = await Promise.allSettled(
+                    providers.map((provider) => provider.initialize()),
+                );
 
-            results.forEach((result, index) => {
-                if (result.status === 'rejected') {
-                    reportError(
-                        result.reason,
-                        `[Analytics] Provider ${index} failed to initialize:`,
-                    );
-                }
+                results.forEach((result, index) => {
+                    if (result.status === 'rejected') {
+                        reportError(
+                            result.reason,
+                            `[Analytics] Provider ${index} failed to initialize:`,
+                        );
+                    }
+                });
+
+                initialized = true;
+                log('Initialized with', providers.length, 'providers');
+
+                const queued = pendingOperations.splice(0);
+                queued.forEach((operation) => operation());
+            })().finally(() => {
+                initializing = null;
             });
 
-            initialized = true;
-            log('Initialized with', providers.length, 'providers');
+            return initializing;
         },
 
         identify(userId: string, traits?: Record<string, any>) {
@@ -45,41 +58,58 @@ export const createAnalyticsManager = (config: IAnalyticsConfig) => {
 
             log('Identify:', userId, traits);
 
-            providers.forEach((provider) => {
-                try {
-                    provider.identify(userId, traits);
-                } catch (error) {
-                    reportError(error, '[Analytics] Identify failed:');
-                }
-            });
+            const operation = () =>
+                providers.forEach((provider) => {
+                    try {
+                        provider.identify(userId, traits);
+                    } catch (error) {
+                        reportError(error, '[Analytics] Identify failed:');
+                    }
+                });
+
+            if (!initialized) pendingOperations.push(operation);
+            else operation();
         },
 
-        track(event: string, properties?: Record<string, any>) {
+        track<Event extends AnalyticsEventName>(
+            event: Event,
+            properties?: AnalyticsEventMap[Event],
+        ) {
             if (!enabled) return;
 
-            log('Track:', event, properties);
+            const eventProperties = { ...(properties ?? {}), ...context };
+            log('Track:', event, eventProperties);
 
-            providers.forEach((provider) => {
-                try {
-                    provider.track(event, properties);
-                } catch (error) {
-                    reportError(error, '[Analytics] Track failed:');
-                }
-            });
+            const operation = () =>
+                providers.forEach((provider) => {
+                    try {
+                        provider.track(event, eventProperties);
+                    } catch (error) {
+                        reportError(error, '[Analytics] Track failed:');
+                    }
+                });
+
+            if (!initialized) pendingOperations.push(operation);
+            else operation();
         },
 
-        screen(screenName: string, properties?: Record<string, any>) {
+        screen(screenName: AnalyticsScreenName) {
             if (!enabled) return;
 
-            log('Screen:', screenName, properties);
+            const screenProperties = { ...context };
+            log('Screen:', screenName, screenProperties);
 
-            providers.forEach((provider) => {
-                try {
-                    provider.screen(screenName, properties);
-                } catch (error) {
-                    reportError(error, '[Analytics] Screen failed:');
-                }
-            });
+            const operation = () =>
+                providers.forEach((provider) => {
+                    try {
+                        provider.screen(screenName, screenProperties);
+                    } catch (error) {
+                        reportError(error, '[Analytics] Screen failed:');
+                    }
+                });
+
+            if (!initialized) pendingOperations.push(operation);
+            else operation();
         },
 
         reset() {

@@ -172,6 +172,7 @@ export const Header: FC<HeaderProps> = ({ exerciseInfo }) => {
                         name={exerciseInfo?.exercise.name ?? ''}
                         gifFilename={exerciseInfo?.exercise.gifFilename}
                         onOpen={handlePreviewOpen}
+                        analyticsSurface="active_workout"
                         containerStyle={styles.previewThumbnailContainer}
                     />
                 </Box>

@@ -193,9 +193,15 @@ const EditorForm: FC<EditorFormProps> = ({ existingWorkout }) => {
                 hasStartDate: Boolean(created.startAt),
                 hasReminder: Boolean(created.remind),
             });
+            if (created.remind) {
+                track('workout:reminder_scheduled', {
+                    leadTime: created.remind,
+                    source: 'create',
+                });
+            }
             if (created && created.status === 'in_progress') {
                 runInBackground(
-                    () => startWorkout(created.id),
+                    () => startWorkout(created.id, 'new'),
                     'Failed to auto-start newly created workout:',
                 );
             }
@@ -228,7 +234,18 @@ const EditorForm: FC<EditorFormProps> = ({ existingWorkout }) => {
                     },
                 },
                 {
-                    onSuccess: () => {
+                    onSuccess: (updated) => {
+                        const previousStartAt = existingWorkout.startAt?.getTime() ?? null;
+                        const updatedStartAt = updated.startAt?.getTime() ?? null;
+                        const reminderChanged =
+                            existingWorkout.remind !== updated.remind ||
+                            previousStartAt !== updatedStartAt;
+                        if (updated.remind && reminderChanged) {
+                            track('workout:reminder_scheduled', {
+                                leadTime: updated.remind,
+                                source: 'update',
+                            });
+                        }
                         router.back();
                     },
                 },

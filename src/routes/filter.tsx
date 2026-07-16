@@ -1,7 +1,10 @@
+import { useAnalyticsScreen } from '@/hooks/use-analytics-screen';
 import { FilterScreen } from '@/screens';
 
-const Guide = () => {
+const Filter = () => {
+    useAnalyticsScreen('exercise_filter');
+
     return <FilterScreen />;
 };
 
-export default Guide;
+export default Filter;

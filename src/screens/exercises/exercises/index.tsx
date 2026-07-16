@@ -6,7 +6,7 @@ import { router } from 'expo-router';
 import { Box } from '@/components/primitives/box';
 import { Title } from '@/components/typography/title';
 import { useExercisesList } from '@/hooks/use-exercises';
-import { useFilterStore } from '@/stores/filter';
+import { countActiveFilters, useFilterStore } from '@/stores/filter';
 import { useShallow } from 'zustand/shallow';
 
 import { Search } from './components/search';
@@ -46,6 +46,7 @@ const Exercises: FC = () => {
         () => ({ ownership, category, tracking, primaryMuscle }),
         [ownership, category, tracking, primaryMuscle],
     );
+    const activeFilterCount = countActiveFilters(filters);
 
     const { data: rawExercises, isLoading, isFetching, error } = useExercisesList(filters);
     const [query, setQuery] = useState('');
@@ -70,6 +71,7 @@ const Exercises: FC = () => {
                 mode="browse"
                 rawExercises={rawExercises}
                 query={deferredQuery}
+                activeFilterCount={activeFilterCount}
                 isLoading={isLoading || isFetching}
                 error={error}
                 onExercisePress={handleExercisePress}

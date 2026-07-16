@@ -16,6 +16,10 @@ import { isSyncEnabled } from '@/sync/config';
 import { refreshTokenIfNeeded } from '@/services/auth';
 import { queryClient } from '@/queries';
 import { useAppState } from '@/hooks/use-app-state';
+import { useAnalytics } from '@/hooks/use-analytics';
+import { storage } from '@/storage';
+
+type SyncTrigger = 'initial' | 'scheduled' | 'deferred' | 'manual';
 
 interface SyncState {
     isSyncing: boolean;
@@ -25,13 +29,14 @@ interface SyncState {
 
 interface SyncContextValue extends SyncState {
     isOnline: boolean;
-    sync: () => Promise<boolean>;
+    sync: (trigger?: SyncTrigger) => Promise<boolean>;
 }
 
 const MIN_SYNC_INTERVAL_MS = 30_000;
 const DEFERRED_SYNC_DELAY_MS = 30_000;
 const FAILURE_BACKOFF_BASE_MS = 30_000;
 const FAILURE_BACKOFF_MAX_MS = 10 * 60 * 1000;
+const HAS_COMPLETED_FIRST_SYNC_KEY = 'analytics.hasCompletedFirstSync';
 
 const syncContext = createContext<SyncContextValue>({} as SyncContextValue);
 
@@ -72,6 +77,9 @@ const useSyncProvider = () => {
     const lastSyncAttemptAtRef = useRef(0);
     const failedSyncAttemptsRef = useRef(0);
     const hasInitialSyncedRef = useRef(false);
+    const syncInFlightRef = useRef(false);
+    const lastSyncOutcomeRef = useRef<'success' | 'failure' | null>(null);
+    const { track, isEnabled: isAnalyticsEnabled } = useAnalytics();
 
     const networkState = useNetworkState();
     const { isInForeground } = useAppState();
@@ -87,50 +95,133 @@ const useSyncProvider = () => {
         return Math.min(FAILURE_BACKOFF_MAX_MS, backoff);
     }, []);
 
-    const sync = useCallback(async () => {
-        if (state.isSyncing || !isOnline) {
-            return false;
-        }
+    const trackSyncResult = useCallback(
+        (
+            args: {
+                outcome: 'success' | 'failure';
+                trigger: SyncTrigger;
+                durationMs: number;
+                pendingBefore: number;
+                pendingAfter: number;
+            },
+            hadPreviousSuccess: boolean,
+        ) => {
+            if (!isAnalyticsEnabled) return;
 
-        const now = Date.now();
-        const elapsedSinceLastAttempt = now - lastSyncAttemptAtRef.current;
-        const requiredDelay = getSyncBackoffMs();
-
-        if (lastSyncAttemptAtRef.current > 0 && elapsedSinceLastAttempt < requiredDelay) {
-            return false;
-        }
-
-        lastSyncAttemptAtRef.current = now;
-
-        setState((prev) => ({ ...prev, isSyncing: true }));
-
-        try {
-            await refreshTokenIfNeeded();
-
-            const success = await performSync();
-            failedSyncAttemptsRef.current = success ? 0 : failedSyncAttemptsRef.current + 1;
-
-            if (success) {
-                queryClient.invalidateQueries({ queryKey: ['exercises-list'] });
+            if (
+                !storage.getBoolean(HAS_COMPLETED_FIRST_SYNC_KEY) &&
+                (hadPreviousSuccess || args.outcome === 'success')
+            ) {
+                storage.set(HAS_COMPLETED_FIRST_SYNC_KEY, true);
+                if (args.outcome === 'success' && !hadPreviousSuccess) {
+                    track('sync:first_success', {
+                        trigger: args.trigger,
+                        durationMs: args.durationMs,
+                        pendingBefore: args.pendingBefore,
+                        pendingAfter: args.pendingAfter,
+                    });
+                }
             }
 
-            const stats = await getSyncStats();
+            if (lastSyncOutcomeRef.current !== args.outcome) {
+                lastSyncOutcomeRef.current = args.outcome;
+                track('sync:state_changed', args);
+            }
+        },
+        [isAnalyticsEnabled, track],
+    );
 
-            setState((prev) => ({
-                ...prev,
-                isSyncing: false,
-                lastSyncTime: stats.lastSyncTime,
-                pendingCount: stats.pendingCount,
-            }));
+    const sync = useCallback(
+        async (trigger: SyncTrigger = 'manual') => {
+            if (syncInFlightRef.current || state.isSyncing || !isOnline) {
+                return false;
+            }
 
-            return success;
-        } catch (error) {
-            failedSyncAttemptsRef.current += 1;
-            setState((prev) => ({ ...prev, isSyncing: false }));
-            reportError(error, 'Failed to perform sync:');
-            return false;
-        }
-    }, [getSyncBackoffMs, isOnline, state.isSyncing]);
+            const now = Date.now();
+            const elapsedSinceLastAttempt = now - lastSyncAttemptAtRef.current;
+            const requiredDelay = getSyncBackoffMs();
+
+            if (lastSyncAttemptAtRef.current > 0 && elapsedSinceLastAttempt < requiredDelay) {
+                return false;
+            }
+
+            lastSyncAttemptAtRef.current = now;
+            syncInFlightRef.current = true;
+            const startedAt = Date.now();
+            let pendingBefore = state.pendingCount;
+            let hadPreviousSuccess = false;
+
+            setState((prev) => ({ ...prev, isSyncing: true }));
+
+            try {
+                const beforeStats = await getSyncStats();
+                pendingBefore = beforeStats.pendingCount;
+                hadPreviousSuccess =
+                    beforeStats.lastSyncTime != null && beforeStats.lastSyncTime.getTime() > 0;
+                await refreshTokenIfNeeded();
+
+                const success = await performSync();
+                failedSyncAttemptsRef.current = success ? 0 : failedSyncAttemptsRef.current + 1;
+
+                if (success) {
+                    queryClient.invalidateQueries({ queryKey: ['exercises-list'] });
+                }
+
+                const stats = await getSyncStats();
+
+                trackSyncResult(
+                    {
+                        outcome: success ? 'success' : 'failure',
+                        trigger,
+                        durationMs: Math.max(0, Date.now() - startedAt),
+                        pendingBefore,
+                        pendingAfter: stats.pendingCount,
+                    },
+                    hadPreviousSuccess,
+                );
+
+                setState((prev) => ({
+                    ...prev,
+                    isSyncing: false,
+                    lastSyncTime: stats.lastSyncTime,
+                    pendingCount: stats.pendingCount,
+                }));
+
+                return success;
+            } catch (error) {
+                failedSyncAttemptsRef.current += 1;
+                let pendingAfter = pendingBefore;
+                try {
+                    pendingAfter = (await getSyncStats()).pendingCount;
+                } catch (statsError) {
+                    reportError(statsError, 'Failed to read sync stats after sync failure:');
+                }
+                trackSyncResult(
+                    {
+                        outcome: 'failure',
+                        trigger,
+                        durationMs: Math.max(0, Date.now() - startedAt),
+                        pendingBefore,
+                        pendingAfter,
+                    },
+                    hadPreviousSuccess,
+                );
+                reportError(error, 'Failed to perform sync:');
+                return false;
+            } finally {
+                syncInFlightRef.current = false;
+                setState((prev) =>
+                    prev.isSyncing
+                        ? {
+                              ...prev,
+                              isSyncing: false,
+                          }
+                        : prev,
+                );
+            }
+        },
+        [getSyncBackoffMs, isOnline, state.isSyncing, state.pendingCount, trackSyncResult],
+    );
 
     useEffect(() => {
         if (isOnline && !state.isSyncing && state.pendingCount > 0) {
@@ -139,7 +230,7 @@ const useSyncProvider = () => {
                 syncTimeoutRef.current = null;
             }
             syncTimeoutRef.current = setTimeout(() => {
-                runInBackground(sync, 'Failed to run deferred sync:');
+                runInBackground(() => sync('deferred'), 'Failed to run deferred sync:');
             }, DEFERRED_SYNC_DELAY_MS);
         }
 
@@ -161,7 +252,7 @@ const useSyncProvider = () => {
                 }));
                 // запускаем sync даже при нуле локальных изменений для pull'а с сервера
                 if (isOnline && !state.isSyncing) {
-                    runInBackground(sync, 'Failed to run scheduled sync:');
+                    runInBackground(() => sync('scheduled'), 'Failed to run scheduled sync:');
                 }
             } catch (error) {
                 reportError(error, 'Failed to poll sync stats:');
@@ -191,7 +282,7 @@ const useSyncProvider = () => {
     useEffect(() => {
         if (isOnline && isInForeground && !hasInitialSyncedRef.current) {
             hasInitialSyncedRef.current = true;
-            runInBackground(sync, 'Failed to run initial sync:');
+            runInBackground(() => sync('initial'), 'Failed to run initial sync:');
         }
     }, [isOnline, isInForeground, sync]);
 

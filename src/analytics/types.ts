@@ -65,6 +65,9 @@ export interface IAnalyticsConfig {
      * Debug mode
      */
     debug?: boolean;
+
+    /** Properties added to every event and screen view. */
+    context?: Record<string, string | number | boolean>;
 }
 
 /**

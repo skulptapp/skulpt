@@ -26,6 +26,7 @@ import Actions from '@/components/overlays/actions';
 import RestInput from '@/components/overlays/rest';
 import { RunningWorkoutProvider } from '@/hooks/use-running-workout';
 import { AnalyticsProvider } from '@/hooks/use-analytics';
+import { AnalyticsTracker } from '@/analytics/tracker';
 import { useHealthImporter } from '@/hooks/use-health-importer';
 import { PendingStoreReviewCoordinator } from '@/hooks/use-pending-store-review';
 import { StoreReviewGateProvider } from '@/hooks/use-store-review-gate';
@@ -197,6 +198,7 @@ const RootLayout: FC = () => {
                     <UserProvider>
                         <AnalyticsProvider>
                             <NotificationsProvider>
+                                <AnalyticsTracker />
                                 <AudioProvider>
                                     <App />
                                 </AudioProvider>

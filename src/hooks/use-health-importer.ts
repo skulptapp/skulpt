@@ -1,11 +1,12 @@
 import { useEffect, useRef } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 
 import type { UserSelect } from '@/db/schema';
 import { importLatestHealthForUser } from '@/services/health-importer';
 import { reportError } from '@/services/error-reporting';
 import { getPendingSyncOperationsCount } from '@/crud/sync';
+import { useAnalytics } from '@/hooks/use-analytics';
 
 const INITIAL_DELAY_MS = 2_000;
 const BACKGROUND_DELAY_MS = 20_000;
@@ -24,11 +25,13 @@ type IdleAPI = {
 
 export const useHealthImporter = (user: Pick<UserSelect, 'id'> | undefined): void => {
     const queryClient = useQueryClient();
+    const { track } = useAnalytics();
     const userIdRef = useRef<string | undefined>(user?.id);
     const runningRef = useRef(false);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const idleHandleRef = useRef<number | null>(null);
     const cancelledRef = useRef(false);
+    const lastPermissionGrantedRef = useRef<boolean | null>(null);
 
     useEffect(() => {
         userIdRef.current = user?.id;
@@ -105,6 +108,25 @@ export const useHealthImporter = (user: Pick<UserSelect, 'id'> | undefined): voi
 
                 const result = await importLatestHealthForUser(userId);
 
+                const permissionChanged =
+                    lastPermissionGrantedRef.current !== null &&
+                    lastPermissionGrantedRef.current !== result.permissionGranted;
+                lastPermissionGrantedRef.current = result.permissionGranted;
+
+                if (
+                    (result.importedCount > 0 || permissionChanged) &&
+                    (Platform.OS === 'ios' || Platform.OS === 'android')
+                ) {
+                    track('health:measurement_import_summary', {
+                        platform: Platform.OS,
+                        permissionGranted: result.permissionGranted,
+                        importedCount: result.importedCount,
+                        skippedCount: result.skippedCount,
+                        sampledCount: result.sampledCount,
+                        metricTypes: result.metricTypes,
+                    });
+                }
+
                 if (result.importedCount > 0) {
                     queryClient.invalidateQueries({ queryKey: ['measurements'] });
                 }
@@ -138,5 +160,5 @@ export const useHealthImporter = (user: Pick<UserSelect, 'id'> | undefined): voi
             clearIdleHandle();
             appStateSubscription.remove();
         };
-    }, [queryClient]);
+    }, [queryClient, track]);
 };
