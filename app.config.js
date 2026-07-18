@@ -50,6 +50,104 @@ module.exports = {
             NSSupportsLiveActivities: true,
             NSSupportsLiveActivitiesFrequentUpdates: true,
         },
+        privacyManifests: {
+            NSPrivacyTracking: false,
+            NSPrivacyCollectedDataTypes: [
+                {
+                    NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeCoarseLocation',
+                    NSPrivacyCollectedDataTypeLinked: true,
+                    NSPrivacyCollectedDataTypeTracking: false,
+                    NSPrivacyCollectedDataTypePurposes: [
+                        'NSPrivacyCollectedDataTypePurposeAnalytics',
+                    ],
+                },
+                {
+                    NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeHealth',
+                    NSPrivacyCollectedDataTypeLinked: true,
+                    NSPrivacyCollectedDataTypeTracking: false,
+                    NSPrivacyCollectedDataTypePurposes: [
+                        'NSPrivacyCollectedDataTypePurposeAppFunctionality',
+                        'NSPrivacyCollectedDataTypePurposeAnalytics',
+                    ],
+                },
+                {
+                    NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeFitness',
+                    NSPrivacyCollectedDataTypeLinked: true,
+                    NSPrivacyCollectedDataTypeTracking: false,
+                    NSPrivacyCollectedDataTypePurposes: [
+                        'NSPrivacyCollectedDataTypePurposeAppFunctionality',
+                        'NSPrivacyCollectedDataTypePurposeAnalytics',
+                    ],
+                },
+                {
+                    NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeOtherUserContent',
+                    NSPrivacyCollectedDataTypeLinked: true,
+                    NSPrivacyCollectedDataTypeTracking: false,
+                    NSPrivacyCollectedDataTypePurposes: [
+                        'NSPrivacyCollectedDataTypePurposeAppFunctionality',
+                    ],
+                },
+                {
+                    NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeUserID',
+                    NSPrivacyCollectedDataTypeLinked: true,
+                    NSPrivacyCollectedDataTypeTracking: false,
+                    NSPrivacyCollectedDataTypePurposes: [
+                        'NSPrivacyCollectedDataTypePurposeAppFunctionality',
+                        'NSPrivacyCollectedDataTypePurposeAnalytics',
+                    ],
+                },
+                {
+                    NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeDeviceID',
+                    NSPrivacyCollectedDataTypeLinked: true,
+                    NSPrivacyCollectedDataTypeTracking: false,
+                    NSPrivacyCollectedDataTypePurposes: [
+                        'NSPrivacyCollectedDataTypePurposeAppFunctionality',
+                        'NSPrivacyCollectedDataTypePurposeAnalytics',
+                    ],
+                },
+                {
+                    NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeProductInteraction',
+                    NSPrivacyCollectedDataTypeLinked: true,
+                    NSPrivacyCollectedDataTypeTracking: false,
+                    NSPrivacyCollectedDataTypePurposes: [
+                        'NSPrivacyCollectedDataTypePurposeAnalytics',
+                    ],
+                },
+                {
+                    NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeCrashData',
+                    NSPrivacyCollectedDataTypeLinked: true,
+                    NSPrivacyCollectedDataTypeTracking: false,
+                    NSPrivacyCollectedDataTypePurposes: [
+                        'NSPrivacyCollectedDataTypePurposeAppFunctionality',
+                    ],
+                },
+                {
+                    NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypePerformanceData',
+                    NSPrivacyCollectedDataTypeLinked: true,
+                    NSPrivacyCollectedDataTypeTracking: false,
+                    NSPrivacyCollectedDataTypePurposes: [
+                        'NSPrivacyCollectedDataTypePurposeAppFunctionality',
+                    ],
+                },
+                {
+                    NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeOtherDiagnosticData',
+                    NSPrivacyCollectedDataTypeLinked: true,
+                    NSPrivacyCollectedDataTypeTracking: false,
+                    NSPrivacyCollectedDataTypePurposes: [
+                        'NSPrivacyCollectedDataTypePurposeAppFunctionality',
+                    ],
+                },
+                {
+                    NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeOtherDataTypes',
+                    NSPrivacyCollectedDataTypeLinked: true,
+                    NSPrivacyCollectedDataTypeTracking: false,
+                    NSPrivacyCollectedDataTypePurposes: [
+                        'NSPrivacyCollectedDataTypePurposeAppFunctionality',
+                        'NSPrivacyCollectedDataTypePurposeAnalytics',
+                    ],
+                },
+            ],
+        },
     },
     locales: {
         en: './src/locale/translations/meta/en.json',
@@ -125,7 +223,7 @@ module.exports = {
         [
             'react-native-permissions',
             {
-                iosPermissions: ['AppTrackingTransparency', 'Notifications'],
+                iosPermissions: ['Notifications'],
             },
         ],
         [
