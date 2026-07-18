@@ -78,7 +78,7 @@ SQLite is the source of truth for the mobile app. Product writes complete locall
 
 Provider selection is currently a build-time setting. The public app does not expose a server URL field in Settings.
 
-SyncLayer is separate from other optional network integrations. PostHog, AppMetrica, and Sentry each have their own environment variable. Leave those variables unset when building without analytics or diagnostics. See [Build a local-only client](docs/LOCAL_ONLY.md) for the exact configuration and current exercise-catalogue limitation.
+SyncLayer is separate from other optional network integrations. PostHog and Sentry each have their own environment variable. Leave those variables unset when building without analytics or diagnostics. See [Build a local-only client](docs/LOCAL_ONLY.md) for the exact configuration and current exercise-catalogue limitation.
 
 Skulpt can copy authorised body measurements from HealthKit or Health Connect into its own `measurement` table. When SyncLayer is enabled, imported measurements follow the same optional sync path as measurements entered by hand. Skulpt does not copy or upload the complete contents of either health store.
 

@@ -81,7 +81,7 @@ Authorised body measurements copied into Skulpt are stored in the local `measure
 
 ### Analytics, diagnostics, and updates
 
-PostHog and AppMetrica are initialised only when their public keys are configured. Sentry uses `EXPO_PUBLIC_SENTRY_DSN`. Expo Updates uses the EAS project ID from the build configuration.
+PostHog is initialised only when its public key and host are configured. Sentry uses `EXPO_PUBLIC_SENTRY_DSN`. Expo Updates uses the EAS project ID from the build configuration.
 
 These services are separate from SyncLayer. A local-first build can still use any service whose variable is configured.
 

@@ -20,7 +20,6 @@ Also leave these optional service variables empty if the build should not initia
 
 ```dotenv
 EXPO_PUBLIC_POSTHOG_API_KEY=
-EXPO_PUBLIC_APPMETRICA_API_KEY=
 EXPO_PUBLIC_SENTRY_DSN=
 ```
 

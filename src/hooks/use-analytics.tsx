@@ -12,7 +12,7 @@ import Constants from 'expo-constants';
 import * as Application from 'expo-application';
 import * as Updates from 'expo-updates';
 import { createAnalyticsManager, AnalyticsManager } from '@/analytics/manager';
-import { createPostHogProvider, createAppMetricaProvider } from '@/analytics/providers';
+import { createPostHogProvider } from '@/analytics/providers';
 import {
     AnalyticsEventMap,
     AnalyticsEventName,
@@ -49,11 +49,6 @@ const AnalyticsProvider: FC<PropsWithChildren> = ({ children }) => {
         const posthogHost = process.env.EXPO_PUBLIC_POSTHOG_HOST;
         if (posthogKey && posthogHost) {
             providers.push(createPostHogProvider(posthogKey, posthogHost));
-        }
-
-        const appMetricaKey = process.env.EXPO_PUBLIC_APPMETRICA_API_KEY;
-        if (appMetricaKey) {
-            providers.push(createAppMetricaProvider(appMetricaKey));
         }
 
         if (providers.length === 0) return null;

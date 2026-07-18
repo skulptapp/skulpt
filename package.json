@@ -31,7 +31,6 @@
             "reactNativeDirectoryCheck": {
                 "exclude": [
                     "lodash",
-                    "@appmetrica/react-native-analytics",
                     "nanoid",
                     "nanoid-dictionary",
                     "qs",
@@ -49,7 +48,6 @@
         }
     },
     "dependencies": {
-        "@appmetrica/react-native-analytics": "^4.1.0",
         "@bacons/apple-targets": "^4.0.7",
         "@expo/metro-runtime": "~57.0.3",
         "@gorhom/bottom-sheet": "^5.2.14",

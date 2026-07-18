@@ -5,7 +5,6 @@
     "": {
       "name": "skulpt-app",
       "dependencies": {
-        "@appmetrica/react-native-analytics": "^4.1.0",
         "@bacons/apple-targets": "^4.0.7",
         "@expo/metro-runtime": "~57.0.3",
         "@gorhom/bottom-sheet": "^5.2.14",
@@ -125,8 +124,6 @@
   },
   "packages": {
     "@adobe/css-tools": ["@adobe/css-tools@4.5.0", "", {}, "sha512-6OzddxPio9UiWTCemp4N8cYLV2ZN1ncRnV1cVGtve7dhPOtRkleRyx32GQCYSwDYgaHU3USMm84tNsvKzRCa1Q=="],
-
-    "@appmetrica/react-native-analytics": ["@appmetrica/react-native-analytics@4.1.0", "", { "peerDependencies": { "react": "*", "react-native": ">=0.76.0 <1.0.0" } }, "sha512-vBrZDeA0kXjTNdRdnN1xJq5XZczDij5FUQaAzljXu/mv+wom/yXG7JpTe7OGkYpsxdd+6H+S/QTded7YEHALSQ=="],
 
     "@babel/code-frame": ["@babel/code-frame@7.29.7", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.29.7", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw=="],
 
